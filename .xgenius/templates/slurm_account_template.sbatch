@@ -20,6 +20,7 @@ rsync -avz {{IMAGE_PATH}} $SLURM_TMPDIR
 export PYTHONPATH=/src:$PYTHONPATH
 {{SINGULARITY_COMMAND}} exec --nv --writable-tmpfs \
         --env PYTHONPATH=/src \
+        --env PYTHONUNBUFFERED=1 \
         --bind {{CODE_DIR_IN_CLUSTER}}:/src \
         --bind {{OUTPUT_DIR_IN_CLUSTER}}:{{OUTPUT_DIR_IN_CONTAINER}} \
         $SLURM_TMPDIR/{{IMAGE_NAME}} \
