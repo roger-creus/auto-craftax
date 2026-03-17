@@ -18,7 +18,7 @@ rsync -avz {{IMAGE_PATH}} $SLURM_TMPDIR
 
 # 2. Executing your code with Apptainer
 export PYTHONPATH=/src:$PYTHONPATH
-{{SINGULARITY_COMMAND}} exec --nv \
+{{SINGULARITY_COMMAND}} exec --nv --writable-tmpfs \
         --env PYTHONPATH=/src \
         --bind {{CODE_DIR_IN_CLUSTER}}:/src \
         --bind {{OUTPUT_DIR_IN_CLUSTER}}:{{OUTPUT_DIR_IN_CONTAINER}} \
