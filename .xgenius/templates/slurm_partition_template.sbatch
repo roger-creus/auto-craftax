@@ -15,10 +15,10 @@ module load {{MODULES_TO_LOAD}}
 
 rsync -avz $SCRATCH/{{IMAGE_NAME}} $SLURM_TMPDIR
 
+export PYTHONPATH=/src:$PYTHONPATH
 {{SINGULARITY_COMMAND}} exec --nv \
-        -H {{CODE_DIR_IN_CLUSTER}} \
+        --env PYTHONPATH=/src \
         --bind {{CODE_DIR_IN_CLUSTER}}:/src \
         --bind {{OUTPUT_DIR_IN_CLUSTER}}:{{OUTPUT_DIR_IN_CONTAINER}} \
-        --workdir /src \
         $SLURM_TMPDIR/{{IMAGE_NAME}} \
         bash -c "cd /src && {{COMMAND}}"
