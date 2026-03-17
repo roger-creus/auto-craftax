@@ -1,0 +1,6 @@
+gymnasium[accept-rom-license,other]
+tyro
+tensorboard
+IPython
+wandb
+kron-torch

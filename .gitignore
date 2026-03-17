@@ -1,0 +1,33 @@
+*.pyc
+*.pt
+*.sif
+*.egg-info
+
+skill_gifs/
+craftax_data/
+bc_dataset/
+*bc_models/
+launchers/
+eval_*/
+bc_dataset_vlm/
+llm_logs/
+vlm_logs/
+skill_library.txt
+
+wandb/
+runs/
+# xgenius — transient state (don't commit)
+.xgenius/markers/
+.xgenius/watcher.log
+.xgenius/watcher.lock
+
+# Singularity/Apptainer containers (too large for git)
+*.sif
+
+# Common large/transient files
+wandb/
+runs/
+*.tfevents.*
+*.pt
+*.pth
+*.ckpt
