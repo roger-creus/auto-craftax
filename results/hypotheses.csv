@@ -1,1 +1,2 @@
 hypothesis_id,description,motivation,status,comment
+baseline,Run all 4 baseline algorithms (PPO PPO-LSTM PQN PQN-LSTM) at 1B steps,Establish performance baselines before attempting improvements,promising,12 jobs submitted (4 algos x 3 seeds x 1B steps). Pilot 10M results: PPO=9.1 PPO-LSTM=9.42 PQN=4.94. Full results pending ~12-22h.
