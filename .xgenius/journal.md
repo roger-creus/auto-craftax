@@ -1146,3 +1146,90 @@ NEXT SESSION PRIORITIES:
   6. Parse h021 1B (critical: our best method at scale)
   7. IMPORTANT: After h021 s2/s3 START running, sync code to narval/fir/rorqual
   8. If h023/h024/h025 beat h021 pilot (22.22), submit 1B runs immediately
+
+---
+**[2026-03-18 17:12 UTC]**
+
+=== SESSION: h020 result, h007 1B results, job redistribution ===
+
+Triggered by: h020-pilot-s1 (28246998, fir) SUCCESS.
+
+RESULTS PARSED:
+
+h020-pilot-s1 (PPO-LSTM + struct obs + PopArt + gamma=0.999):
+  avg_return=18.94, avg_length=977.92, wall=7457s (2.1h)
+  skeleton 80%, zombie 80%, iron 76%, coal 92%, 0% dungeon
+  VERDICT: CLOSED — PopArt hurts PPO-LSTM. 18.94 vs h021=22.22 (40% dungeon).
+  Agent becomes conservative/survival-focused with PopArt (long episodes but low return).
+
+h007-1B-s1 (GTrXL reference, rorqual):
+  avg_return=18.10, avg_length=1716, wall=32034s (8.9h)
+  skeleton 84%, zombie 84%, iron_sword 32%, iron_pickaxe 24%, 0% dungeon
+  VERDICT: FAR BELOW published 41.4 (18.3% achievements).
+
+h007-1B-s3 (GTrXL reference, fir):
+  avg_return=19.78, avg_length=1403, wall=32214s (8.9h)
+  skeleton 92%, zombie 80%, iron_sword 48%, iron_pickaxe 32%, 0% dungeon
+  VERDICT: Consistent with s1. GTrXL reference reproduction FAILS.
+
+CRITICAL FINDING — GTrXL REPRODUCTION FAILURE:
+  h007 1B: s1=18.10, s3=19.78 (mean ~18.94). Published reference: 41.4.
+  Our GTrXL implementation gets 54% LESS than published.
+  Possible causes: JAX vs PyTorch implementation differences, environment version mismatch,
+  or hyperparameter differences not documented in the reference code.
+  REGARDLESS: PPO-LSTM + struct obs (h021=22.22 at 200M) ALREADY BEATS GTrXL at 1B.
+  GTrXL track is OFFICIALLY A DEAD END. All future effort on LSTM track.
+
+INFRASTRUCTURE ACTIONS:
+  - Synced code (max_grad_norm fix) to ALL clusters (fir, rorqual, narval, nibi).
+  - Cancelled h021-1B-s2/s3 (which had --max-grad-norm 1.0 in command, would use wrong value
+    with new code) and resubmitted with explicit --max-grad-norm 0.5 to match pilot.
+  - h021-1B-s2: narval (57954150), h021-1B-s3: fir (28263884).
+  - h021-1B-s1: rorqual (8549623) already running with old code (effective 0.5) — unaffected.
+  - Cancelled h023/h024 from congested nibi (stuck pending 10min+ with Priority).
+  - Redistributed: h023→fir (28263893), h024→rorqual (8550716), h025→narval (57954238).
+
+PPO-LSTM PILOT COMPARISON (200M):
+  h021 (struct obs + gamma=0.999):              22.22 — 40% DUNGEON ← BEST
+  h020 (struct obs + PopArt + gamma=0.999):      18.94 — 0% dungeon (PopArt HURTS)
+  h022 (struct obs + PopArt + gamma=0.999 + 128steps): running on rorqual (~1.5h)
+  h023 (struct obs + gamma=0.999 + 128steps):    submitted to fir
+  h024 (struct obs + gamma=0.999 + ent=0.002):   submitted to rorqual
+  h025 (struct obs + gamma=0.999 + grad_norm=1.0): submitted to narval
+
+LEADERBOARD (all methods, best scores):
+  PPO-LSTM + struct obs (h021, 200M pilot): 22.22 ← BEST (40% dungeon entry!)
+  PPO-LSTM baseline (1B):                   33.88 ← Need to beat this at 1B
+  PPO baseline (1B):                        26.83
+  PQN-LSTM baseline (1B):                   24.23
+  PQN baseline (1B):                        20.95
+  GTrXL reference (h007, 1B):               18.94 (FAILED vs published 41.4)
+  GTrXL + struct obs + PopArt (h012, 200M): 17.74
+
+ACTIVE JOBS (16 total):
+  h021 1B (3): s1 rorqual(running 40min), s2 narval(just resubmitted), s3 fir(just resubmitted)
+  h022 pilot: rorqual(running 1.7h, PPO-LSTM+PopArt+128steps)
+  h023 pilot: fir(pending, PPO-LSTM+128steps)
+  h024 pilot: rorqual(pending, PPO-LSTM+ent=0.002)
+  h025 pilot: narval(pending, PPO-LSTM+grad_norm=1.0)
+  h007 1B s2: narval(running 9.5h, near completion)
+  h009 1B (3): rorqual(6.8h), narval(5.2h), fir(8.8h)
+  h012 1B (3): rorqual(6.8h), narval(5.2h), fir(6.8h)
+
+EXPECTED COMPLETIONS:
+  h007-s2: ~1h (GTrXL ref, will confirm failure pattern)
+  h022 pilot: ~0.5h
+  h009 1B: ~3-5h (struct obs GTrXL)
+  h012 1B: ~4-6h (struct obs + PopArt GTrXL)
+  h023-h025 pilots: will start after current jobs finish, ~2-3h total
+  h021 1B: ~8-12h from now (CRITICAL — our best method at scale)
+
+NEXT SESSION PRIORITIES:
+  1. Parse h022 pilot — does 128 steps help PPO-LSTM despite PopArt penalty?
+  2. Parse h023/h024/h025 pilots — which improvements help PPO-LSTM?
+  3. Parse h007-s2 (GTrXL, confirm failure)
+  4. Parse h009/h012 1B (GTrXL variants, for completeness)
+  5. CRITICAL: Parse h021 1B results — this is the main event!
+  6. Combine winners from h023-h025 and submit improved 1B run
+  7. Consider additional hypotheses: GAE lambda=0.95, ReLU+LN, lr tuning for LSTM
+  8. If h021 1B > 40, we're approaching game completion territory — focus on deeper floor strategies
