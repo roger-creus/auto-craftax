@@ -203,3 +203,57 @@ NEXT SESSION PRIORITIES:
   3. Parse LSTM baseline results (PPO-LSTM, PQN-LSTM)
   4. Based on GTrXL results, consider further ablations or new directions
   5. Key question: does our batched GTrXL match reference quality? h006 vs h007 comparison will show impact of architecture choices (2L/256h vs 3L/512h)
+
+---
+**[2026-03-18 03:30 UTC]**
+
+=== SESSION: Fix GTrXL dtype crash, resubmit all GTrXL pilots ===
+
+Triggered by: h007-pilot-s1 (57931443, narval) reported SUCCESS.
+
+FINDING: h007 actually CRASHED at ~131K steps (first PPO update) with:
+RuntimeError: where expected condition to be a boolean tensor, but got a tensor with dtype Float
+Root cause: dones storage tensor is float, but _compute_positions uses torch.where which needs bool.
+The crash happened in get_states_train (the batched training path). The rollout path (get_states)
+was fine because it converts to float explicitly. All 3 GTrXL experiments (h006, h007, h008) hit this bug.
+
+FIX: Added .bool() cast in _compute_positions at gtrxl.py:258. Committed and pushed.
+
+ACTIONS:
+1. Cancelled h006 (8509592, rorqual) — was running 16min, would have crashed at first PPO update
+2. Cancelled h008 (10520421, nibi) — was still pending
+3. Fixed bug, committed, pushed, synced to ALL 4 clusters
+4. Resubmitted all 3 GTrXL pilots:
+   - h006-pilot-s1 → rorqual (8510270): 512h/3L/64mem, 200M steps
+   - h007-pilot-s1 → nibi (10520783): reference config 256h/2L/128mem/gamma=0.999, 200M steps
+   - h008-pilot-s1 → fir (28214148): reference + gae_lambda=0.95, 200M steps
+
+REFERENCE CONFIG VERIFICATION (vs Reytuag/transformerXL_PPO_JAX):
+Our h007 matches exactly: lr=2e-4, anneal=True, num_envs=1024, num_steps=128,
+gamma=0.999, gae_lambda=0.8, ent=0.002, clip=0.2, vf=0.5, grad_norm=1.0,
+256h, 8heads, 2L, mem=128, update_epochs=4, minibatches=8, ReLU, gate_bias=2.0.
+One difference: reference uses WINDOW_GRAD=64 (truncated BPTT through last 64 steps only),
+we backprop through all 128. This shouldn't prevent learning but may affect memory/speed.
+
+WEB SEARCH FINDINGS:
+- SCALAR (LLM+RL hybrid): 88.2% diamond collection, 9.1% gnomish mines. Uses LLM for skill planning — out of scope for pure RL but ideas are interesting (frontier checkpointing, compositional GAE, mixture-of-experts).
+- AGaLiTe: Alternative to GTrXL, 40% cheaper inference, 50% less memory, performs similarly or better. But JAX-only, no PyTorch implementation.
+- M5 (model-based): 67.42% on Craftax-classic (different variant).
+
+CURRENT ACTIVE JOBS (9 total):
+Baselines (5 LSTM, all ~25min in, ~21h remaining):
+  - ppo-lstm-1B-s1 (rorqual), s2 (narval), s3 (nibi, pending)
+  - pqn-lstm-1B-s1 (fir), s2 (rorqual), s3 (narval)
+Hypothesis pilots (4):
+  - h004-pilot-s1 (fir): wider PPO 1024/ReLU/LN, ~24min in, ~1.5h remaining
+  - h006-pilot-s1 (rorqual): GTrXL 512h/3L, just submitted
+  - h007-pilot-s1 (nibi): GTrXL reference match, pending
+  - h008-pilot-s1 (fir): GTrXL ref+GAE, just started
+
+NEXT SESSION PRIORITIES:
+1. Parse h004 results (wider arch) — should complete first (~1.5h)
+2. Parse h006/h007/h008 GTrXL results (~4-8h)
+3. If h007 matches reference performance (~41/226 = 18.3%), immediately submit 1B × 3 seeds
+4. If h006 (larger GTrXL) beats h007, consider even larger models
+5. Parse LSTM baseline results when ready (~21h)
+6. Consider new hypotheses: observation encoding improvements, entropy scheduling, auxiliary losses

@@ -19,5 +19,13 @@ LSTM models apparently need more than 32G for 1B-step training. Previous session
 - s3 → job 28185700 on fir (48G)
 Partial data: s2 had avg_reward ~25 at 660M, s3 had avg_reward ~20 at 659M.
 
+## 2026-03-17 23:22 — GTrXL get_states_train crash: done tensor dtype
+All GTrXL experiments (h006, h007, h008) crashed at the first PPO update with:
+`RuntimeError: where expected condition to be a boolean tensor, but got a tensor with dtype Float`
+in `_compute_positions` at `gtrxl.py:258`. Root cause: `dones` storage tensor is float (line 105 of ppo_gtrxl.py)
+but `torch.where` expects bool. The rollout path (`get_states`) converts to float explicitly (line 182),
+so it works fine. The training path (`get_states_train`) passed raw float dones to `_compute_positions`.
+Fix: added `.bool()` cast in `_compute_positions`. Cancelled and resubmitted all 3 GTrXL pilots.
+
 ## 2026-03-17 00:08 — slurmstepd chdir warning (cosmetic, not fixed)
 `slurmstepd: error: couldn't chdir to '/home/rogercc/'/scratch/rogercc/auto-craftax''` still appears as a warning even after removing `-H`. This is a SLURM startup warning, not a fatal error — the actual training runs fine. The quotes around the path are likely from how xgenius expands template variables. Not blocking.
