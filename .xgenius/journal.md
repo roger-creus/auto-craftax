@@ -1875,3 +1875,56 @@ NEXT SESSION PRIORITIES:
   5. Parse 1B results as they complete: h009/h012 GTrXL (soon), h021/h023/h031 (~6-12h)
   6. If h041 or h043/h044 beat h032 (29.74), submit 1B x3 immediately
   7. Start evaluating whether we need 1B runs for the best combo once pilots stabilize
+
+---
+**[2026-03-18 21:08 UTC]**
+
+=== SESSION: h012-1B-s3 result — GTrXL+PopArt at 1B ===
+
+Triggered by: h012-1B-s3 (28234545, fir) SUCCESS.
+
+h012-1B-s3 (PPO-GTrXL + struct obs + PopArt, seed 3, 1B):
+  avg_return=23.62, avg_length=310, wall=37756s (10.5h)
+  48% dungeon entry! find_bow 44%, fire_bow 28%, sapphire 4%, iron_sword 16%
+  BEST GTrXL result at 1B — significantly better than h007 reference (mean=19.01)
+  PopArt+struct obs provides +24% over vanilla GTrXL at 1B
+  BUT still far below PPO-LSTM track (pilots 28-30 at only 200M)
+
+h012 STATUS: s3=23.62 complete. s1(rorqual ~1-3h remaining) s2(narval ~1-3h remaining).
+
+RUNNING JOBS SUMMARY (27 active):
+  COMBO PILOTS (THE KEY EXPERIMENTS):
+    h034 (LSTM+128+gae=0.95): fir, ~0.5-1h remaining
+    h037 (GRU+128): fir, ~1.5h remaining
+    h039 (GRU+grad=1.0): rorqual, ~1.5-2h remaining
+    h040 (GRU+128+grad=1.0): fir, ~2h remaining
+    h042 (GRU+ent anneal): rorqual, ~2.5h remaining
+    h043 (LSTM+ent+128+grad=1.0 ultimate): fir, ~2h remaining
+    h038 (LSTM+128+grad=1.0): narval, pending ~22:13 UTC
+    h044 (GRU+ent+128+grad=1.0 ultimate): narval, pending ~22:10 UTC
+    h041 (LSTM+ent+grad=1.0): nibi, pending (no start time yet)
+    h033/h035/h036: nibi pending (tomorrow 09:50-12:10)
+
+  1B RUNS:
+    h012-1B: s1/s2 near completion (~1-3h)
+    h009-1B-s2: narval ~1-2h remaining
+    h021-1B: 3 seeds ~6-8h remaining — first PPO-LSTM 1B results
+    h023-1B: 3 seeds ~8-11h remaining — LSTM+128steps at 1B
+    h031-1B: 2 running + 1 pending ~9-12h — GRU at 1B
+    h032-1B: 2 running + 1 pending ~10-13h — entropy annealing at 1B
+
+LEADERBOARD (200M pilots, current best):
+  h032 LSTM (ent anneal 0.03→0.005):  29.74, 80% dungeon — CURRENT BEST
+  h025 LSTM (grad=1.0):                28.58, 60% dungeon
+  h031 GRU (64 steps):                 28.54, 64% dungeon
+  h023 LSTM (128 steps):               26.82, 60% dungeon
+  h012 GTrXL+PopArt (1B):             23.62, 48% dungeon — best GTrXL at 1B
+  h021 LSTM (64 steps, baseline):      22.22, 40% dungeon
+
+NEXT SESSION PRIORITIES:
+  1. Parse combo pilot results (h034, h037, h039, h040, h042, h043) — completing in 1-3h
+  2. Parse h038/h041/h044 pilots when they start (narval ~22:13, nibi TBD)
+  3. Parse h012-1B s1/s2 to complete GTrXL analysis
+  4. Parse h021-1B results (first PPO-LSTM 1B data) — ~6-8h
+  5. If any combo pilot beats h032 (29.74), submit 1B x3 immediately
+  6. Consider cancelling nibi low-priority pilots (h033/h035/h036) if combo pilots show clear winner
