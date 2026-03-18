@@ -2008,3 +2008,64 @@ NEXT SESSION PRIORITIES:
   5. Parse h021-1B results (first PPO-LSTM 1B data) — ~4-10h
   6. If any combo pilot beats h032 (29.74), submit 1B x3 immediately
   7. Start thinking about next-level improvements if combo pilots plateau
+
+---
+**[2026-03-18 22:22 UTC]**
+
+=== SESSION: h037 pilot result — 128 steps HURTS GRU ===
+
+Triggered by: h037-pilot-s1 (28310386, fir) SUCCESS.
+
+h037-pilot-s1 (PPO-GRU + struct obs + gamma=0.999 + num_steps=128):
+  avg_return=26.98, avg_length=444, wall=6772s (1.9h)
+  56% dungeon entry. find_bow 56%, fire_bow 32%, sapphire 4%, iron_sword 40%.
+  VERDICT: CLOSED. 128 steps HURTS GRU by -5.5%.
+  WORSE than h031 GRU 64 steps (28.54, 64% dungeon).
+  Opposite of LSTM where 64→128 gave +20.7% (h023 vs h021).
+  GRU already efficient at 64 steps — halving gradient updates hurts more than extra context helps.
+
+UPDATED LEADERBOARD (200M pilots, unchanged):
+  h032 LSTM (ent anneal 0.03→0.005):     29.74, 80% dungeon — CURRENT BEST
+  h025 LSTM (grad=1.0):                   28.58, 60% dungeon
+  h031 GRU (64 steps):                    28.54, 64% dungeon
+  h023 LSTM (128 steps):                  26.82, 60% dungeon
+  h037 GRU (128 steps):                   26.98, 56% dungeon — NEW, GRU+128 WORSE than GRU+64
+  h021 LSTM (64 steps, baseline):          22.22, 40% dungeon
+
+KEY INSIGHT: GRU and LSTM respond differently to num_steps:
+  - LSTM: 64→128 = +20.7% (h023 vs h021) — LSTM benefits from longer context
+  - GRU: 64→128 = -5.5% (h037 vs h031) — GRU efficient at 64, halving updates hurts
+  Implication: h040 (GRU+128+grad=1.0) and h044 (GRU+ent+128+grad=1.0) are less promising since they include 128 steps.
+  GRU combos should use 64 steps: h039 (GRU+grad=1.0) and h042 (GRU+ent) are the key GRU experiments.
+
+ACTIVE JOBS STATUS (24 total: 19 running, 5 pending):
+  COMBO PILOTS (imminent — 30-90 min):
+    h039 (GRU+grad=1.0): rorqual 1h41m — finishing SOON ~20-30min
+    h040 (GRU+128+grad=1.0): fir 1h36m — ~30-60min (less interesting given h037 result)
+    h042 (GRU+ent anneal): rorqual 1h21m — ~40-60min KEY GRU EXPERIMENT
+    h043 (LSTM ent+128+grad=1.0 ultimate): fir 1h20m — ~40-60min THE KEY EXPERIMENT
+    h038 (LSTM+128+grad=1.0): narval 47m — ~1.5-2h remaining
+    h044 (GRU ent+128+grad=1.0 ultimate): narval 43m — ~2h remaining
+
+  1B RUNS (4-12h remaining):
+    h009-1B-s2: narval 10.4h — near completion (GTrXL, not important)
+    h012-1B-s2: narval 10.3h — near completion (GTrXL, not important)
+    h021-1B: 3 seeds ~4-10h remaining — first PPO-LSTM 1B data
+    h023-1B: 3 seeds ~6-10h remaining
+    h031-1B: 2 running + 1 nibi pending ~7-10h remaining
+    h032-1B: 3 seeds ~8-12h remaining
+
+  NIBI PENDING:
+    h031-1B-s3: no start time
+    h033 pilot: starts 2026-03-19 03:32 UTC
+    h035/h036 pilot: starts 2026-03-19 11:20-11:40 UTC
+    h041 pilot (LSTM+ent+grad=1.0): starts 2026-03-19 12:40 UTC — still important but h043 covers more ground
+
+NEXT SESSION PRIORITIES:
+  1. Parse h039 (GRU+grad=1.0) — does grad_norm=1.0 help GRU? Should finish first
+  2. Parse h040 (GRU+128+grad=1.0) — expect mediocre given 128 hurts GRU
+  3. Parse h042 (GRU+ent anneal) — does entropy annealing help GRU?
+  4. Parse h043 (LSTM ultimate: ent+128+grad=1.0) — THE KEY RESULT. If it beats h032 (29.74), submit 1B x3 ASAP
+  5. Parse h038 (LSTM+128+grad=1.0), h044 (GRU ultimate)
+  6. Parse h009-1B-s2, h012-1B-s2 to close out GTrXL track
+  7. Parse h021-1B results when ready (~4-10h) — first PPO-LSTM 1B data
