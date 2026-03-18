@@ -399,3 +399,73 @@ NEXT SESSION PRIORITIES:
   4. Parse LSTM baseline results when ready (~15h from now)
   5. Consider combining winning improvements (structured obs + entropy + best GAE)
   6. Future ideas from web research: Mamba-2 (8x less memory), AGaLiTe, PPG, auxiliary losses
+
+---
+**[2026-03-18 08:11 UTC]**
+
+=== SESSION: Parse GTrXL pilots, submit 1B runs, implement PopArt ===
+
+Triggered by: h006-pilot-s1 (8510270, rorqual) SUCCESS.
+
+PILOT RESULTS PARSED (200M steps, all on H100 3g.40gb unless noted):
+
+h006 (GTrXL 512h/3L, gamma=0.99, 64 steps): avg_reward=20.0
+  - Still climbing at 200M. Max episode return 42.1. SPS=15748 (2.5x slower than PPO)
+  - Wall 14176s (3.9h). Without gamma=0.999, memory alone doesn't beat baseline trajectory.
+
+h007 (GTrXL ref 256h/2L, gamma=0.999, 128 steps, ent=0.002):
+  - fir: avg_return=15.66, avg_length=455, wall=7080s (2.0h), SPS≈28248
+  - nibi: avg_return=15.50, avg_length=594, wall=6318s (1.8h)
+  - Consistent across runs. Slow start expected with gamma=0.999. Published ref gets 41.4 at 1B.
+
+h009 (ref + structured obs CNN): avg_return=16.14, avg_length=843.44
+  *** BEST IMPROVEMENT *** 
+  - Episodes 2x longer (843 vs 455) — agent survives much longer
+  - Zombie kills: 72% vs h007's 4% — CNN dramatically improves spatial combat awareness
+  - Also learns wake_up (92% vs 36%), plant eating (24% vs 4%)
+  - Wall 7451s (2.1h). CNN encoder preserves 9x11 spatial map structure.
+
+h010 (ref + entropy anneal 0.01→0.002): avg_return=16.06, avg_length=481.84
+  - Marginal improvement over h007 at 200M. May help more at 1B.
+
+h008 (ref + gae_lambda=0.95): Still running on narval A100 (~2.5h in, A100 slower than H100).
+
+ACTIONS TAKEN:
+
+1. Submitted h007 1B × 3 seeds: s1→rorqual(8523419), s2→narval(57938206), s3→fir(28225293)
+2. Submitted h009 1B × 3 seeds: s1→nibi(10524987), s2→nibi(10524988), s3→fir(28225909)
+3. Submitted h011 pilot (structured obs + entropy anneal) → nibi(10524990)
+4. Submitted h012 pilot (structured obs + PopArt) → fir(28225914)
+
+ENGINEERING: Implemented PopArt value normalization
+  - PopArtLayer: running mean/std of returns, automatic weight/bias rescaling
+  - Integrated into PPO_GTrXL_Agent via --use-popart flag
+  - Normalizes value targets during training, denormalizes during rollout for GAE
+  - Should stabilize value learning with gamma=0.999 (high-variance returns)
+
+CURRENT ACTIVE JOBS (18 total):
+  Baselines (6 LSTM, ~5h in, ~16h remaining):
+    ppo-lstm-1B: s1(rorqual), s2(narval), s3(nibi)
+    pqn-lstm-1B: s1(fir), s2(rorqual), s3(narval)
+  h007 1B (3): s1(rorqual), s2(narval), s3(fir) — just started, ~10h each
+  h008 pilot (1): narval, completing soon (~2.5h in)
+  h009 1B (3): s1(nibi), s2(nibi), s3(fir) — just submitted
+  h011 pilot (1): nibi — combo: structured obs + entropy anneal
+  h012 pilot (1): fir — combo: structured obs + PopArt
+  
+KEY FINDING: Structured observation encoder (h009) is the most impactful improvement so far.
+  The CNN that processes the 9x11x83 spatial map provides spatial awareness that flat MLP misses.
+  Agent learns combat positioning, enemy detection, and resource management much better.
+  At 1B with gamma=0.999, this could translate to a large performance gain.
+
+NOTE: git remote default branch is 'master', NOT 'main'. Always push to master.
+
+NEXT SESSION PRIORITIES:
+  1. Parse h008 results (GAE lambda comparison) — should be done
+  2. Parse h011, h012 pilot results (~2h from now)
+  3. CRITICAL: Wait for h007 1B and h009 1B results (6 jobs, ~10h each)
+  4. If h009 1B > h007 1B, structured obs is confirmed at scale
+  5. If h011 or h012 pilots beat h009, submit combined best at 1B
+  6. Parse LSTM baselines when ready (~16h)
+  7. Consider additional improvements: larger model + structured obs, auxiliary losses
+  8. IMPORTANT: h012 (PopArt) is novel — check if it helps or hurts stability
