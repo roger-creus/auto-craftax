@@ -58,10 +58,11 @@ class GTrXLLayer(nn.Module):
         self.gate1 = GRUGate(d_model)
         self.gate2 = GRUGate(d_model)
 
-    def forward(self, x, memory=None):
+    def forward(self, x, memory=None, attn_mask=None):
         """
         x: (seq_len, batch, d_model) - current segment
         memory: (mem_len, batch, d_model) or None - cached past states
+        attn_mask: optional pre-computed mask (overrides default causal mask)
 
         Returns: output (seq_len, batch, d_model)
         """
@@ -73,16 +74,17 @@ class GTrXLLayer(nn.Module):
         else:
             kv = x_norm
 
-        # Causal mask: prevent attending to future positions
-        seq_len = x.size(0)
-        total_len = kv.size(0)
-        # mask[i,j] = True means position i CANNOT attend to position j
-        causal_mask = torch.triu(
-            torch.ones(seq_len, total_len, device=x.device, dtype=torch.bool),
-            diagonal=total_len - seq_len + 1
-        )
+        if attn_mask is None:
+            # Default causal mask: prevent attending to future positions
+            seq_len = x.size(0)
+            total_len = kv.size(0)
+            # mask[i,j] = True means position i CANNOT attend to position j
+            attn_mask = torch.triu(
+                torch.ones(seq_len, total_len, device=x.device, dtype=torch.bool),
+                diagonal=total_len - seq_len + 1
+            )
 
-        attn_out, _ = self.attn(x_norm, kv, kv, attn_mask=causal_mask)
+        attn_out, _ = self.attn(x_norm, kv, kv, attn_mask=attn_mask)
         x = self.gate1(x, attn_out)
 
         # Pre-norm + FFN
@@ -217,12 +219,93 @@ class PPO_GTrXL_Agent(nn.Module):
         output = output.reshape(T * batch_size, self.hidden_size)
         return output, memory
 
+    def _compute_train_mask(self, done, mem_len, T, batch_size, device):
+        """Compute episode-aware causal attention mask for batched training.
+
+        Returns mask of shape (B*nhead, T, mem_len+T) where True = block attention.
+        """
+        nhead = self.layers[0].nhead
+
+        # episode_id[t, b] = cumulative count of done flags up to step t
+        # done[t]=True means obs[t] starts a new episode
+        episode_id = done.float().cumsum(dim=0)  # (T, B)
+        episode_id_t = episode_id.permute(1, 0)  # (B, T)
+
+        # Within-sequence: block future (causal) and cross-episode attention
+        causal = torch.triu(
+            torch.ones(T, T, device=device, dtype=torch.bool), diagonal=1
+        )  # (T, T)
+        ep_mask = episode_id_t.unsqueeze(1) != episode_id_t.unsqueeze(2)  # (B, T_q, T_kv)
+        seq_mask = causal.unsqueeze(0) | ep_mask  # (B, T, T)
+
+        # Memory: block if query is in a different episode than the initial one (episode 0)
+        if mem_len > 0:
+            mem_mask = (episode_id_t.unsqueeze(2) != 0).expand(-1, -1, mem_len)  # (B, T, mem_len)
+            full_mask = torch.cat([mem_mask, seq_mask], dim=2)  # (B, T, mem_len+T)
+        else:
+            full_mask = seq_mask  # (B, T, T)
+
+        # Expand for multi-head attention: (B*nhead, T, S)
+        full_mask = full_mask.unsqueeze(1).expand(-1, nhead, -1, -1)
+        full_mask = full_mask.reshape(batch_size * nhead, T, mem_len + T)
+        return full_mask
+
+    def _compute_positions(self, done, mem_len, T, batch_size, device):
+        """Compute per-environment positional indices accounting for done resets."""
+        positions = torch.zeros(T, batch_size, device=device, dtype=torch.long)
+        running_pos = torch.full((batch_size,), mem_len, device=device, dtype=torch.long)
+        for t in range(T):
+            running_pos = torch.where(done[t], torch.zeros_like(running_pos), running_pos)
+            positions[t] = running_pos
+            running_pos = running_pos + 1
+        return positions  # (T, B)
+
+    def get_states_train(self, x, memory, done):
+        """Process all T steps in parallel for training (batched attention).
+
+        Much faster than step-by-step get_states since it avoids the T-loop
+        through transformer layers. Uses episode-aware attention masking.
+        """
+        batch_size = memory[0].size(1)
+        h = self.input_proj(x)
+        T = h.size(0) // batch_size
+        h = h.reshape(T, batch_size, self.hidden_size)
+        done = done.reshape(T, batch_size)
+        mem_len = memory[0].size(0)
+
+        # Compute episode-aware attention mask
+        attn_mask = self._compute_train_mask(done, mem_len, T, batch_size, x.device)
+
+        # Compute per-environment positional encoding
+        positions = self._compute_positions(done, mem_len, T, batch_size, x.device)
+        h = h + self.pos_enc[positions]  # (T, B, H)
+
+        # Process through all transformer layers in parallel
+        layer_input = h  # (T, B, H)
+        for i, layer in enumerate(self.layers):
+            mem = memory[i] if memory[i].size(0) > 0 else None
+            if mem is not None:
+                mem_with_pos = self._add_pos_encoding(mem, memory_offset=0)
+            else:
+                mem_with_pos = None
+            layer_output = layer(layer_input, memory=mem_with_pos, attn_mask=attn_mask)
+            layer_input = layer_output
+
+        output = self.final_norm(layer_output)  # (T, B, H)
+        output = output.reshape(T * batch_size, self.hidden_size)
+        return output, memory  # memory unchanged during training
+
     def get_value(self, x, memory, done):
         hidden, _ = self.get_states(x, memory, done)
         return self.critic_head(hidden)
 
     def get_action_and_value(self, x, memory, done, action=None):
-        hidden, memory = self.get_states(x, memory, done)
+        if action is not None:
+            # Training: use batched path (all T steps in parallel)
+            hidden, memory = self.get_states_train(x, memory, done)
+        else:
+            # Rollout: use step-by-step path (correct memory updates)
+            hidden, memory = self.get_states(x, memory, done)
         logits = self.actor_head(hidden)
         probs = Categorical(logits=logits)
         if action is None:
