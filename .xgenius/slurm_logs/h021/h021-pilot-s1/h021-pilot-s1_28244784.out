@@ -1,0 +1,20 @@
+slurmstepd: error: couldn't chdir to `/home/rogercc/'/scratch/rogercc/auto-craftax'': No such file or directory: going to /tmp instead
+slurmstepd: error: couldn't chdir to `/home/rogercc/'/scratch/rogercc/auto-craftax'': No such file or directory: going to /tmp instead
+sending incremental file list
+auto-craftax.sif
+
+sent 19,797,219,387 bytes  received 35 bytes  425,746,654.24 bytes/sec
+total size is 19,808,600,064  speedup is 1.00
+WARNING: Environment variable PYTHONPATH already has value [/src], will not forward new value [/src:/cvmfs/soft.computecanada.ca/custom/python/site-packages] from parent process environment
+Failed to import warp: No module named 'warp'
+Failed to import mujoco_warp: No module named 'warp'
+/opt/conda/envs/skill/lib/python3.10/site-packages/tyro/_parsers.py:353: UserWarning: The field `target-kl` is annotated with type `<class 'float'>`, but the default value `None` has type `<class 'NoneType'>`. We'll try to handle this gracefully, but it may cause unexpected behavior.
+  warnings.warn(message)
+Running with num_envs=1024, num_steps=64, minibatch_size=8192
+using device cuda
+Processing Craftax textures. This will take a minute but will be cached for future use.
+Textures loaded and saved to cache.
+Traceback (most recent call last):
+  File "/src/src/rl/ppo_lstm.py", line 80, in <module>
+    use_popart=args.use_popart,
+AttributeError: 'PPO_Args' object has no attribute 'use_popart'

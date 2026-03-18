@@ -27,5 +27,13 @@ but `torch.where` expects bool. The rollout path (`get_states`) converts to floa
 so it works fine. The training path (`get_states_train`) passed raw float dones to `_compute_positions`.
 Fix: added `.bool()` cast in `_compute_positions`. Cancelled and resubmitted all 3 GTrXL pilots.
 
+## 2026-03-18 14:05 — PPO_Args missing use_popart field (h020/h021 crash)
+h020-pilot-s1 (fir, 28244784) and h021-pilot-s1 (rorqual, 8540190) both crashed immediately with:
+`AttributeError: 'PPO_Args' object has no attribute 'use_popart'`
+Root cause: `use_popart` was only defined in `GTrXL_Args` (subclass), not `PPO_Args` (base class).
+The ppo_lstm.py code at line 80 references `args.use_popart` but ppo_lstm uses `PPO_Args`.
+Fix: moved `use_popart: bool = False` from `GTrXL_Args` to `PPO_Args`. Committed as 4ca339b.
+Both jobs resubmitted: h020→nibi (10532814), h021→rorqual (8541287).
+
 ## 2026-03-17 00:08 — slurmstepd chdir warning (cosmetic, not fixed)
 `slurmstepd: error: couldn't chdir to '/home/rogercc/'/scratch/rogercc/auto-craftax''` still appears as a warning even after removing `-H`. This is a SLURM startup warning, not a fatal error — the actual training runs fine. The quotes around the path are likely from how xgenius expands template variables. Not blocking.

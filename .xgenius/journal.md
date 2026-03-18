@@ -809,3 +809,70 @@ NEXT SESSION PRIORITIES:
   6. Parse remaining LSTM baselines (ppo-lstm s2/s3, pqn-lstm s3)
   7. If h020 pilot is strong (>20), submit h020 1B × 3 seeds ASAP
   8. If h007 1B matches reference (41.4), our h012 improvements should exceed it
+
+---
+**[2026-03-18 14:14 UTC]**
+
+=== SESSION: h021 crash diagnosis, PPO_Args bug fix, resubmissions ===
+
+Triggered by: h021-pilot-s1 (28244784, fir) marked SUCCESS but actually CRASHED.
+
+BUG FIX: PPO_Args missing use_popart field
+  - h021-pilot-s1 crashed: AttributeError: 'PPO_Args' object has no attribute 'use_popart'
+  - h020-pilot-s1 also crashed (same bug, log only 317 bytes after 12min 'running')
+  - Root cause: use_popart was only in GTrXL_Args, not PPO_Args base class
+  - Fix: moved use_popart to PPO_Args (commit 4ca339b)
+  - Synced fix to all 4 clusters
+
+RESUBMISSIONS:
+  h020-pilot-s1 → nibi (10532814): PPO-LSTM + struct obs + PopArt + gamma=0.999
+  h021-pilot-s1 → rorqual (8541287): PPO-LSTM + struct obs + gamma=0.999 (no PopArt)
+  h019-pilot-s1 → fir (28245450): h012 config + LR warmup (was stuck pending on nibi until tomorrow)
+
+WEB RESEARCH:
+  - AGaLiTe (gated linear attention) beats GTrXL by 37% on harder Craftax tasks, 40% cheaper
+  - SCALAR (LLM+RL, Mar 2026) gets 88.2% diamond collection, 9.1% gnomish mines — but uses LLM guidance
+  - Reference GTrXL (Reytuag) at 4B steps reached floor 3 (sewers) — only marginal gains from 1B to 10B
+  - PPO-RNN outperforms PPO but struggles with harder achievements even at 10B steps
+
+ANALYSIS OF BASELINE ACHIEVEMENTS (PPO 1B):
+  PPO reaches dungeon 48-56% but NEVER gnomish mines (0%)
+  Crafts stone/iron tools, kills zombies/skeletons/orcs
+  Key bottleneck: agent can enter dungeon but can't progress past floor 1
+  
+AT 200M GTrXL PILOTS (no dungeon entry yet):
+  h012 best pilot (struct obs + PopArt): iron_pickaxe 24%, iron_sword 8%
+  h012 clearly learning crafting progression better than h007/h009
+
+CURRENT ACTIVE JOBS (19 total):
+  1B runs (9):
+    LSTM baselines: ppo-lstm s2(narval 11h), s3(nibi 8h), pqn-lstm s3(narval 11h)
+    h007 (reference GTrXL): s1(rorqual 6.5h), s2(narval 6.5h), s3(fir 6h)
+    h012 (struct obs + PopArt): s1(rorqual 3.8h), s2(narval 2.1h), s3(fir 3.7h)
+    h009 (struct obs): s1(rorqual 3.8h), s2(narval 2.1h), s3(fir 5.7h)
+  Pilots (7):
+    h015 (longer memory 256): narval, ~1.1h in
+    h016 (symlog two-hot): rorqual, ~1h in
+    h017 (PopArt fixes): fir, ~0.9h in
+    h018 (gamma anneal): narval, ~0.3h in
+    h019 (LR warmup): fir, just resubmitted
+    h020 (LSTM+struct obs+PopArt): nibi, just resubmitted
+    h021 (LSTM+struct obs): rorqual, just resubmitted
+
+EXPECTED COMPLETION TIMES (rough estimates based on 200M pilot walltimes):
+  h007 1B: ~10h total → ~3-4h remaining
+  h009 1B: ~10.5h total → ~5-7h remaining
+  h012 1B: ~11.5h total → ~7-8h remaining
+  h020/h021 pilots (200M): ~1.5-2h from now
+  h015-h019 pilots (200M): ~0.5-1.5h remaining
+
+NEXT SESSION PRIORITIES:
+  1. CRITICAL: Parse h007 1B results — does reference GTrXL match published 41.4?
+  2. Parse h009 1B and h012 1B — which variant wins at scale?
+  3. Parse h020/h021 pilots — does PPO-LSTM + struct obs work? Is PopArt needed?
+  4. Parse h015-h019 pilots — longer memory, symlog, fixed PopArt, gamma anneal, LR warmup
+  5. If h020 pilot is strong (>20 at 200M), submit h020 1B × 3 seeds IMMEDIATELY
+  6. If h012 1B is strong (>45), combine best from pilots and submit improved version
+  7. Key question: should we pursue GTrXL track or LSTM track? h007/h012 1B vs h020 will decide
+  8. Consider: AGaLiTe architecture as a potential improvement over GTrXL (would need PyTorch impl)
+
