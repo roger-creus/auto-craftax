@@ -17,13 +17,13 @@ from collections import deque
 from src.env.env import make_craftax_env
 from src.utils.logger import write_row_csv, make_training_csv_craftax_classic, make_training_csv_craftax, make_ppo_losses_csv, save_results_csv
 from src.models.gtrxl import PPO_GTrXL_Agent
-from src.utils.args import PPO_Args
+from src.utils.args import GTrXL_Args
 
 if __name__ == "__main__":
     import os
     os.environ["WANDB__SERVICE_WAIT"] = "300"
 
-    args = tyro.cli(PPO_Args)
+    args = tyro.cli(GTrXL_Args)
     args.batch_size = int(args.num_envs * args.num_steps)
     args.minibatch_size = int(args.batch_size // args.num_minibatches)
     args.num_iterations = args.total_timesteps // args.batch_size
@@ -72,11 +72,11 @@ if __name__ == "__main__":
     assert isinstance(envs.single_action_space, gym.spaces.Discrete), "only discrete action space is supported"
 
     # GTrXL architecture hyperparameters
-    trxl_hidden = args.hidden_size  # default 512, can override via --hidden-size
-    trxl_heads = 8
-    trxl_layers = 3
-    trxl_memory = args.num_steps  # memory length = rollout length (64)
-    trxl_mlp_layers = 2
+    trxl_hidden = args.hidden_size
+    trxl_heads = args.trxl_heads
+    trxl_layers = args.trxl_layers
+    trxl_memory = args.trxl_memory if args.trxl_memory > 0 else args.num_steps
+    trxl_mlp_layers = args.trxl_mlp_layers
 
     agent = PPO_GTrXL_Agent(
         obs_dim=np.array(envs.single_observation_space.shape).prod(),

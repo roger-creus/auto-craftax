@@ -90,7 +90,20 @@ class PPO_Args:
     """the mini-batch size (computed in runtime)"""
     num_iterations: int = 0
     """the number of iterations (computed in runtime)"""
-    
+
+
+@dataclass
+class GTrXL_Args(PPO_Args):
+    """PPO args extended with GTrXL-specific architecture parameters."""
+    trxl_layers: int = 3
+    """number of transformer layers"""
+    trxl_heads: int = 8
+    """number of attention heads"""
+    trxl_memory: int = -1
+    """transformer memory length (-1 = use num_steps)"""
+    trxl_mlp_layers: int = 2
+    """number of MLP layers in input projection"""
+
 
 @dataclass
 class PQN_Args:
