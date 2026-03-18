@@ -107,6 +107,8 @@ class GTrXL_Args(PPO_Args):
     """number of MLP layers in input projection"""
     ent_coef_end: float = -1.0
     """final entropy coefficient (-1 = no annealing, use ent_coef throughout)"""
+    use_popart: bool = False
+    """if toggled, use PopArt adaptive value normalization"""
 
 
 @dataclass

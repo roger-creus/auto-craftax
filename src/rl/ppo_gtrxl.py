@@ -87,6 +87,7 @@ if __name__ == "__main__":
         memory_len=trxl_memory,
         num_mlp_layers=trxl_mlp_layers,
         use_structured_obs=args.use_structured_obs,
+        use_popart=args.use_popart,
     ).to(device)
     print("-------------")
     print(agent)
@@ -238,7 +239,13 @@ if __name__ == "__main__":
 
                 # value loss
                 newvalue = newvalue.view(-1)
-                if args.clip_vloss:
+                if args.use_popart:
+                    # Update PopArt stats and normalize targets
+                    agent.critic_head.update_stats(b_returns[mb_inds].unsqueeze(-1))
+                    mb_returns_norm = agent.critic_head.normalize(b_returns[mb_inds].unsqueeze(-1)).squeeze(-1)
+                    mb_values_norm = agent.critic_head.normalize(b_values[mb_inds].unsqueeze(-1)).squeeze(-1)
+                    v_loss = 0.5 * ((newvalue - mb_returns_norm) ** 2).mean()
+                elif args.clip_vloss:
                     v_loss_unclipped = (newvalue - b_returns[mb_inds]) ** 2
                     v_clipped = b_values[mb_inds] + torch.clamp(
                         newvalue - b_values[mb_inds],

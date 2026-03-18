@@ -14,6 +14,59 @@ import numpy as np
 from torch.distributions import Categorical
 
 
+class PopArtLayer(nn.Module):
+    """PopArt adaptive value normalization (van Hasselt et al., 2016).
+
+    Wraps a linear layer and maintains running mean/std of targets.
+    Automatically rescales weights/bias when statistics update to preserve outputs.
+    """
+    def __init__(self, in_features, out_features=1, beta=3e-4):
+        super().__init__()
+        self.beta = beta
+        self.linear = nn.Linear(in_features, out_features)
+        nn.init.orthogonal_(self.linear.weight, 1.0)
+        nn.init.constant_(self.linear.bias, 0.0)
+
+        self.register_buffer('mu', torch.zeros(out_features))
+        self.register_buffer('sigma', torch.ones(out_features))
+        self.register_buffer('nu', torch.zeros(out_features))  # second moment
+        self.register_buffer('count', torch.zeros(1))
+
+    def forward(self, x):
+        """Returns normalized value prediction."""
+        return self.linear(x)
+
+    def denormalize(self, normalized_value):
+        """Convert normalized predictions back to original scale."""
+        return normalized_value * self.sigma + self.mu
+
+    def normalize(self, targets):
+        """Normalize targets using current statistics."""
+        return (targets - self.mu) / self.sigma
+
+    @torch.no_grad()
+    def update_stats(self, targets):
+        """Update running statistics and adjust weights to preserve outputs."""
+        old_mu = self.mu.clone()
+        old_sigma = self.sigma.clone()
+
+        # Update running mean and second moment
+        batch_mean = targets.mean(dim=0)
+        batch_nu = (targets ** 2).mean(dim=0)
+        self.mu = (1 - self.beta) * self.mu + self.beta * batch_mean
+        self.nu = (1 - self.beta) * self.nu + self.beta * batch_nu
+        self.sigma = (self.nu - self.mu ** 2).clamp(min=1e-4).sqrt()
+        self.count += 1
+
+        # Adjust linear layer to preserve output: W_new * x + b_new = old output
+        # old_output = W_old * x + b_old (in normalized space) => denorm = output * old_sigma + old_mu
+        # new normalized = (denorm - new_mu) / new_sigma
+        # So: W_new = W_old * (old_sigma / new_sigma), b_new = (old_sigma * b_old + old_mu - new_mu) / new_sigma
+        scale = old_sigma / self.sigma
+        self.linear.weight.data.mul_(scale.unsqueeze(1))
+        self.linear.bias.data.mul_(scale).add_((old_mu - self.mu) / self.sigma)
+
+
 def layer_init(layer, std=np.sqrt(2), bias_const=0.0):
     torch.nn.init.orthogonal_(layer.weight, std)
     torch.nn.init.constant_(layer.bias, bias_const)
@@ -108,11 +161,13 @@ class PPO_GTrXL_Agent(nn.Module):
         num_mlp_layers=2,
         d_ff=None,
         use_structured_obs=False,
+        use_popart=False,
     ):
         super().__init__()
         self.hidden_size = hidden_size
         self.memory_len = memory_len
         self.num_transformer_layers = num_transformer_layers
+        self.use_popart = use_popart
 
         if d_ff is None:
             d_ff = hidden_size * 4
@@ -139,7 +194,10 @@ class PPO_GTrXL_Agent(nn.Module):
 
         # Actor/Critic heads
         self.actor_head = layer_init(nn.Linear(hidden_size, n_actions), std=0.01)
-        self.critic_head = layer_init(nn.Linear(hidden_size, 1), std=1.0)
+        if use_popart:
+            self.critic_head = PopArtLayer(hidden_size, 1)
+        else:
+            self.critic_head = layer_init(nn.Linear(hidden_size, 1), std=1.0)
 
     @staticmethod
     def _make_pos_encoding(max_len, d_model):
@@ -302,7 +360,10 @@ class PPO_GTrXL_Agent(nn.Module):
 
     def get_value(self, x, memory, done):
         hidden, _ = self.get_states(x, memory, done)
-        return self.critic_head(hidden)
+        value = self.critic_head(hidden)
+        if self.use_popart:
+            value = self.critic_head.denormalize(value)
+        return value
 
     def get_action_and_value(self, x, memory, done, action=None):
         if action is not None:
@@ -315,4 +376,8 @@ class PPO_GTrXL_Agent(nn.Module):
         probs = Categorical(logits=logits)
         if action is None:
             action = probs.sample()
-        return action, probs.log_prob(action), probs.entropy(), self.critic_head(hidden), memory
+        value = self.critic_head(hidden)
+        if self.use_popart and action is None:
+            # During rollout, denormalize for GAE computation
+            value = self.critic_head.denormalize(value)
+        return action, probs.log_prob(action), probs.entropy(), value, memory
