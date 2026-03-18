@@ -73,6 +73,8 @@ class PPO_Args:
     """if toggled, use layer normalization in the MLP"""
     use_structured_obs: bool = False
     """if toggled, use CNN+MLP structured observation encoder instead of flat MLP"""
+    use_popart: bool = False
+    """if toggled, use PopArt adaptive value normalization"""
     optimizer: str = "adam"
     """the optimizer to use"""
     mlp_class: str = "mlp"
@@ -107,8 +109,6 @@ class GTrXL_Args(PPO_Args):
     """number of MLP layers in input projection"""
     ent_coef_end: float = -1.0
     """final entropy coefficient (-1 = no annealing, use ent_coef throughout)"""
-    use_popart: bool = False
-    """if toggled, use PopArt adaptive value normalization"""
     use_symlog: bool = False
     """if toggled, use symlog two-hot distributional value head (DreamerV3-style)"""
     gamma_start: float = -1.0
