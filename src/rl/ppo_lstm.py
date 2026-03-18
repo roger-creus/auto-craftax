@@ -28,8 +28,7 @@ if __name__ == "__main__":
     algo_name = "PPO-LSTM"
     run_name = f"algo:{algo_name}_env:{args.env_id}_seed:{args.seed}_{int(time.time())}"
 
-    args.max_grad_norm = 0.5
-    print(f"Running with num_envs={args.num_envs}, num_steps={args.num_steps}, minibatch_size={args.minibatch_size}")
+    print(f"Running with num_envs={args.num_envs}, num_steps={args.num_steps}, minibatch_size={args.minibatch_size}, max_grad_norm={args.max_grad_norm}")
 
     # Logging
     os.makedirs(f"./runs/{run_name}", exist_ok=True)

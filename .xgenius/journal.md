@@ -1076,3 +1076,73 @@ NEXT SESSION PRIORITIES:
   5. If h020 >> h021, PopArt helps LSTM too → submit h020 1B
   6. h021 1B results expected in ~8-12h
   7. Consider next hypotheses: intrinsic motivation, curriculum, hierarchical RL for deeper floors
+
+---
+**[2026-03-18 16:52 UTC]**
+
+=== SESSION: ppo-lstm-1B-s2 result, baselines complete, new pilots h023-h025 ===
+
+Triggered by: ppo-lstm-1B-s2 (57931207, narval) SUCCESS.
+
+RESULTS PARSED:
+
+ppo-lstm-1B-s2 @ 1B steps (narval A100):
+  Mean return (last 500 eps): 34.08 ± 9.62, running avg: 32.18, max: 50.1
+  73.6% >30, 34.6% >40, 0.2% >50. SPS: 20512. Wall: 49185s (13.7h).
+  Consistent with s1=33.32 and s3=34.25.
+
+pqn-lstm-1B-s2 @ 1B steps (fir H100):
+  Mean return: 27.66 ± 8.33, running avg: 25.14, max: 46.1
+  48.4% >30, 5.6% >40. SPS: 15890. Wall: 43555s (12.1h). Better than s1 (23.14).
+
+pqn-lstm-1B-s3 @ 1B steps (narval A100):
+  Mean return: 21.90 ± 4.44, running avg: 23.38, max: 39.1
+  8.4% >30. SPS: 21205. Wall: 41144s (11.4h). Long episodes (792).
+
+BASELINE LEADERBOARD (ALL COMPLETE, 1B steps):
+  PPO-LSTM: s1=33.32, s2=34.08, s3=34.25 — mean 33.88 ← BEST
+  PPO:      s1=28.06, s2=26.98, s3=25.46 — mean 26.83
+  PQN-LSTM: s1=23.14, s2=27.66, s3=21.90 — mean 24.23
+  PQN:      s1=21.54, s2=19.74, s3=21.58 — mean 20.95
+
+PILOT PROGRESS (RUNNING):
+  h020 (PPO-LSTM+struct+PopArt): fir, 88.5% done, running avg ~17 — BAD (vs h021=22.22)
+  h022 (PPO-LSTM+struct+PopArt+128steps): rorqual, ~30% done, logs not accessible yet
+
+CRITICAL BUG FOUND:
+  ppo_lstm.py line 31 had hardcoded args.max_grad_norm=0.5, overriding CLI --max-grad-norm.
+  h021 pilot and 1B runs effectively used 0.5 despite passing --max-grad-norm 1.0.
+  FIX APPLIED: Removed hardcoded override. Code synced to nibi only.
+  DO NOT sync to narval/fir/rorqual until h021 1B s2/s3 have STARTED — they use old code.
+
+WEB SEARCH FINDINGS:
+  - Intrinsic motivation (RND, ICM, E3B) does NOT help on Craftax (tested in original paper)
+  - Our h021 with 40% dungeon entry at 200M already exceeds published SOTA results
+  - AGaLiTe outperforms GTrXL but LSTM track is already better
+
+NEW HYPOTHESES SUBMITTED (all 200M pilots on nibi):
+  h023 (10536968): PPO-LSTM + struct obs + gamma=0.999 + num_steps=128 (no PopArt)
+    Tests longer rollouts for LSTM without PopArt (clean comparison vs h022 with PopArt)
+  h024 (10536969): PPO-LSTM + struct obs + gamma=0.999 + ent_coef=0.002
+    Tests lower entropy (0.002 vs default 0.01). GTrXL reference uses 0.002.
+  h025 (10536974): PPO-LSTM + struct obs + gamma=0.999 + max_grad_norm=1.0
+    Tests higher grad norm (1.0 vs effective 0.5 in h021). Uses fixed code.
+
+ACTIVE JOBS (15 total):
+  h021 1B (3): s1 rorqual(running 10min), s2 narval(pending), s3 fir(pending)
+  h007 1B GTrXL ref (3): s1-s3 running 8-9h (near completion)
+  h009 1B GTrXL struct obs (3): s1-s3 running 5-8h
+  h012 1B GTrXL best (3): s1-s3 running 5-6h
+  h020 pilot: fir, 88.5% done
+  h022 pilot: rorqual, ~30%
+  h023/h024/h025 pilots: nibi, just submitted
+
+NEXT SESSION PRIORITIES:
+  1. Parse h020 pilot (should be done) — confirms PopArt hurts PPO-LSTM
+  2. Parse h022 pilot — PopArt + 128 steps for LSTM
+  3. Parse h023/h024/h025 pilots — LSTM improvements
+  4. CRITICAL: Parse h007 1B — does reference GTrXL match published 41.4?
+  5. Parse h009/h012 1B — GTrXL improvements at scale
+  6. Parse h021 1B (critical: our best method at scale)
+  7. IMPORTANT: After h021 s2/s3 START running, sync code to narval/fir/rorqual
+  8. If h023/h024/h025 beat h021 pilot (22.22), submit 1B runs immediately
