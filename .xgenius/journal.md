@@ -469,3 +469,58 @@ NEXT SESSION PRIORITIES:
   6. Parse LSTM baselines when ready (~16h)
   7. Consider additional improvements: larger model + structured obs, auxiliary losses
   8. IMPORTANT: h012 (PopArt) is novel — check if it helps or hurts stability
+
+---
+**[2026-03-18 10:24 UTC]**
+
+=== SESSION: h012 BEST PILOT (17.74), submit 1B runs, redistribute stuck jobs ===
+
+Triggered by: h012-pilot-s1 (28225914, fir) SUCCESS.
+
+RESULTS PARSED:
+
+h012 (structured obs + PopArt) @ 200M steps:
+  avg_return=17.74, avg_length=467, wall=8270s (2.3h) on fir H100
+  *** BEST PILOT RESULT *** 
+  +13% over h007 reference (15.66), +10% over h009 structured obs alone (16.14)
+  PopArt adds +1.6 return on top of structured obs — stabilizes value learning with gamma=0.999
+  Achievements: skeleton 80%, zombie 80%, iron_sword 8%, iron_pickaxe 24%, coal 76%, iron 56%
+  Still 0% dungeon entry at 200M (expected with gamma=0.999, ref gets 18.3% dungeon at 1B)
+
+PILOT COMPARISON TABLE (all 200M steps, seed 1):
+  h007 (reference GTrXL):         15.66, length=455
+  h009 (+ structured obs):        16.14, length=843  (+3.1%)
+  h010 (+ entropy anneal):        16.06, length=482  (+2.6%)
+  h012 (+ struct obs + PopArt):   17.74, length=467  (+13.3%) ← BEST
+
+INFRASTRUCTURE ISSUES:
+- Nibi queue congested: h009-1B-s1, h009-1B-s2, h011-pilot all stuck pending ~6h
+  Cancelled all 3, redistributed to rorqual/narval/fir
+- h008 pilot disappeared 4x (fir+narval preemption). Resubmitted 5th attempt on rorqual.
+- h011 pilot resubmitted from nibi to fir (28234544)
+
+JOBS SUBMITTED THIS SESSION:
+  h009-1B-s1 → rorqual (8526711): structured obs, 1B steps
+  h009-1B-s2 → narval (57941361): structured obs, 1B steps
+  h011-pilot-s1 → fir (28234544): struct obs + entropy anneal, 200M pilot
+  h012-1B-s1 → rorqual (8526719): struct obs + PopArt, 1B steps
+  h012-1B-s2 → narval (57941362): struct obs + PopArt, 1B steps
+  h012-1B-s3 → fir (28234545): struct obs + PopArt, 1B steps
+  h013-pilot-s1 → rorqual (8526750): struct obs + PopArt + entropy anneal, 200M pilot
+  h008-pilot-s1 → rorqual (8526751): ref + gae_lambda=0.95, 200M pilot (5th attempt)
+
+FULL JOB STATUS (18 total — 10 running, 8 queued):
+  Running (10):
+    LSTM baselines (6): ~7h in, ~14h remaining
+    h007 1B (3): ~2.5h in, ~7.5h remaining
+    h009-1B-s3 (1): ~2h in on fir
+  Queued (8): h009-1B-s1, h009-1B-s2, h011-pilot, h012-1B×3, h013-pilot, h008-pilot
+
+NEXT SESSION PRIORITIES:
+  1. CRITICAL: Parse h007 1B results when complete (~7.5h) — this is the reference baseline for GTrXL
+  2. Parse h009/h012 1B results as they complete (~10-12h)
+  3. If h012 1B significantly beats h007 1B, structured obs + PopArt is confirmed at scale
+  4. Parse h011/h013 pilots to decide if entropy annealing is worth adding to 1B
+  5. Parse LSTM baselines (~14h remaining)
+  6. Consider next-gen hypotheses: larger model (512h), longer memory (256), auxiliary losses
+  7. Key milestone: does h012 1B beat the 18.3% reference (41.4/226)?
