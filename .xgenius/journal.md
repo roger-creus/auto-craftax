@@ -2069,3 +2069,49 @@ NEXT SESSION PRIORITIES:
   5. Parse h038 (LSTM+128+grad=1.0), h044 (GRU ultimate)
   6. Parse h009-1B-s2, h012-1B-s2 to close out GTrXL track
   7. Parse h021-1B results when ready (~4-10h) — first PPO-LSTM 1B data
+
+---
+**[2026-03-18 22:41 UTC]**
+
+=== SESSION: h040 pilot result — NEW BEST at 200M ===
+
+Triggered by: h040-pilot-s1 (28315857, fir) SUCCESS.
+
+h040-pilot-s1 (PPO-GRU + struct obs + gamma=0.999 + num_steps=128 + max_grad_norm=1.0):
+  avg_return=30.86, avg_length=552, wall=6624s (1.84h)
+  76% dungeon entry! find_bow 72%, fire_bow 60%, collect_diamond 8%, ruby 20%
+  make_diamond_pickaxe 4%, iron_sword 24%, iron_pickaxe 24%, drink_potion 28%
+  VERDICT: NEW BEST PILOT — beats h032 (29.74, 80% dungeon) by +3.8% in return.
+
+KEY INSIGHT: grad_norm=1.0 is a MASSIVE improvement for GRU (not just LSTM):
+  - h031 GRU 64s, grad=0.5: 28.54, 64% dungeon
+  - h037 GRU 128s, grad=0.5: 26.98, 56% dungeon (128 hurts by -5.5%)
+  - h040 GRU 128s, grad=1.0: 30.86, 76% dungeon (+8.1% over h031, +14.4% over h037)
+  grad_norm=1.0 completely overcomes the 128-step penalty and then some.
+
+UPDATED LEADERBOARD (200M pilots):
+  h040 GRU (128s+grad=1.0):              30.86, 76% dungeon — NEW BEST
+  h032 LSTM (ent anneal 0.03→0.005):     29.74, 80% dungeon
+  h025 LSTM (grad=1.0):                   28.58, 60% dungeon
+  h031 GRU (64 steps):                    28.54, 64% dungeon
+  h023 LSTM (128 steps):                  26.82, 60% dungeon
+  h021 LSTM (64 steps, baseline):          22.22, 40% dungeon
+
+STILL RUNNING (key combo pilots, ~30-90min remaining):
+  h039 (GRU+64s+grad=1.0): rorqual 2h — if GRU+grad=1.0 helps at 64 steps too, could be even better
+  h042 (GRU+ent anneal): rorqual 1h40m — entropy annealing for GRU
+  h043 (LSTM ent+128+grad=1.0 ultimate): fir 1h38m — THE OTHER KEY EXPERIMENT
+  h038 (LSTM+128+grad=1.0): narval 1h5m — LSTM analog of h040
+  h044 (GRU ent+128+grad=1.0 ultimate): narval 1h — GRU ultimate combo
+
+1B RUNS (4-14h remaining):
+  h009-1B-s2/h012-1B-s2: narval ~near completion (GTrXL, closing out)
+  h021-1B: 3 seeds 4-10h — first PPO-LSTM 1B data
+  h023-1B: 3 seeds 6-10h — LSTM+128 at 1B
+  h031-1B: 2 running + 1 pending 7-10h — GRU at 1B
+  h032-1B: 3 seeds 8-12h — entropy annealing at 1B
+
+DECISION: Wait for remaining combo pilots (h039, h042, h043, h044) before submitting 1B runs for h040.
+If h043 (LSTM ultimate) or h044 (GRU ultimate) beats h040, submit that instead.
+Key question: does h039 (GRU+64s+grad=1.0) beat h040 (GRU+128s+grad=1.0)?
+If yes, then GRU at 64 steps with grad=1.0 is the optimal config.
