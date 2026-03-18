@@ -667,3 +667,69 @@ NEXT SESSION PRIORITIES:
   5. Parse LSTM baselines — PPO-LSTM still running (~10h each)
   6. h007 1B should complete first (~5h remaining), then h012 1B (~8h), then h009 1B (~8h)
   7. Submit best pilot winner at 1B × 3 seeds immediately
+
+---
+**[2026-03-18 13:21 UTC]**
+
+=== SESSION: h014 OOM closed, gamma annealing + LR warmup implemented, h018/h019 pilots submitted ===
+
+Triggered by: h014-pilot-s1 (28243162, fir) SUCCESS (but actually crashed).
+
+h014 (512h/3L + struct obs + PopArt) @ 200M: CRASHED (CUDA OOM)
+  - Only ran 131K steps (0.07% of 200M) before OOM on 40GB MIG partition
+  - 13.5M params too large. SPS=1317 (vs ~24K for 256h/2L)
+  - Even on full 80GB GPU, 200M would take ~42h — not viable
+  - CLOSED. Larger models need either model parallelism or architectural changes (linear attention)
+
+h017 (PopArt bug fixes): Cancelled on nibi (stuck pending), resubmitted to fir (28243525)
+
+ENGINEERING: Implemented gamma annealing + LR warmup
+  1. Gamma annealing: --gamma-start 0.99 anneals from 0.99→0.999 over --gamma-anneal-frac (default 20%) of training
+     Motivation: gamma=0.999 causes slow early learning (h007: 15.66 at 200M vs PPO: 26.83 at 1B).
+     Starting with gamma=0.99 gives fast overworld mastery, then 0.999 enables long-horizon planning.
+  2. LR warmup: --lr-warmup-frac 0.05 warms LR from 0 to max over first 5% of training
+     Standard practice for transformer training stability.
+
+WEB RESEARCH KEY FINDINGS:
+  - RND/ICM/E3B intrinsic motivation FAILS on Craftax (dense reward makes it a distraction)
+  - AGaLiTe (gated linear attention) beats GTrXL but is JAX-only
+  - Reference GTrXL (Reytuag) trains 5M params in 6.5h on A100 for 1B steps
+  - DeepMind MBRL gets 67.42% on Craftax-Classic (but that's image-based, not symbolic)
+
+NEW PILOTS SUBMITTED:
+  h018-pilot-s1 → nibi (10531235): h012 + gamma annealing 0.99→0.999 over 20% training
+  h019-pilot-s1 → nibi (10531237): h012 + LR warmup 5% of training
+
+CURRENT ACTIVE JOBS (19 total — 17 running, 2 pending):
+  Baselines (4):
+    ppo-lstm-1B: s1(rorqual 10h), s2(narval 10h), s3(nibi 7h)
+    pqn-lstm-1B: s3(narval 10h)
+  h007 1B (3, ~5.5h elapsed): s1(rorqual), s2(narval), s3(fir 5h)
+  h009 1B (3, 1-5h elapsed): s1(rorqual), s2(narval), s3(fir)
+  h012 1B (3, 1-3h elapsed): s1(rorqual), s2(narval), s3(fir)
+  Pilots (6):
+    h015 (longer memory 256): narval, ~8min in
+    h016 (symlog two-hot): rorqual, ~5min in
+    h017 (PopArt fixes): fir, just submitted
+    h018 (gamma annealing): nibi, just submitted
+    h019 (LR warmup): nibi, just submitted
+
+PILOT RANKING SO FAR (200M steps):
+  h012 (struct obs + PopArt):       17.74 ← BEST
+  h013 (+ entropy anneal):          16.82
+  h011 (struct obs + ent anneal):   16.70
+  h009 (struct obs only):           16.14
+  h010 (entropy anneal only):       16.06
+  h007 (reference GTrXL):           15.66
+  h008 (gae_lambda=0.95):           14.26 ← WORST
+  h014 (larger 512h/3L):            CRASHED (OOM)
+
+NEXT SESSION PRIORITIES:
+  1. CRITICAL: Parse h007 1B results — does reference GTrXL match 18.3% (41.4/226)?
+  2. Parse h009 1B and h012 1B — which variant wins at scale?
+  3. Parse h015/h016/h017 pilots — longer memory, symlog, fixed PopArt
+  4. Parse h018/h019 pilots — gamma annealing, LR warmup
+  5. If h012 1B is strong (>45), submit best combo at 1B × 3 seeds
+  6. If h017 >> h012, the PopArt bug fix is critical — resubmit h012 1B with fixes
+  7. h007 1B should complete first (~4-5h remaining)
+  8. Consider: if gamma annealing works (h018), combine with best value head (PopArt/symlog)
