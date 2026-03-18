@@ -1480,3 +1480,66 @@ NEXT SESSION PRIORITIES:
   4. CRITICAL: Parse h021 1B results (~8-12h) — THE MAIN EVENT
   5. If any pilot significantly beats h021 (22.22), submit combined best at 1B
   6. If h021 1B > 40, focus on deeper floor strategies
+
+---
+**[2026-03-18 19:13 UTC]**
+
+=== SESSION: h023 pilot result — MASSIVE BREAKTHROUGH ===
+
+Triggered by: h023-pilot-s1 (28263893, fir) SUCCESS.
+
+h023-pilot-s1 (PPO-LSTM + struct obs + gamma=0.999 + 128 steps, NO PopArt):
+  avg_return=26.82, avg_length=572, wall=7145s (2.0h)
+  60% dungeon entry! (vs h021 40%, h022 0%)
+  find_bow 52%, fire_bow 44%, collect_diamond 12%, collect_ruby 8%
+  iron_sword 36%, iron_pickaxe 24%, skeleton 60%, zombie 60%
+  
+  VERDICT: BEST PILOT EVER. +20.7% over h021 (22.22). Already matches PPO baseline at 1B (26.83) at only 200M steps!
+
+KEY INSIGHT — 128 steps is the biggest single improvement found:
+  h021 (64 steps, no PopArt):  22.22, 40% dungeon
+  h023 (128 steps, no PopArt): 26.82, 60% dungeon  (+20.7%)
+  h022 (128 steps, WITH PopArt): 18.78, 0% dungeon (terrible)
+  CONCLUSION: 128 steps is a massive win. PopArt is harmful. The combination is clear.
+
+SUBMITTED h023 1B x 3 seeds:
+  s1 → nibi (10542951) — cluster was empty, should start immediately
+  s2 → fir (28287927) — queued behind h028/h031 pilots (~1h)
+  s3 → narval (57959723) — queued behind other pilots (~1-2h)
+
+STILL RUNNING (17 jobs from before + 3 new h023 1B = 20 total):
+  1B CRITICAL:
+    h021-1B: s1(rorqual 2.5h), s2(narval 1.2h), s3(fir 1.8h) — ~8-12h remaining
+    h023-1B: s1(nibi, just submitted), s2(fir queued), s3(narval queued) — ~10-13h total
+    h009-1B: s1(rorqual 9h), s2(narval 7h) — ~1-4h remaining (GTrXL, for completeness)
+    h012-1B: s1(rorqual 9h), s2(narval 7h), s3(fir 9h) — ~1-4h remaining (GTrXL)
+  
+  PPO-LSTM PILOTS (200M, completing in 0.5-2h):
+    h024 (ent=0.002): rorqual 2h
+    h025 (grad_norm=1.0): narval 1.2h
+    h026 (ReLU+LN): narval 1.7h
+    h027 (lr=3e-4): narval 1.7h
+    h028 (gae_lambda=0.9): fir 1.1h
+    h029 (num_envs=2048): rorqual 1.1h
+    h030 (gae_lambda=0.95): rorqual 1h
+    h031 (GRU): fir 1h
+    h032 (entropy annealing): narval 0.9h
+
+IMPORTANT: h028-h032 pilots test tweaks on 64-step config. If any show significant improvement over h021 (22.22), the next step is to combine that tweak WITH 128 steps (h023 config). For example, if h030 (gae_lambda=0.95) beats h021, submit h033 = h023 + gae_lambda=0.95.
+
+UPDATED LEADERBOARD:
+  h023 (200M pilot): 26.82, 60% dungeon — BEST EVER, 1B submitted
+  PPO-LSTM baseline (1B): 33.88 — target to beat at 1B
+  PPO baseline (1B): 26.83 — h023 ALREADY MATCHES at 200M!
+  h021 (200M pilot): 22.22, 40% dungeon — 1B running
+  PQN-LSTM baseline (1B): 24.23
+  PQN baseline (1B): 20.95
+  GTrXL h009 (1B): 20.38, 4% dungeon
+  GTrXL h007 (1B): 19.01, 0% dungeon — DEAD
+
+NEXT SESSION PRIORITIES:
+  1. Parse h024-h032 pilot results as they complete
+  2. Parse h009/h012 1B (GTrXL, for completeness)
+  3. If any pilot tweak beats h021 by >10%, combine with 128 steps and submit as h033+
+  4. CRITICAL: Parse h021 1B and h023 1B when they arrive (~10h)
+  5. If h023 1B > 40, start investigating deeper floor strategies (hierarchical RL, auxiliary losses)
