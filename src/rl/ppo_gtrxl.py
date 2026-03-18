@@ -204,6 +204,11 @@ if __name__ == "__main__":
         envinds = np.arange(args.num_envs)
         flatinds = np.arange(args.batch_size).reshape(args.num_steps, args.num_envs)
         clipfracs = []
+
+        # Update PopArt stats ONCE per iteration (not per-minibatch)
+        if args.use_popart:
+            agent.critic_head.update_stats(b_returns.unsqueeze(-1))
+
         for epoch in range(args.update_epochs):
             np.random.shuffle(envinds)
             for start in range(0, args.num_envs, envsperbatch):
@@ -240,8 +245,7 @@ if __name__ == "__main__":
                 # value loss
                 newvalue = newvalue.view(-1)
                 if args.use_popart:
-                    # Update PopArt stats and normalize targets
-                    agent.critic_head.update_stats(b_returns[mb_inds].unsqueeze(-1))
+                    # Normalize targets using stats updated once per iteration (above)
                     mb_returns_norm = agent.critic_head.normalize(b_returns[mb_inds].unsqueeze(-1)).squeeze(-1)
                     mb_values_norm = agent.critic_head.normalize(b_values[mb_inds].unsqueeze(-1)).squeeze(-1)
                     v_loss = 0.5 * ((newvalue - mb_returns_norm) ** 2).mean()
