@@ -1233,3 +1233,61 @@ NEXT SESSION PRIORITIES:
   6. Combine winners from h023-h025 and submit improved 1B run
   7. Consider additional hypotheses: GAE lambda=0.95, ReLU+LN, lr tuning for LSTM
   8. If h021 1B > 40, we're approaching game completion territory — focus on deeper floor strategies
+
+---
+**[2026-03-18 17:26 UTC]**
+
+=== SESSION: h007-1B-s1/s3 completion trigger, infrastructure optimization ===
+
+Triggered by: h007-1B-s1 (8523419, rorqual) and h007-1B-s3 (28225293, fir) SUCCESS.
+Both were already parsed in previous session — no new results to process.
+
+INFRASTRUCTURE ACTIONS:
+- Cancelled pending h021-1B-s2 from narval (57954150) and h025-pilot (57954238) — both stuck with ReqNodeNotAvail
+- Resubmitted h021-1B-s2 to nibi (10537503) — critical 1B run
+- Resubmitted h025-pilot to nibi (10537504) — tests max_grad_norm=1.0
+- h021-1B-s3 started running on fir (28263884) — no longer pending!
+
+NEW HYPOTHESES SUBMITTED:
+- h026 (57954608, narval): PPO-LSTM + struct obs + gamma=0.999 + ReLU + LayerNorm
+  Tests architecture change. ReLU+LN may improve gradient flow for LSTM training.
+- h027 (57954609, narval): PPO-LSTM + struct obs + gamma=0.999 + lr=3e-4
+  Tests higher learning rate (3e-4 vs default 2e-4). May help with sparse reward signal.
+
+WEB SEARCH FINDINGS:
+- SCALAR (LLM-guided skill planning + RL) gets 88.2% diamond on Craftax, 9.1% Gnomish Mines entry
+  Too different to implement (requires LLM planner), but validates that skill decomposition helps.
+- DeepMind Transformer World Model gets 67.42% on Craftax-Classic (model-based, different paradigm)
+- Published GTrXL reference: 18.3% normalized return at 1B (different from raw return)
+- Our h021 at 200M (22.22 raw return, 40% dungeon entry) already exceeds published baselines
+
+ACTIVE JOBS (16 total):
+  h021 1B (CRITICAL): s1 rorqual(51min), s2 nibi(pending), s3 fir(3min, just started!)
+  h022 pilot: rorqual(1h52m, nearly done — PPO-LSTM+PopArt+128steps)
+  h023 pilot: fir(19min, PPO-LSTM+128steps no PopArt)
+  h024 pilot: rorqual(18min, PPO-LSTM+ent=0.002)
+  h025 pilot: nibi(pending, PPO-LSTM+grad_norm=1.0)
+  h026 pilot: narval(pending, PPO-LSTM+ReLU+LN)
+  h027 pilot: narval(pending, PPO-LSTM+lr=3e-4)
+  h007-1B-s2: narval(9h46m, GTrXL ref — will confirm failure, near completion)
+  h009 1B: s1(rorqual 7h), s2(narval 5.4h), s3(fir 9h)
+  h012 1B: s1(rorqual 7h), s2(narval 5.4h), s3(fir 7h)
+
+EXPECTED COMPLETIONS:
+  h022 pilot: ~10-20 min
+  h007-1B-s2: ~30-60 min
+  h009-1B-s3: ~1-2h (GTrXL took ~9h on fir)
+  h023/h024 pilots: ~2h from now
+  h025/h026/h027 pilots: ~2-3h (once they start)
+  h009/h012 1B: ~3-6h
+  h021 1B: ~8-12h (s1 on rorqual), longer for s2/s3
+
+NEXT SESSION PRIORITIES:
+  1. Parse h022 pilot — does 128 steps help PPO-LSTM despite PopArt penalty?
+  2. Parse h023/h024/h025 pilots — which simple tweaks improve h021?
+  3. Parse h026/h027 pilots — architecture and LR changes
+  4. Parse h007-s2 (GTrXL, confirm failure — then close h007 completely)
+  5. Parse h009/h012 1B (GTrXL variants, for completeness)
+  6. CRITICAL: Parse h021 1B — our best method at scale
+  7. If any pilot beats h021 (22.22), combine winners and submit 1B immediately
+  8. If h021 1B > 40, start investigating deeper floor strategies
