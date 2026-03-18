@@ -144,3 +144,62 @@ Next session priorities:
   2. If any pilot shows improvement, submit full 1B × 3 seeds IMMEDIATELY
   3. LSTM baselines will take ~18-20h more — will be another session
   4. Watch for OOM on resubmitted PQN-LSTM jobs (48G should be enough but monitor)
+
+---
+**[2026-03-18 03:14 UTC]**
+
+=== SESSION: Resubmit disappeared jobs + optimize GTrXL + new hypotheses ===
+
+Triggered by: h003-pilot-s1 completed (FAILED: avg_return=9.06, already recorded).
+
+SITUATION: 28 of 39 jobs 'disappeared' (silently killed by clusters). No results for:
+  - PPO-LSTM 1B (3 seeds) — critical Phase 1 baseline
+  - PQN-LSTM 1B (3 seeds) — critical Phase 1 baseline
+  - h004 pilot (wider arch) — never produced output
+  - h005 pilot (kitchen sink) — deprioritized, reward shaping proved harmful
+  - h006 pilot (GTrXL) — never produced output
+  - h001-longer-rollout — never produced output
+
+ACTIONS TAKEN:
+
+1. RESUBMITTED LSTM baselines (6 jobs, 48G memory):
+   - ppo-lstm-1B: s1→rorqual(8508288), s2→narval(57931207), s3→nibi(10519904)
+   - pqn-lstm-1B: s1→fir(28206537), s2→rorqual(8508293), s3→narval(57931230)
+
+2. OPTIMIZED GTrXL training (critical engineering fix):
+   - Step-by-step processing in get_states looped T=64 times per PPO update
+   - New get_states_train processes all T steps in parallel with batched attention
+   - Episode-aware causal masking prevents cross-episode attention leaks
+   - Per-environment positional encoding handles done resets correctly
+   - ~64x speedup in PPO training phase
+
+3. MADE GTrXL HYPERPARAMETERS CONFIGURABLE:
+   - Added GTrXL_Args dataclass: --trxl-layers, --trxl-heads, --trxl-memory, --trxl-mlp-layers
+   - Can now match reference implementation exactly via CLI
+
+4. WEB SEARCH: Found reference GTrXL implementation (Reytuag/transformerXL_PPO_JAX):
+   - Official Craftax leaderboard: PPO-GTrXL = 18.3% (41.4/226) vs PPO = 11.9% (26.8/226)
+   - Reference config: 256 hidden, 2 layers, 128 steps, 128 memory, gamma=0.999, ent=0.002, grad_norm=1.0
+   - ~5M params, trains in 6.5h on single A100
+   - SCALAR (LLM+RL hybrid) gets 88.2% diamond collection and 9.1% gnomish mines entry
+
+5. SUBMITTED HYPOTHESIS PILOTS (200M steps):
+   - h004-pilot-s1 → fir(28206913): wider PPO (1024, ReLU, LN, 3 layers)
+   - h006-pilot-s1 → rorqual(8509592): GTrXL 512h/3L/64mem (our config, with batched training)
+   - h007-pilot-s1 → narval(57931443): GTrXL FULL REFERENCE MATCH (256h/2L/128mem/gamma=0.999/ent=0.002)
+   - h008-pilot-s1 → nibi(10520421): reference + gae_lambda=0.95
+
+6. CLOSED h005 (kitchen sink) — reward shaping component proved harmful
+
+CURRENT STATE: 10 active jobs across 4 clusters
+  rorqual (3): ppo-lstm-1B-s1, pqn-lstm-1B-s2, h006-pilot-s1
+  narval (3): ppo-lstm-1B-s2, pqn-lstm-1B-s3, h007-pilot-s1
+  nibi (2): ppo-lstm-1B-s3, h008-pilot-s1
+  fir (2): pqn-lstm-1B-s1, h004-pilot-s1
+
+NEXT SESSION PRIORITIES:
+  1. Parse h004/h006/h007/h008 pilot results (most important: h007 reference match)
+  2. If h007 shows clear improvement, submit full 1B × 3 seeds immediately
+  3. Parse LSTM baseline results (PPO-LSTM, PQN-LSTM)
+  4. Based on GTrXL results, consider further ablations or new directions
+  5. Key question: does our batched GTrXL match reference quality? h006 vs h007 comparison will show impact of architecture choices (2L/256h vs 3L/512h)
