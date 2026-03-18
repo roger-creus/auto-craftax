@@ -1954,3 +1954,57 @@ RUNNING JOBS (26 active):
 
 WAITING for pilot results — especially h037 (GRU+128) and h040/h043/h044 (ultimate combos).
 Nothing else to do this session — all experiments actively running.
+
+---
+**[2026-03-18 21:58 UTC]**
+
+=== SESSION: h034 pilot result — gae_lambda=0.95 confirmed universally harmful ===
+
+Triggered by: h034-pilot-s1 (28299658, fir) SUCCESS.
+
+h034-pilot-s1 (PPO-LSTM + struct obs + gamma=0.999 + num_steps=128 + gae_lambda=0.95):
+  avg_return=19.72, avg_length=1671, wall=7725s (2.1h)
+  0% dungeon entry. Agent survival-focused (long episodes) no progression.
+  VERDICT: CLOSED. gae_lambda=0.95 hurts EVEN WITH 128 steps.
+  Much WORSE than h023 (26.82, 60% dungeon) which uses same config but gae_lambda=0.8.
+  Confirms gae_lambda=0.8 is optimal across ALL PPO-LSTM configs:
+    h008 (GTrXL, gae=0.95):   14.26 vs h007 (0.8) 15.66 — WORSE
+    h028 (LSTM 64s, gae=0.9):  20.34 vs h021 (0.8) 22.22 — WORSE  
+    h030 (LSTM 64s, gae=0.95): 19.02 vs h021 (0.8) 22.22 — WORSE
+    h034 (LSTM 128s, gae=0.95): 19.72 vs h023 (0.8) 26.82 — WORSE
+
+LEADERBOARD UNCHANGED (200M pilots):
+  h032 LSTM (ent anneal 0.03→0.005):     29.74, 80% dungeon — CURRENT BEST
+  h025 LSTM (grad=1.0):                   28.58, 60% dungeon
+  h031 GRU (64 steps):                    28.54, 64% dungeon
+  h023 LSTM (128 steps):                  26.82, 60% dungeon
+  h021 LSTM (64 steps, baseline):          22.22, 40% dungeon
+
+ACTIVE JOBS (25 total — 20 running, 5 pending):
+  1B RUNS (completing ~4-14h from now):
+    h009-1B-s2: narval 10h elapsed — near completion
+    h012-1B-s2: narval 10h elapsed — near completion
+    h021-1B: 3 seeds (rorqual 5.4h, narval 4h, fir 4.6h) — ~4-10h remaining
+    h023-1B: 3 seeds (rorqual/fir/narval 2-3h) — ~6-8h remaining
+    h031-1B: 2 running + 1 pending (narval/rorqual 1.5h, nibi pending) — ~7-9h remaining
+    h032-1B: 3 seeds (narval/rorqual/fir 0.3-0.9h) — ~8-10h remaining
+
+  COMBO PILOTS (completing ~0.5-2.5h from now):
+    h037 (GRU+128): fir 1.6h elapsed — KEY EXPERIMENT, ~30-60min remaining
+    h039 (GRU+grad=1.0): rorqual 1.3h — ~45-75min remaining
+    h040 (GRU+128+grad=1.0): fir 1.2h — ~50-80min remaining
+    h042 (GRU+ent anneal): rorqual 1.0h — ~60-90min remaining
+    h043 (LSTM ent+128+grad=1.0 ultimate): fir 0.9h — ~65-100min remaining
+    h038 (LSTM+128+grad=1.0): narval 0.4h — ~2-2.5h remaining
+    h044 (GRU ent+128+grad=1.0 ultimate): narval 0.3h — ~2-2.5h remaining
+    h041 (LSTM+ent+grad=1.0): nibi pending
+    h033/h035/h036: nibi pending
+
+NEXT SESSION PRIORITIES:
+  1. Parse h037 (GRU+128) — THE KEY EXPERIMENT, should complete first
+  2. Parse h039 (GRU+grad=1.0), h040 (GRU+128+grad=1.0) — GRU combo pilots
+  3. Parse h042 (GRU+ent anneal), h043 (LSTM ultimate) — entropy anneal combos
+  4. Parse h009-1B-s2, h012-1B-s2 when they complete (to finalize GTrXL analysis)
+  5. Parse h021-1B results (first PPO-LSTM 1B data) — ~4-10h
+  6. If any combo pilot beats h032 (29.74), submit 1B x3 immediately
+  7. Start thinking about next-level improvements if combo pilots plateau
