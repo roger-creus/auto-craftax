@@ -77,6 +77,7 @@ if __name__ == "__main__":
         mlp_class=get_mlp_class(args.mlp_class),
         use_structured_obs=args.use_structured_obs,
         use_popart=args.use_popart,
+        use_gru=args.use_gru,
     ).to(device)
     print("-------------")
     print(agent)
@@ -96,8 +97,8 @@ if __name__ == "__main__":
     values = torch.zeros((args.num_steps, args.num_envs)).to(device)
 
     next_lstm_state = (
-        torch.zeros(agent.lstm.num_layers, args.num_envs, agent.lstm.hidden_size).to(device),
-        torch.zeros(agent.lstm.num_layers, args.num_envs, agent.lstm.hidden_size).to(device),
+        torch.zeros(agent.rnn.num_layers, args.num_envs, agent.rnn.hidden_size).to(device),
+        torch.zeros(agent.rnn.num_layers, args.num_envs, agent.rnn.hidden_size).to(device),
     )
 
     # start the game
@@ -120,6 +121,13 @@ if __name__ == "__main__":
             frac = 1.0 - (iteration - 1.0) / args.num_iterations
             lrnow = frac * args.learning_rate
             optimizer.param_groups[0]["lr"] = lrnow
+
+        # entropy coefficient annealing
+        if args.ent_coef_end >= 0:
+            ent_frac = (iteration - 1.0) / args.num_iterations
+            ent_coef_now = args.ent_coef + (args.ent_coef_end - args.ent_coef) * ent_frac
+        else:
+            ent_coef_now = args.ent_coef
 
         for step in range(0, args.num_steps):
             global_step += args.num_envs
@@ -241,7 +249,7 @@ if __name__ == "__main__":
                     v_loss = 0.5 * ((newvalue - b_returns[mb_inds]) ** 2).mean()
 
                 entropy_loss = entropy.mean()
-                loss = pg_loss - args.ent_coef * entropy_loss + v_loss * args.vf_coef
+                loss = pg_loss - ent_coef_now * entropy_loss + v_loss * args.vf_coef
 
                 optimizer.zero_grad()
                 loss.backward()

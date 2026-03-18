@@ -118,11 +118,13 @@ class PPO_LSTM_Agent(nn.Module):
         mlp_class=MLP,
         use_structured_obs: bool = False,
         use_popart: bool = False,
+        use_gru: bool = False,
     ):
         super().__init__()
 
         self.mlp_class = mlp_class
         self.use_popart = use_popart
+        self.use_gru = use_gru
 
         if use_structured_obs:
             pre_layers = max(num_layers // 2 - 1, 1)
@@ -133,8 +135,11 @@ class PPO_LSTM_Agent(nn.Module):
         else:
             self.shared_pre_lstm = mlp_class(obs_dim, hidden_size, num_layers // 2, activation_fn, use_ln=use_ln)
 
-        self.lstm = nn.LSTM(hidden_size, hidden_size)
-        for name, param in self.lstm.named_parameters():
+        if use_gru:
+            self.rnn = nn.GRU(hidden_size, hidden_size)
+        else:
+            self.rnn = nn.LSTM(hidden_size, hidden_size)
+        for name, param in self.rnn.named_parameters():
             if "bias" in name:
                 nn.init.constant_(param, 0)
             elif "weight" in name:
@@ -152,20 +157,30 @@ class PPO_LSTM_Agent(nn.Module):
     def get_states(self, x, lstm_state, done):
         hidden = self.shared_pre_lstm(x)
 
-        # LSTM logic
+        # RNN logic (LSTM or GRU)
         batch_size = lstm_state[0].shape[1]
-        hidden = hidden.reshape((-1, batch_size, self.lstm.input_size)) # 16, 64, 512
+        hidden = hidden.reshape((-1, batch_size, self.rnn.input_size))
         done = done.reshape((-1, batch_size))
         new_hidden = []
-        for h, d in zip(hidden, done):
-            h, lstm_state = self.lstm(
-                h.unsqueeze(0),
-                (
-                    (1.0 - d.float()).view(1, -1, 1) * lstm_state[0],
-                    (1.0 - d.float()).view(1, -1, 1) * lstm_state[1],
-                ),
-            )
-            new_hidden += [h]
+        if self.use_gru:
+            gru_state = lstm_state[0]  # only use h, ignore dummy c
+            for h, d in zip(hidden, done):
+                h, gru_state = self.rnn(
+                    h.unsqueeze(0),
+                    (1.0 - d.float()).view(1, -1, 1) * gru_state,
+                )
+                new_hidden += [h]
+            lstm_state = (gru_state, torch.zeros_like(gru_state))  # return (h, dummy)
+        else:
+            for h, d in zip(hidden, done):
+                h, lstm_state = self.rnn(
+                    h.unsqueeze(0),
+                    (
+                        (1.0 - d.float()).view(1, -1, 1) * lstm_state[0],
+                        (1.0 - d.float()).view(1, -1, 1) * lstm_state[1],
+                    ),
+                )
+                new_hidden += [h]
         new_hidden = torch.flatten(torch.cat(new_hidden), 0, 1)
         new_hidden = self.shared_post_lstm(new_hidden)
         return new_hidden, lstm_state

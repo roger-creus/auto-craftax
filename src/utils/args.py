@@ -75,6 +75,10 @@ class PPO_Args:
     """if toggled, use CNN+MLP structured observation encoder instead of flat MLP"""
     use_popart: bool = False
     """if toggled, use PopArt adaptive value normalization"""
+    use_gru: bool = False
+    """if toggled, use GRU instead of LSTM in recurrent agent"""
+    ent_coef_end: float = -1.0
+    """final entropy coefficient (-1 = no annealing, use ent_coef throughout)"""
     optimizer: str = "adam"
     """the optimizer to use"""
     mlp_class: str = "mlp"
