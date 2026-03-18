@@ -524,3 +524,58 @@ NEXT SESSION PRIORITIES:
   5. Parse LSTM baselines (~14h remaining)
   6. Consider next-gen hypotheses: larger model (512h), longer memory (256), auxiliary losses
   7. Key milestone: does h012 1B beat the 18.3% reference (41.4/226)?
+
+---
+**[2026-03-18 12:42 UTC]**
+
+=== SESSION: h008 closed (gae_lambda=0.95 hurts), PQN-LSTM-s1 done, h014 pilot submitted ===
+
+Triggered by: h008-pilot-s1 (8526751, rorqual) SUCCESS.
+
+RESULTS PARSED:
+
+h008-pilot-s1 (ref + gae_lambda=0.95) @ 200M steps:
+  avg_return=14.26, avg_length=499.2, wall=6447s (1.8h), SPS=31006
+  skeleton 56%, zombie 76%, 0% dungeon entry
+  VERDICT: WORSE than h007 reference (15.66, -9%). gae_lambda=0.95 hurts vs 0.8.
+  Higher variance advantage estimates outweigh reduced bias. CLOSED.
+
+pqn-lstm-1B-s1 (fir, 28206537) completed:
+  avg_return=23.14 (running avg), avg_length=5703 (very long episodes!)
+  wall=33085s (~9.2h). +10% over PQN (20.95), confirming LSTM helps.
+  Still worse than PPO (26.83). No CSV output (old baseline code).
+
+PILOT COMPARISON TABLE (all 200M steps):
+  h007 (reference GTrXL):           15.66  ← baseline
+  h008 (+ gae_lambda=0.95):         14.26  ← CLOSED, hurts (-9%)
+  h009 (+ structured obs):          16.14  (+3.1%)
+  h010 (+ entropy anneal):          16.06  (+2.6%)
+  h012 (+ struct obs + PopArt):     17.74  (+13.3%) ← BEST
+
+NEW HYPOTHESIS SUBMITTED:
+  h014-pilot-s1 → nibi (10530753): Larger GTrXL 512h/3L + struct obs + PopArt (200M pilot)
+  Motivation: More model capacity (~13M vs 4.3M params) may unlock complex planning
+
+CURRENT ACTIVE JOBS (17 total):
+  Baselines (5 LSTM, 6-10h elapsed):
+    ppo-lstm-1B: s1(rorqual 9.6h), s2(narval 9.6h), s3(nibi 6.5h)
+    pqn-lstm-1B: s2(rorqual 9.6h), s3(narval 9.5h)
+    → PQN-LSTM s2/s3 should complete very soon (s1 took 9.2h)
+  h007 1B (3, ~5h elapsed): s1(rorqual), s2(narval), s3(fir)
+    → Estimated ~5-7h remaining based on pilot SPS ~28K
+  h009 1B (3, 2-4h elapsed): s1(rorqual), s2(narval 42min), s3(fir)
+    → Estimated ~6-10h remaining
+  h012 1B (3, 2h elapsed): s1(rorqual), s2(narval 39min), s3(fir)
+    → Estimated ~8-10h remaining
+  h011 pilot (fir, 2h12m): struct obs + entropy anneal, should complete ~now
+  h013 pilot (rorqual, 2h16m): struct obs + PopArt + entropy anneal, should complete ~now
+  h014 pilot (nibi): larger model, just submitted
+
+NEXT SESSION PRIORITIES:
+  1. CRITICAL: Parse h007 1B results — does our implementation match reference 18.3% (41.4/226)?
+  2. Parse h009 1B and h012 1B to see which variant wins at scale
+  3. Parse h011/h013 pilots to decide if entropy annealing is worth adding
+  4. Parse h014 pilot — does larger model help with struct obs + PopArt?
+  5. Parse remaining LSTM baselines (PPO-LSTM, PQN-LSTM s2/s3)
+  6. If h012 1B is strong (>45/226), consider scaling further or combining with entropy anneal
+  7. Key milestone: any variant that clearly exceeds 18.3% reference validates our improvements
