@@ -257,3 +257,60 @@ NEXT SESSION PRIORITIES:
 4. If h006 (larger GTrXL) beats h007, consider even larger models
 5. Parse LSTM baseline results when ready (~21h)
 6. Consider new hypotheses: observation encoding improvements, entropy scheduling, auxiliary losses
+
+---
+**[2026-03-18 05:32 UTC]**
+
+=== SESSION: Parse h004 results, resubmit GTrXL pilots, organize experiments ===
+
+Triggered by: h004-pilot-s1 (28206913, fir) SUCCESS.
+
+RESULTS PARSED:
+
+h004-pilot-s1 (wider arch: 1024/3L/ReLU/LN) @ 200M steps:
+  - avg_return ~24.2 (running avg last 50) / ~21.9 (raw episode mean)
+  - avg_episode_length ~495
+  - 21% episodes >30 return, 3% >40, max 47.1
+  - Wall time: 8240s (2.3h) on fir H100 3g.40gb
+  - VERDICT: Similar to baseline PPO at 200M. Wider arch alone does NOT provide dramatic improvement.
+  - NOTE: No CSV produced — command was missing --hypothesis-id/--experiment-id flags.
+
+h007-pilot-s1 (narval, 57931443): CONFIRMED CRASH at 131K steps (already known dtype bug from last session).
+  Not a real completion. Resubmitted below.
+
+ACTIONS TAKEN:
+
+1. Recorded h004 results in experiments.csv and hypotheses.csv (status: open, deprioritized vs GTrXL)
+
+2. Cancelled h006-pilot-s2 on nibi (10519761) — wrong config (256h, should be 512h for h006)
+
+3. Cancelled h007-pilot-s1 on nibi (10520783) — resubmitted with --hypothesis-id/--experiment-id/--output-dir flags
+
+4. Resubmitted experiments with proper CSV output flags:
+   - h007-pilot-s1 → nibi (10522776): GTrXL reference 256h/2L/128mem/gamma=0.999
+   - h007-pilot-s1-fir → fir (28219284): DUPLICATE on fir for faster turnaround
+   - h008-pilot-s1 → narval (57936329): GTrXL ref + gae_lambda=0.95
+
+5. Synced code to narval and fir
+
+CURRENT ACTIVE JOBS (10 total):
+  Baselines (6, ~20h remaining):
+    - ppo-lstm-1B: s1(rorqual 8508288), s2(narval 57931207), s3(nibi 10519904 pending)
+    - pqn-lstm-1B: s1(fir 28206537), s2(rorqual 8508293), s3(narval 57931230)
+  GTrXL pilots (4):
+    - h006-pilot-s1 (rorqual 8510270): 512h/3L/64mem, ~2h in, running
+    - h007-pilot-s1 (nibi 10522776): ref 256h/2L/128mem, pending
+    - h007-pilot-s1-fir (fir 28219284): same, just submitted for faster results
+    - h008-pilot-s1 (narval 57936329): ref + gae_lambda=0.95, just submitted
+
+IMPORTANT FIX NEEDED: Commands MUST include --hypothesis-id X --experiment-id Y --output-dir /path for CSV output.
+h006-pilot-s1 on rorqual does NOT have these flags (already running, can't fix). Will need to parse from stdout.
+
+NEXT SESSION PRIORITIES (GTrXL pilots should complete in ~3-5h):
+  1. Parse h006/h007/h008 GTrXL pilot results — THIS IS THE MOST IMPORTANT STEP
+  2. If h007 matches reference ~41.4/226 (18.3%), immediately submit 1B x 3 seeds
+  3. Compare h006 (larger model) vs h007 (reference size) to guide scaling decisions
+  4. Compare h007 vs h008 to decide gae_lambda setting
+  5. LSTM baselines should still be running (~15h remaining from then)
+  6. Consider new hypotheses based on web research (agent running in background)
+  7. Incorporate research findings on entropy scheduling, auxiliary losses, observation encoding
