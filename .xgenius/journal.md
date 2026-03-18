@@ -927,3 +927,62 @@ NEXT SESSION PRIORITIES:
   5. If h020 pilot is strong (>20 at 200M), submit h020 1B × 3 seeds IMMEDIATELY
   6. If h007 1B matches reference, compare with h012/h009 to see if our improvements help
   7. Continue hill-climbing: combine best from each track (GTrXL vs LSTM)
+
+---
+**[2026-03-18 15:34 UTC]**
+
+=== SESSION: h016 + h017 pilot results, h022 resubmit ===
+
+Triggered by: h017-pilot-s1 (28243525, fir) SUCCESS, h016-pilot-s1 (8538733, rorqual) SUCCESS.
+
+RESULTS:
+
+h016-pilot-s1 (symlog two-hot value head):
+  avg_return=15.58, avg_length=624.36, wall=8128s (2.26h)
+  skeleton 72%, zombie 68%, coal 64%, iron 4%
+  0% dungeon, 0% iron_sword, 0% iron_pickaxe
+  VERDICT: CLOSED — WORSE than h012 PopArt (17.74) and even h007 reference (15.66)
+  Symlog distributional approach underperforms simple PopArt normalization.
+
+h017-pilot-s1 (PopArt bug fixes — denorm + timing):
+  avg_return=16.38, avg_length=1237.44, wall=7755s (2.15h)
+  skeleton 68%, zombie 84%, coal 72%, iron 16%
+  0% dungeon, 0% iron_sword, 0% iron_pickaxe
+  VERDICT: CLOSED — WORSE than h012 (17.74). Agent survives 2.6x longer (1237 vs 467 steps)
+  but earns less return. PopArt 'fixes' make agent overly conservative/survival-oriented.
+  KEY INSIGHT: The 'bugged' h012 PopArt is actually better — no denorm in rollouts + per-minibatch
+  stats updates provide implicit regularization that benefits learning. Keep h012 as-is.
+
+VALUE HEAD COMPARISON (200M pilots, all with struct obs + gamma=0.999):
+  h012 (original PopArt):   17.74  ← BEST
+  h017 (fixed PopArt):      16.38  (-7.7%)
+  h016 (symlog two-hot):    15.58  (-12.2%)
+  h007 (no value norm):     15.66  (reference)
+
+INFRASTRUCTURE:
+- h022-pilot-s1: Cancelled on nibi (pending 40min with Priority). Resubmitted to rorqual (8548230).
+
+ACTIVE JOBS (17 running + 1 pending = 18 total):
+  1B runs (9):
+    h007 GTrXL ref: s1(rorqual 7.8h), s2(narval 7.8h), s3(fir 7.3h) — ~2-4h remaining
+    h009 struct obs: s1(rorqual 5.1h), s2(narval 3.5h), s3(fir 7.1h) — ~3-7h remaining  
+    h012 best GTrXL: s1(rorqual 5.1h), s2(narval 3.5h), s3(fir 5.0h) — ~5-8h remaining
+  Baselines (2):
+    ppo-lstm s2 (narval 12.5h) — should be near/at completion
+    pqn-lstm s3 (narval 12.4h) — should be near/at completion
+  Pilots (7):
+    h015 (longer memory): narval 2.5h — ~0.5-1.5h remaining
+    h018 (gamma anneal): narval 1.7h — ~0.5h remaining
+    h019 (LR warmup): fir 1.3h — ~0.7h remaining
+    h020 (LSTM+struct+PopArt): fir 0.6h — ~1.5h remaining
+    h021 (LSTM+struct): rorqual 1.3h — ~0.7h remaining
+    h022 (LSTM+struct+PopArt+128steps): rorqual, just resubmitted
+
+NEXT SESSION PRIORITIES:
+  1. CRITICAL: Parse h007 1B results — does reference GTrXL match published 41.4 (18.3%)?
+  2. Parse h009 1B and h012 1B — do our improvements scale to 1B?
+  3. Parse h020/h021 pilots — does PPO-LSTM + struct obs work? Is PopArt needed for LSTM?
+  4. Parse h015/h018/h019 pilots — longer memory, gamma anneal, LR warmup
+  5. Parse remaining baselines: ppo-lstm s2, pqn-lstm s3
+  6. If h020 pilot >20 at 200M, submit h020 1B × 3 seeds ASAP
+  7. KEY DECISION: GTrXL track vs LSTM track — h007/h012 1B vs h020 pilot will decide direction
