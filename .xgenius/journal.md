@@ -1419,3 +1419,64 @@ EXPECTED COMPLETION ORDER:
   ~3-4h: h009/h012 1B remaining seeds
   ~4-5h: h029, h030, h032 (queued pilots, start as 1B jobs finish)
   ~10h: h021 1B s1/s3 (THE MAIN EVENT)
+
+---
+**[2026-03-18 18:37 UTC]**
+
+=== SESSION: h007-1B-s2 + h009-1B-s3 results, all jobs healthy ===
+
+Triggered by: h009-1B-s3 (28225909, fir) SUCCESS.
+Also found: h007-1B-s2 (57938206, narval) completed.
+
+NEW RESULTS PARSED:
+
+h007-1B-s2 (GTrXL reference, narval A100):
+  avg_return=19.14, avg_length=753, wall=38762s (10.8h)
+  skeleton 60%, zombie 92%, iron_sword 40%, iron_pickaxe 12%. 0% dungeon.
+  h007 ALL 3 SEEDS COMPLETE: s1=18.10, s2=19.14, s3=19.78 — mean=19.01±0.84
+  Published reference: 41.4. Our implementation: 54% LESS. 0% dungeon across all seeds.
+  GTrXL track OFFICIALLY DEAD.
+
+h009-1B-s3 (GTrXL + struct obs, fir H100):
+  avg_return=20.38, avg_length=3631, wall=36265s (10.1h)
+  skeleton 76%, zombie 84%, iron_sword 44%, iron_pickaxe 32%, iron_armour 24%
+  4% DUNGEON ENTRY — first for GTrXL track at 1B!
+  collect_diamond 4%. Struct obs clearly helps (+7% over h007 mean).
+  But still far below PPO-LSTM h021 (22.22 at 200M with 40% dungeon).
+  s1/s2 still running (~2-6h remaining).
+
+ACTIVE JOBS (18 total, all running healthy):
+  1B RUNS:
+    h021-1B: s1(rorqual 2h), s2(narval 35min), s3(fir 1.2h) — ~8-12h remaining. CRITICAL.
+    h009-1B: s1(rorqual 8.2h), s2(narval 6.6h) — ~2-6h remaining
+    h012-1B: s1(rorqual 8.2h), s2(narval 6.5h), s3(fir 8.1h) — ~2-4h remaining
+
+  PPO-LSTM PILOTS (completing in 0.5-3h):
+    h023 (128 steps): fir 1.5h — ~0.5h remaining
+    h024 (ent=0.002): rorqual 1.4h — ~0.5h remaining
+    h025 (grad_norm=1.0): narval 35min — ~2.5h remaining
+    h026 (ReLU+LN): narval 1h — ~2h remaining
+    h027 (lr=3e-4): narval 1h — ~2h remaining
+    h028 (gae_lambda=0.9): fir 30min — ~1.5h remaining
+    h029 (num_envs=2048): rorqual 31min — ~1.5h remaining
+    h030 (gae_lambda=0.95): rorqual 27min — ~1.7h remaining
+    h031 (GRU): fir 22min — ~1.7h remaining
+    h032 (entropy annealing 0.03→0.005): narval 19min — ~2.7h remaining
+
+NO ACTION NEEDED: All jobs running, no stuck/pending, no new hypotheses required.
+Next completions: h023 and h024 (~30min), then h028/h029/h030/h031 (~1.5h).
+
+LEADERBOARD:
+  PPO-LSTM + struct obs (h021, 200M): 22.22 — 40% dungeon entry. BEST. 1B running.
+  PPO-LSTM baseline (1B): 33.88 — target to beat at 1B
+  PPO baseline (1B): 26.83
+  GTrXL + struct obs (h009, 1B partial): 20.38 — 4% dungeon
+  GTrXL reference (h007, 1B all seeds): 19.01 — 0% dungeon, CLOSED
+
+NEXT SESSION PRIORITIES:
+  1. Parse h023/h024 pilot results (should be done first)
+  2. Parse h025-h032 pilot results as they complete
+  3. Parse h009/h012 1B (GTrXL, for completeness)
+  4. CRITICAL: Parse h021 1B results (~8-12h) — THE MAIN EVENT
+  5. If any pilot significantly beats h021 (22.22), submit combined best at 1B
+  6. If h021 1B > 40, focus on deeper floor strategies
