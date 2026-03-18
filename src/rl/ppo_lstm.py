@@ -76,6 +76,8 @@ if __name__ == "__main__":
         activation_fn=get_activation_fn(args.activation_fn),
         use_ln=args.use_ln,
         mlp_class=get_mlp_class(args.mlp_class),
+        use_structured_obs=args.use_structured_obs,
+        use_popart=args.use_popart,
     ).to(device)
     print("-------------")
     print(agent)
@@ -127,7 +129,7 @@ if __name__ == "__main__":
 
             # action logic
             with torch.no_grad():
-                action, logprob, _, value, next_lstm_state = agent.get_action_and_value(next_obs, next_lstm_state, next_done)
+                action, logprob, _, value, next_lstm_state = agent.get_action_and_value(next_obs, next_lstm_state, next_done, denormalize=True)
                 values[step] = value.flatten()
             actions[step] = action
             logprobs[step] = logprob
@@ -155,6 +157,7 @@ if __name__ == "__main__":
                 next_obs,
                 next_lstm_state,
                 next_done,
+                denormalize=True,
             ).reshape(1, -1)
             advantages = torch.zeros_like(rewards).to(device)
             lastgaelam = 0
@@ -184,6 +187,11 @@ if __name__ == "__main__":
         envinds = np.arange(args.num_envs)
         flatinds = np.arange(args.batch_size).reshape(args.num_steps, args.num_envs)
         clipfracs = []
+
+        # Update PopArt stats ONCE per iteration
+        if args.use_popart:
+            agent.critic_head.update_stats(b_returns.unsqueeze(-1))
+
         for epoch in range(args.update_epochs):
             np.random.shuffle(envinds)
             for start in range(0, args.num_envs, envsperbatch):
@@ -217,7 +225,10 @@ if __name__ == "__main__":
 
                 # value loss
                 newvalue = newvalue.view(-1)
-                if args.clip_vloss:
+                if args.use_popart:
+                    mb_returns_norm = agent.critic_head.normalize(b_returns[mb_inds].unsqueeze(-1)).squeeze(-1)
+                    v_loss = 0.5 * ((newvalue - mb_returns_norm) ** 2).mean()
+                elif args.clip_vloss:
                     v_loss_unclipped = (newvalue - b_returns[mb_inds]) ** 2
                     v_clipped = b_values[mb_inds] + torch.clamp(
                         newvalue - b_values[mb_inds],

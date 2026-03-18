@@ -116,23 +116,37 @@ class PPO_LSTM_Agent(nn.Module):
         activation_fn: nn.Module = nn.Tanh,
         use_ln: bool = False,
         mlp_class=MLP,
+        use_structured_obs: bool = False,
+        use_popart: bool = False,
     ):
         super().__init__()
-        
-        self.mlp_class = mlp_class
 
-        self.shared_pre_lstm = mlp_class(obs_dim, hidden_size, num_layers // 2, activation_fn, use_ln=use_ln)
-        
+        self.mlp_class = mlp_class
+        self.use_popart = use_popart
+
+        if use_structured_obs:
+            pre_layers = max(num_layers // 2 - 1, 1)
+            self.shared_pre_lstm = nn.Sequential(
+                CraftaxObsEncoder(hidden_size),
+                mlp_class(hidden_size, hidden_size, pre_layers, activation_fn, use_ln=use_ln),
+            )
+        else:
+            self.shared_pre_lstm = mlp_class(obs_dim, hidden_size, num_layers // 2, activation_fn, use_ln=use_ln)
+
         self.lstm = nn.LSTM(hidden_size, hidden_size)
         for name, param in self.lstm.named_parameters():
             if "bias" in name:
                 nn.init.constant_(param, 0)
             elif "weight" in name:
                 nn.init.orthogonal_(param, 1.0)
-        
+
         self.shared_post_lstm = mlp_class(hidden_size, hidden_size, num_layers // 2, activation_fn, use_ln=use_ln)
-        
-        self.critic_head = layer_init(nn.Linear(hidden_size, 1), std=1.0)
+
+        if use_popart:
+            from src.models.gtrxl import PopArtLayer
+            self.critic_head = PopArtLayer(hidden_size, 1)
+        else:
+            self.critic_head = layer_init(nn.Linear(hidden_size, 1), std=1.0)
         self.actor_head = layer_init(nn.Linear(hidden_size, n_actions), std=0.01)
 
     def get_states(self, x, lstm_state, done):
@@ -156,17 +170,23 @@ class PPO_LSTM_Agent(nn.Module):
         new_hidden = self.shared_post_lstm(new_hidden)
         return new_hidden, lstm_state
 
-    def get_value(self, x, lstm_state, done):
+    def get_value(self, x, lstm_state, done, denormalize=False):
         hidden, _ = self.get_states(x, lstm_state, done)
-        return self.critic_head(hidden)
+        value = self.critic_head(hidden)
+        if denormalize and self.use_popart:
+            value = self.critic_head.denormalize(value)
+        return value
 
-    def get_action_and_value(self, x, lstm_state, done, action=None):
+    def get_action_and_value(self, x, lstm_state, done, action=None, denormalize=False):
         hidden, lstm_state = self.get_states(x, lstm_state, done)
         logits = self.actor_head(hidden)
         probs = Categorical(logits=logits)
         if action is None:
             action = probs.sample()
-        return action, probs.log_prob(action), probs.entropy(), self.critic_head(hidden), lstm_state
+        value = self.critic_head(hidden)
+        if denormalize and self.use_popart:
+            value = self.critic_head.denormalize(value)
+        return action, probs.log_prob(action), probs.entropy(), value, lstm_state
     
     def sample_action(self, x, lstm_state, done):
         hidden, lstm_state = self.get_states(x, lstm_state, done)
