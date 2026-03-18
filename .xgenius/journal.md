@@ -733,3 +733,79 @@ NEXT SESSION PRIORITIES:
   6. If h017 >> h012, the PopArt bug fix is critical — resubmit h012 1B with fixes
   7. h007 1B should complete first (~4-5h remaining)
   8. Consider: if gamma annealing works (h018), combine with best value head (PopArt/symlog)
+
+---
+**[2026-03-18 13:54 UTC]**
+
+=== SESSION: PPO-LSTM s1 result (33.32), new PPO-LSTM hypotheses h020/h021 ===
+
+Triggered by: ppo-lstm-1B-s1 (8508288, rorqual) SUCCESS.
+
+RESULTS:
+
+ppo-lstm-1B-s1 @ 1B steps:
+  Mean return (last 500 eps): 33.32, running avg: 34.02, max: 50.10
+  Mean episode length: 351.3
+  68.8% episodes >30, 28.8% >40, 0.4% >50
+  Wall: 38513s (10.7h), SPS: 26717
+  *** BEST BASELINE *** — +24% over PPO (26.83), +43% over PQN-LSTM (23.14)
+  No achievement CSV (old code doesn't track achievements)
+
+INFRASTRUCTURE:
+- h018/h019 stuck pending on nibi. Cancelled and resubmitted:
+  h018 → narval (57947614), h019 → nibi (10531717)
+- Reconcile: 17 active jobs, no new disappearances
+
+ENGINEERING:
+- Added --use-structured-obs and --use-popart to PPO_LSTM_Agent
+- CNN obs encoder + PopArt value normalization now available for PPO-LSTM
+- Tested locally, committed and pushed, synced to all 4 clusters
+
+NEW HYPOTHESES SUBMITTED:
+  h020-pilot-s1 → rorqual (8540190): PPO-LSTM + struct obs + PopArt + gamma=0.999 (200M pilot)
+  h021-pilot-s1 → fir (28244784): PPO-LSTM + struct obs + gamma=0.999 (no PopArt, ablation)
+
+MOTIVATION: PPO-LSTM at baseline (33.32) is already better than PPO (26.83) and GTrXL pilot (17.74 at 200M).
+LSTM provides temporal memory; adding CNN obs encoder gives spatial awareness.
+If h020/h021 show improvement at 200M, immediately submit 1B × 3 seeds.
+
+CURRENT ACTIVE JOBS (19 total — 15 running, 2 pending, 2 just submitted):
+  LSTM baselines (3, 7-11h elapsed):
+    ppo-lstm-1B: s2(narval 11h), s3(nibi 7.6h) — s1 DONE
+    pqn-lstm-1B: s3(narval 10.7h)
+  h007 1B (3, 5.6-6.1h): s1(rorqual), s2(narval), s3(fir) — ~4-6h remaining
+  h009 1B (3, 1.8-5.4h): s1(rorqual), s2(narval), s3(fir) — ~5-11h remaining
+  h012 1B (3, 1.8-3.4h): s1(rorqual), s2(narval), s3(fir) — ~8-12h remaining
+  Pilots (7):
+    h015 (longer memory): narval, ~1.7h remaining
+    h016 (symlog): rorqual, ~1.6h remaining
+    h017 (PopArt fixes): fir, ~1.8h remaining
+    h018 (gamma anneal): narval, just submitted
+    h019 (LR warmup): nibi, just submitted
+    h020 (LSTM+structobs+PopArt): rorqual, just submitted
+    h021 (LSTM+structobs): fir, just submitted
+
+BASELINE LEADERBOARD (1B steps):
+  PPO-LSTM s1:  33.32  ← BEST
+  PPO mean:     26.83±1.31
+  PQN-LSTM s1:  23.14
+  PQN mean:     20.95±1.04
+
+PILOT LEADERBOARD (200M steps, GTrXL variants):
+  h012 (struct obs + PopArt):    17.74  ← BEST GTrXL PILOT
+  h013 (+ entropy anneal):      16.82
+  h011 (struct obs + ent ann):   16.70
+  h009 (struct obs only):        16.14
+  h010 (entropy anneal only):    16.06
+  h007 (reference):              15.66
+  h008 (gae_lambda=0.95):       14.26
+
+NEXT SESSION PRIORITIES:
+  1. CRITICAL: Parse h007 1B results — does reference match 18.3%?
+  2. Parse h009 1B and h012 1B — confirm improvements at scale
+  3. Parse h015/h016/h017 pilots — longer memory, symlog, PopArt fixes
+  4. Parse h018/h019 pilots — gamma annealing, LR warmup
+  5. Parse h020/h021 pilots — does PPO-LSTM + struct obs work?
+  6. Parse remaining LSTM baselines (ppo-lstm s2/s3, pqn-lstm s3)
+  7. If h020 pilot is strong (>20), submit h020 1B × 3 seeds ASAP
+  8. If h007 1B matches reference (41.4), our h012 improvements should exceed it
