@@ -579,3 +579,91 @@ NEXT SESSION PRIORITIES:
   5. Parse remaining LSTM baselines (PPO-LSTM, PQN-LSTM s2/s3)
   6. If h012 1B is strong (>45/226), consider scaling further or combining with entropy anneal
   7. Key milestone: any variant that clearly exceeds 18.3% reference validates our improvements
+
+---
+**[2026-03-18 13:05 UTC]**
+
+=== SESSION: Parse h011/h013, fix PopArt bugs, implement symlog, submit new pilots ===
+
+Triggered by: h011-pilot-s1 (28234544, fir) SUCCESS.
+
+RESULTS PARSED:
+
+h011 (struct obs + entropy anneal) @ 200M: avg_return=16.70, length=918
+  - Better than h009 (16.14) and h010 (16.06) individually
+  - But WORSE than h012 (struct obs + PopArt): 17.74
+  - Entropy anneal adds minor boost to struct obs, PopArt is more impactful
+  - CLOSED
+
+h013 (struct obs + PopArt + entropy anneal) @ 200M: avg_return=16.82
+  - Full combo is WORSE than h012 (17.74) — entropy anneal HURTS with PopArt
+  - Higher initial entropy (0.01) slows convergence with gamma=0.999
+  - CLOSED
+
+PILOT RANKING (200M steps, all same reference GTrXL config):
+  h012 (struct obs + PopArt):          17.74 ← BEST
+  h013 (+ entropy anneal):             16.82
+  h011 (struct obs + ent anneal):       16.70
+  h009 (struct obs only):              16.14
+  h010 (entropy anneal only):          16.06
+  h007 (reference):                    15.66
+  h008 (gae_lambda=0.95):             14.26 ← WORST
+
+KEY CONCLUSION: Entropy annealing is NOT helpful for this setup. Constant ent=0.002 is optimal.
+h010, h011, h013 all CLOSED. Best config remains h012 (struct obs + PopArt + constant ent=0.002).
+
+CRITICAL BUG FIXES:
+
+1. PopArt rollout denormalization was DEAD CODE:
+   get_action_and_value had 'if self.use_popart and action is None' but action was
+   already set by probs.sample() before this check. Result: GAE was computed with
+   normalized values from rollout but denormalized bootstrap value from get_value.
+   FIX: Track is_rollout flag separately from action variable.
+
+2. PopArt stats updated per-minibatch (32x/iteration):
+   update_stats called inside double loop (4 epochs × 8 minibatches). Stats drift
+   caused inconsistent normalization within single training iteration.
+   FIX: Call update_stats ONCE per iteration, before epoch loop.
+
+3. Both fixes affect all PopArt runs (h012 1B already running with OLD buggy code).
+   h017 pilot tests impact of fixes on h012 config.
+
+NEW FEATURE: SymlogTwoHotLayer (DreamerV3-style value head):
+  - 255-bin categorical over symlog-transformed value space
+  - Cross-entropy loss instead of MSE
+  - No moving statistics or weight rescaling needed (unlike PopArt)
+  - Handles multi-scale returns robustly
+  - Enabled via --use-symlog flag
+
+INFRASTRUCTURE:
+  - h014 resubmitted from nibi (stuck pending) to fir (28243162)
+  - PQN-LSTM-s2 disappeared again on rorqual (preempted). Not resubmitting — baseline is secondary.
+  - PQN-LSTM-s3 on narval still running (9:58 elapsed, should finish or OOM soon).
+
+NEW PILOTS SUBMITTED:
+  h014-pilot-s1 → fir (28243162): larger 512h/3L + struct obs + PopArt (with fixes)
+  h015-pilot-s1 → narval (57946050): h012 + longer memory 256 (vs 128)
+  h016-pilot-s1 → rorqual (8538733): struct obs + symlog two-hot (replaces PopArt)
+  h017-pilot-s1 → nibi (10531055): h012 config with both PopArt bug fixes
+
+CURRENT ACTIVE JOBS (17 total — 16 running, 1 pending):
+  1B runs (11):
+    LSTM baselines: ppo-lstm s1(rorqual 10h), s2(narval 10h), s3(nibi 7h)
+                    pqn-lstm s3(narval 10h)
+    h007 (reference GTrXL): s1(rorqual 5.4h), s2(narval 5.4h), s3(fir 4.9h)
+    h009 (struct obs): s1(rorqual 2.7h), s2(narval 1.1h), s3(fir 4.6h)
+    h012 (struct obs + PopArt): s1(rorqual 2.7h), s2(narval 1.1h), s3(fir 2.6h)
+  Pilots (6):
+    h014 (larger model): fir, just started
+    h015 (longer memory): narval, just started
+    h016 (symlog): rorqual, just started
+    h017 (PopArt fixes): nibi, pending
+
+NEXT SESSION PRIORITIES:
+  1. CRITICAL: Parse h007 1B results — does reference GTrXL match 18.3% (41.4/226)?
+  2. Parse h009 1B and h012 1B — which variant wins at scale?
+  3. Parse h014/h015/h016/h017 pilots — does larger model, longer memory, symlog, or fixed PopArt help?
+  4. If h017 (fixed PopArt) >> h012 (buggy PopArt), resubmit h012 1B with fixes
+  5. Parse LSTM baselines — PPO-LSTM still running (~10h each)
+  6. h007 1B should complete first (~5h remaining), then h012 1B (~8h), then h009 1B (~8h)
+  7. Submit best pilot winner at 1B × 3 seeds immediately
