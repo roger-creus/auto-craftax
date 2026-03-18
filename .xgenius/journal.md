@@ -876,3 +876,54 @@ NEXT SESSION PRIORITIES:
   7. Key question: should we pursue GTrXL track or LSTM track? h007/h012 1B vs h020 will decide
   8. Consider: AGaLiTe architecture as a potential improvement over GTrXL (would need PyTorch impl)
 
+
+---
+**[2026-03-18 14:52 UTC]**
+
+=== SESSION: PPO-LSTM s3 result (34.25), h020 resubmit, h022 new hypothesis ===
+
+Triggered by: ppo-lstm-1B-s3 (10519904, nibi) SUCCESS.
+
+RESULTS:
+
+ppo-lstm-1B-s3 @ 1B steps:
+  Mean return (last 500 eps): 34.25 ± 8.70, running avg: 33.42, max: 50.10
+  Mean episode length: 342.9
+  74.6% episodes >30, 33.0% >40, 0.2% >50
+  SPS: 32630, Wall: ~30645s (8.5h)
+  Confirms PPO-LSTM is BEST baseline — s1=33.32 s3=34.25 (mean ~33.79 so far)
+
+INFRASTRUCTURE:
+- h020-pilot-s1: Cancelled on nibi (stuck pending 50min). Resubmitted to fir (28246998).
+- h021-pilot-s1: Running on rorqual (8541287), 36min elapsed.
+  First fir submission crashed (use_popart bug, already fixed last session).
+- h022 NEW HYPOTHESIS: PPO-LSTM + struct obs + PopArt + gamma=0.999 + num_steps=128
+  Longer rollouts (128 vs 64 steps) helped GTrXL significantly. Testing for PPO-LSTM.
+  Submitted to nibi (10533770).
+
+BASELINE LEADERBOARD (1B steps, completed seeds):
+  PPO-LSTM: s1=33.32, s3=34.25 (mean ~33.79) — BEST
+  PPO:      26.83±1.31
+  PQN-LSTM: s1=23.14
+  PQN:      20.95±1.04
+
+ACTIVE JOBS (19 total):
+  1B runs (9): h007×3, h009×3, h012×3 (all GTrXL variants, 3-7h remaining)
+  LSTM baselines (2): ppo-lstm s2 (narval 11.7h — near completion), pqn-lstm s3 (narval 11.7h)
+  Pilots (8): h015 h016 h017 h018 h019 (GTrXL variants, 0.5-1.5h remaining)
+               h020 h021 h022 (PPO-LSTM variants, just submitted/early)
+
+CRITICAL PATH:
+  1. h007 1B results (~3h) — reference GTrXL, published score 41.4 (18.3%)
+  2. h012 1B results (~8h) — our best GTrXL variant with struct obs + PopArt
+  3. h020/h021 pilots (~2h) — PPO-LSTM + improvements, determines if LSTM track viable
+  4. h015-h019 pilots (~0.5-1.5h) — GTrXL variant pilots
+
+NEXT SESSION PRIORITIES:
+  1. Parse h015-h019 pilot results (should be done)
+  2. Parse h020/h021/h022 pilot results
+  3. Parse h007 1B — CRITICAL: does reference GTrXL match 41.4?
+  4. Parse ppo-lstm s2 and pqn-lstm s3
+  5. If h020 pilot is strong (>20 at 200M), submit h020 1B × 3 seeds IMMEDIATELY
+  6. If h007 1B matches reference, compare with h012/h009 to see if our improvements help
+  7. Continue hill-climbing: combine best from each track (GTrXL vs LSTM)

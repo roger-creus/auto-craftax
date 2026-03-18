@@ -31,3 +31,9 @@ runs/
 *.pt
 *.pth
 *.ckpt
+# Large SLURM logs from 1B runs (>100MB each, too large for GitHub)
+.xgenius/slurm_logs/baseline/ppo-lstm-1B-*/
+.xgenius/slurm_logs/baseline/pqn-lstm-1B-*/
+.xgenius/slurm_logs/baseline/ppo-1B-*/
+.xgenius/slurm_logs/baseline/pqn-1B-*/
+.xgenius/slurm_logs/h*/h*-1B-*/
