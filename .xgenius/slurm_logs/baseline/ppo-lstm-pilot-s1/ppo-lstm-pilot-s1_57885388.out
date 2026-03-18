@@ -1,0 +1,12 @@
+slurmstepd: error: couldn't chdir to `/home/rogercc/'/scratch/rogercc/auto-craftax'': No such file or directory: going to /tmp instead
+slurmstepd: error: couldn't chdir to `/home/rogercc/'/scratch/rogercc/auto-craftax'': No such file or directory: going to /tmp instead
+sending incremental file list
+auto-craftax.sif
+
+sent 19,797,219,387 bytes  received 35 bytes  57,802,100.50 bytes/sec
+total size is 19,808,600,064  speedup is 1.00
+Traceback (most recent call last):
+  File "/src/src/rl/ppo_lstm.py", line 12, in <module>
+    from src.env.env import make_craftax_env
+ModuleNotFoundError: No module named 'src'
+slurmstepd: error: run_script_as_user: couldn't change working dir to /home/rogercc/'/scratch/rogercc/auto-craftax': No such file or directory

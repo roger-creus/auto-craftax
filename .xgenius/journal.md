@@ -71,3 +71,76 @@ Early observations from pilots:
   - No dungeon entries yet at 10M steps
 
 Next session: analyze 1B results, start Phase 2 improvements.
+
+---
+**[2026-03-18 00:47 UTC]**
+
+=== SESSION: Phase 2 — Design and submit improvement hypotheses ===
+
+Baseline results confirmed (matches published Craftax-1B scoreboard — PPO gets 11.9% of 226 max):
+  PPO (3 seeds): mean=26.83±1.31 (1B steps, ~8h each on H100 3g.40gb)
+  PQN (3 seeds): mean=20.95±1.04 (1B steps, ~5.6h each)
+  PPO-LSTM: 3 jobs running (~2h in, ~20h to go) — resubmitted after original jobs disappeared
+  PQN-LSTM: 2 running + 1 resubmitted on fir (job 28185700)
+
+Key analysis of baseline failures:
+  - Agent masters basic overworld survival (25 basic achievements worth 25 points)
+  - Enters dungeon ~50% (PPO) but NEVER goes deeper (0% for all deeper floors)
+  - No spellcasting, no enchanting, minimal diamond crafting
+  - Root cause: gamma=0.99 gives effective planning horizon of ~100 steps
+    but floor progression needs 200-500+ step planning
+
+Research findings:
+  - Craftax reward structure: basic=1pt, intermediate=3pt, advanced=5pt, very_advanced=8pt (226 max)
+  - Intrinsic motivation (RND, ICM, E3B) DOES NOT help on Craftax (per paper)
+  - PPO-RNN is best published baseline
+  - Our hyperparameters match official Craftax baselines exactly
+
+Phase 2 hypotheses submitted (all 200M step pilots, seed 1):
+  h001: Better hyperparams (gamma=0.999, gae_lambda=0.95) — on rorqual + narval
+  h002: Achievement reward shaping (bonus rewards for rare achievements) — on nibi
+  h003: Combined h001+h002 — on fir
+  h004: Architecture (ReLU, LayerNorm, 1024 width, 3 layers) — on rorqual
+  h005: Kitchen sink (h001+h002+h004 combined) — on narval
+
+Created src/rl/ppo_shaped.py with achievement bonus rewards.
+Code committed and pushed. Synced to all clusters.
+
+Next session:
+  1. Check LSTM baseline completion (PPO-LSTM, PQN-LSTM)
+  2. Analyze 200M pilot results for h001-h005
+  3. If any pilot shows clear improvement, submit full 1B × 3 seeds
+  4. Consider additional hypotheses based on pilot outcomes
+
+---
+**[2026-03-18 01:10 UTC]**
+
+=== SESSION: PQN-LSTM OOM analysis, status check ===
+
+Triggered by: pqn-lstm-1B-s2 (28093388) and pqn-lstm-1B-s3 (28093389) marked 'completed' on fir.
+
+FINDING: Both were OOM KILLED (not truly completed):
+  - s2: OOM at ~660M/1B steps (~12h walltime), avg_reward ~25 at death (32G memory)
+  - s3: OOM at ~659M/1B steps (~12h walltime), avg_reward ~20 at death (32G memory)
+  - SLURM exit_code=0 is misleading; actual error visible in logs: 'Detected 1 oom_kill event'
+  - Previous session already resubmitted with 48G memory (good)
+
+No CSV output was produced (processes killed mid-training). No new results to record.
+
+Running jobs status (all healthy, 48G memory):
+  LSTM baselines (6 jobs): ~2-2.5h elapsed, ~18-20h remaining
+    - ppo-lstm-1B-s1 (narval), s2 (rorqual), s3 (nibi)
+    - pqn-lstm-1B-s1 (rorqual), s2 (nibi), s3 (fir, just started 16min)
+  Hypothesis pilots (6 jobs): 15-28 min elapsed, ~2-4h remaining
+    - h001-pilot-s1 (rorqual): gamma=0.999, gae_lambda=0.95
+    - h001-longer-rollout-s1 (narval): same + num_steps=128
+    - h002-pilot-s1 (nibi): achievement reward shaping
+    - h003-pilot-s1 (fir): h001+h002 combined
+    - h004-pilot-s1 (rorqual): wider 1024, ReLU, LayerNorm, 3 layers
+    - h005-pilot-s1 (narval): kitchen sink (all combined)
+
+Next session priorities:
+  1. Hypothesis pilots should complete first (~2-4h from now) — PARSE AND ANALYZE
+  2. If any pilot shows improvement, submit full 1B × 3 seeds IMMEDIATELY
+  3. LSTM baselines will take ~18-20h more — will be another session
+  4. Watch for OOM on resubmitted PQN-LSTM jobs (48G should be enough but monitor)
