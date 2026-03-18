@@ -105,6 +105,8 @@ class GTrXL_Args(PPO_Args):
     """transformer memory length (-1 = use num_steps)"""
     trxl_mlp_layers: int = 2
     """number of MLP layers in input projection"""
+    ent_coef_end: float = -1.0
+    """final entropy coefficient (-1 = no annealing, use ent_coef throughout)"""
 
 
 @dataclass
