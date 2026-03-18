@@ -2115,3 +2115,53 @@ DECISION: Wait for remaining combo pilots (h039, h042, h043, h044) before submit
 If h043 (LSTM ultimate) or h044 (GRU ultimate) beats h040, submit that instead.
 Key question: does h039 (GRU+64s+grad=1.0) beat h040 (GRU+128s+grad=1.0)?
 If yes, then GRU at 64 steps with grad=1.0 is the optimal config.
+
+---
+**[2026-03-18 23:16 UTC]**
+
+=== SESSION: h043 pilot result — ULTIMATE LSTM ties for best ===
+
+Triggered by: h043-pilot-s1 (28319459, fir) SUCCESS.
+
+h043-pilot-s1 (PPO-LSTM + struct obs + gamma=0.999 + ent anneal 0.03→0.005 + 128 steps + max_grad_norm=1.0):
+  avg_return=30.7, avg_length=331.2, wall=7499s (2.08h)
+  80% dungeon entry! find_bow 76%, fire_bow 72%, collect_diamond 16%, ruby 8%
+  diamond_sword 4%, sapphire 8%, drink_potion 44%, wake_up 52%
+  VERDICT: TIED FOR BEST with h040 GRU (30.86, 76% dungeon).
+  All 3 LSTM improvements (ent anneal, 128 steps, grad=1.0) STACK successfully.
+  Very short efficient episodes (331 avg_length vs h040 552) — agent is highly efficient.
+
+Submitted h045 pilot (GRU + ent anneal + 64s + grad=1.0) to fir (28336497).
+  This fills a gap in the combo search space — GRU at 64 steps with both ent anneal and grad=1.0.
+  h039 = GRU+64s+grad=1.0 (no ent), h042 = GRU+ent+64s (no grad=1.0), h045 = both.
+
+UPDATED LEADERBOARD (200M pilots):
+  h040 GRU (128s+grad=1.0):              30.86, 76% dungeon — BEST RETURN
+  h043 LSTM (ent+128s+grad=1.0):         30.7, 80% dungeon — BEST DUNGEON %
+  h032 LSTM (ent anneal 0.03→0.005):     29.74, 80% dungeon
+  h025 LSTM (grad=1.0):                   28.58, 60% dungeon
+  h031 GRU (64 steps):                    28.54, 64% dungeon
+  h023 LSTM (128 steps):                  26.82, 60% dungeon
+
+ACTIVE JOBS (23 total — 21 running, 2 pending):
+  IMMINENT COMBO PILOTS (~15-45 min):
+    h039 (GRU+64s+grad=1.0): rorqual 2h31m — VERY SOON
+    h042 (GRU+ent 64s): rorqual 2h12m — SOON
+  COMBO PILOTS (~1-2h):
+    h038 (LSTM+128s+grad=1.0): narval 1h37m
+    h044 (GRU ent+128s+grad=1.0): narval 1h34m
+    h045 (GRU ent+64s+grad=1.0): fir — JUST SUBMITTED
+  NIBI PILOTS (~1.5-2h started):
+    h033 (LSTM 256s), h035 (LSTM 768h), h036 (LSTM 8 epochs) — just started
+    h041 (LSTM ent+grad=1.0): pending
+    h031-1B-s3: pending
+  1B RUNS (4-14h remaining):
+    h009-1B-s2, h012-1B-s2: narval 11h — near completion
+    h021-1B: 3 seeds (rorqual/narval/fir ~5-7h) — 3-7h remaining
+    h023-1B: 3 seeds ~4-10h remaining
+    h031-1B: s1+s2 running, s3 pending ~7-10h remaining
+    h032-1B: 3 seeds ~8-12h remaining
+
+DECISION: Hold on submitting 1B runs for h040/h043 until h039/h042 complete (~15-45 min).
+If h039 (GRU+64s+grad=1.0) beats h040, GRU at 64 steps with grad=1.0 is optimal.
+Then h045 (adding ent anneal) could be the ultimate config to run at 1B.
