@@ -1667,3 +1667,26 @@ NEXT SESSION PRIORITIES:
   5. CRITICAL: Parse h021 1B and h023 1B when they arrive (~7-13h)
   6. If any pilot beats h023 (26.82), submit combined 1B immediately
   7. If h021 1B > 40, start investigating deeper floor strategies
+
+---
+**[2026-03-18 20:13 UTC]**
+
+=== SESSION: Process h028 result, handle h033 OOM, submit new pilots ===
+
+h028 RESULT (gae_lambda=0.9): avg_return=20.34, avg_length=1740, 0% dungeon entry. Agent survival-focused but no floor progression. WORSE than h021 (22.22 with 40% dungeon). gae_lambda=0.9 makes agent conservative like PopArt and low entropy. CLOSED.
+
+h033 (num_steps=256): CUDA OOM on rorqual 40GB MIG partition. 256 steps doubles memory for CNN structured obs encoder during PPO update. Resubmitted as h033-pilot-s1b on nibi with num_envs=512 (halves batch to compensate).
+
+NEW HYPOTHESES SUBMITTED (nibi):
+- h035: h023 config + hidden_size=768 (larger LSTM capacity) → nibi 10544745
+- h036: h023 config + update_epochs=8 (double gradient steps) → nibi 10544746
+
+RUNNING JOBS (18 total):
+- 1B runs: h009 (2 seeds, GTrXL), h012 (3 seeds, GTrXL+PopArt), h021 (3 seeds, LSTM), h023 (3 seeds, LSTM+128steps)
+- Pilots: h025 (grad_norm=1.0), h026 (ReLU+LN), h027 (lr=3e-4), h030 (gae=0.95), h031 (GRU), h032 (ent anneal), h033 (256 steps), h034 (h023+gae=0.95), h035 (hidden=768), h036 (epochs=8)
+
+KEY INSIGHT: gae_lambda changes (0.9 in h028, 0.95 in h008) both hurt with num_steps=64 by making agent conservative. h034 tests gae_lambda=0.95 with num_steps=128 which may behave differently since 128 steps already provides better credit assignment.
+
+PATTERN: Every change that reduces exploration (low entropy, PopArt, higher gae_lambda) makes agent overly conservative with survival-focused long episodes but 0% dungeon entry. The default ent_coef=0.01 and gae_lambda=0.8 seem well-calibrated for PPO-LSTM. The main lever is num_steps (64→128 gave +20.7%).
+
+NEXT: Wait for pilot results h025-h036. Process 1B results when they complete (~12-20h). Key 1B races: h021 vs h023 — will 128 steps maintain advantage at scale?
