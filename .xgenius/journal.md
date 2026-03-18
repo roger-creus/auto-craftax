@@ -2165,3 +2165,60 @@ ACTIVE JOBS (23 total — 21 running, 2 pending):
 DECISION: Hold on submitting 1B runs for h040/h043 until h039/h042 complete (~15-45 min).
 If h039 (GRU+64s+grad=1.0) beats h040, GRU at 64 steps with grad=1.0 is optimal.
 Then h045 (adding ent anneal) could be the ultimate config to run at 1B.
+
+---
+**[2026-03-18 23:24 UTC]**
+
+=== SESSION: h039 + h042 pilot results — GRU defaults are optimal at 64 steps ===
+
+Triggered by: h039-pilot-s1 (8558946, rorqual) SUCCESS, h042-pilot-s1 (8560277, rorqual) SUCCESS.
+
+h039-pilot-s1 (PPO-GRU + struct obs + gamma=0.999 + max_grad_norm=1.0, 64 steps):
+  avg_return=24.54, avg_length=474, wall=7163s (2.0h)
+  40% dungeon entry. find_bow 36%, fire_bow 36%, diamond 8%, sapphire 4%.
+  VERDICT: CLOSED. grad_norm=1.0 HURTS GRU at 64 steps (-14% vs h031 28.54).
+  GRU responds OPPOSITE to LSTM: grad_norm=1.0 helps LSTM dramatically (h025 +28.6%)
+  but HURTS GRU at 64 steps. Only at 128 steps does GRU benefit (h040 30.86).
+
+h042-pilot-s1 (PPO-GRU + struct obs + gamma=0.999 + ent anneal 0.03→0.005, 64 steps):
+  avg_return=25.62, avg_length=689, wall=7217s (2.0h)
+  52% dungeon entry. find_bow 52%, fire_bow 40%, diamond 8%, ruby 8%.
+  VERDICT: CLOSED. Entropy annealing HURTS GRU at 64 steps (-10.2% vs h031 28.54).
+  Both ent annealing and grad_norm=1.0 hurt GRU at 64 steps. GRU defaults work best at 64.
+
+KEY INSIGHT — GRU vs LSTM respond DIFFERENTLY to HP changes:
+  LSTM improvements that HELP: grad_norm=1.0 (+28.6%), ent anneal (+33.8%), 128 steps (+20.7%) — ALL STACK (h043: 30.7)
+  GRU at 64 steps: grad_norm=1.0 HURTS (-14%), ent anneal HURTS (-10.2%). Defaults optimal.
+  GRU at 128 steps: grad_norm=1.0 HELPS massively (h040: 30.86 vs h037: 26.98)
+  Conclusion: GRU+128+grad=1.0 is optimal GRU config, NOT GRU+64 with tricks.
+
+h045 (GRU+64s+ent+grad=1.0) still running but unlikely to beat h031 since both components hurt individually at 64 steps.
+
+SUBMITTED 1B × 3 SEEDS FOR BEST CONFIGS:
+  h043-1B (LSTM ent+128s+grad=1.0): s1→rorqual (8565731), s2→narval (57970288), s3→fir (28337233)
+  h040-1B (GRU 128s+grad=1.0): s1→nibi (10549728), s2→narval (57970302), s3→fir (28337300)
+
+UPDATED LEADERBOARD (200M pilots):
+  h040 GRU (128s+grad=1.0):           30.86, 76% dungeon — BEST RETURN
+  h043 LSTM (ent+128s+grad=1.0):      30.7, 80% dungeon — BEST DUNGEON %
+  h032 LSTM (ent anneal):             29.74, 80% dungeon
+  h025 LSTM (grad=1.0):               28.58, 60% dungeon
+  h031 GRU (64 steps):                28.54, 64% dungeon
+  h023 LSTM (128 steps):              26.82, 60% dungeon
+  h042 GRU (ent anneal, 64s):         25.62, 52% dungeon — NEW, CLOSED
+  h039 GRU (grad=1.0, 64s):           24.54, 40% dungeon — NEW, CLOSED
+  h021 LSTM (64 steps, baseline):      22.22, 40% dungeon
+
+ACTIVE JOBS (27 total — 25 running, 2 pending):
+  NEW 1B RUNS: h043 (3 seeds), h040 (3 seeds) — ~10-12h to complete
+  EXISTING 1B RUNS: h009-s2/h012-s2 (narval, near done), h021 (3 seeds ~4-8h), h023 (3 seeds ~6-10h), h031 (2+1pen ~7-10h), h032 (3 seeds ~8-12h)
+  REMAINING PILOTS: h038 (LSTM+128s+grad=1.0, narval ~30min), h044 (GRU ultimate, narval ~30min), h045 (GRU+64s+ent+grad, fir ~2h), h033/h035/h036/h041 (nibi)
+
+NEXT SESSION PRIORITIES:
+  1. Parse h038 (LSTM+128s+grad=1.0) — compare vs h043 to quantify ent anneal contribution
+  2. Parse h044 (GRU ent+128s+grad=1.0) — does adding ent anneal help h040?
+  3. Parse h045 (GRU+64s+ent+grad) — expected to be poor
+  4. Parse nibi pilots: h033, h035, h036, h041
+  5. Parse first 1B results: h009-s2, h012-s2 (close GTrXL), h021 (first LSTM 1B)
+  6. Parse h040-1B and h043-1B as they complete (~10-12h)
+  7. Start thinking about next improvements: curriculum learning, intrinsic motivation, or architectural changes if 1B results plateau
