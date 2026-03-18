@@ -88,6 +88,7 @@ if __name__ == "__main__":
         num_mlp_layers=trxl_mlp_layers,
         use_structured_obs=args.use_structured_obs,
         use_popart=args.use_popart,
+        use_symlog=args.use_symlog,
     ).to(device)
     print("-------------")
     print(agent)
@@ -145,7 +146,7 @@ if __name__ == "__main__":
 
             # action logic
             with torch.no_grad():
-                action, logprob, _, value, next_memory = agent.get_action_and_value(
+                action, logprob, _, value, next_memory, _ = agent.get_action_and_value(
                     next_obs, next_memory, next_done
                 )
                 values[step] = value.flatten()
@@ -219,7 +220,7 @@ if __name__ == "__main__":
                 # Slice initial memory for this minibatch of environments
                 mb_memory = [m[:, mbenvinds].contiguous() for m in initial_memory]
 
-                _, newlogprob, entropy, newvalue, _ = agent.get_action_and_value(
+                _, newlogprob, entropy, newvalue, _, hidden_feats = agent.get_action_and_value(
                     b_obs[mb_inds],
                     mb_memory,
                     b_dones[mb_inds],
@@ -244,7 +245,10 @@ if __name__ == "__main__":
 
                 # value loss
                 newvalue = newvalue.view(-1)
-                if args.use_popart:
+                if args.use_symlog:
+                    # Symlog two-hot cross-entropy loss (DreamerV3-style)
+                    v_loss = agent.critic_head.loss(hidden_feats, b_returns[mb_inds])
+                elif args.use_popart:
                     # Normalize targets using stats updated once per iteration (above)
                     mb_returns_norm = agent.critic_head.normalize(b_returns[mb_inds].unsqueeze(-1)).squeeze(-1)
                     mb_values_norm = agent.critic_head.normalize(b_values[mb_inds].unsqueeze(-1)).squeeze(-1)

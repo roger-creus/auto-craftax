@@ -67,6 +67,81 @@ class PopArtLayer(nn.Module):
         self.linear.bias.data.mul_(scale).add_((old_mu - self.mu) / self.sigma)
 
 
+class SymlogTwoHotLayer(nn.Module):
+    """Symlog two-hot distributional value head (DreamerV3-style).
+
+    Predicts value as a categorical distribution over symlog-transformed bins.
+    More robust than scalar regression for multi-scale returns.
+    """
+    def __init__(self, in_features, num_bins=255, low=-20.0, high=20.0):
+        super().__init__()
+        self.num_bins = num_bins
+        self.linear = nn.Linear(in_features, num_bins)
+        nn.init.orthogonal_(self.linear.weight, 0.01)
+        nn.init.constant_(self.linear.bias, 0.0)
+
+        # Bin centers in symlog space, evenly spaced
+        self.register_buffer('bins', torch.linspace(low, high, num_bins))
+
+    @staticmethod
+    def symlog(x):
+        return torch.sign(x) * torch.log1p(torch.abs(x))
+
+    @staticmethod
+    def symexp(x):
+        return torch.sign(x) * (torch.exp(torch.abs(x)) - 1)
+
+    def forward(self, x):
+        """Returns expected value (scalar) from distributional prediction."""
+        logits = self.linear(x)
+        probs = F.softmax(logits, dim=-1)
+        # Expected value in symlog space, then transform back
+        symlog_value = (probs * self.bins).sum(dim=-1, keepdim=True)
+        return self.symexp(symlog_value)
+
+    def logits(self, x):
+        """Returns raw logits for computing cross-entropy loss."""
+        return self.linear(x)
+
+    def loss(self, x, targets):
+        """Compute cross-entropy loss against two-hot encoded targets.
+
+        Args:
+            x: features from transformer, shape (batch, hidden_size)
+            targets: scalar targets, shape (batch,) or (batch, 1)
+        Returns:
+            scalar loss
+        """
+        targets = targets.squeeze(-1)
+        logits = self.linear(x)  # (batch, num_bins)
+
+        # Transform targets to symlog space
+        symlog_targets = self.symlog(targets)
+
+        # Two-hot encode: find nearest bins and interpolate
+        symlog_targets = symlog_targets.clamp(self.bins[0], self.bins[-1])
+        # Find which bin the target falls into
+        below = torch.bucketize(symlog_targets, self.bins) - 1
+        below = below.clamp(0, self.num_bins - 2)
+        above = below + 1
+
+        # Interpolation weights
+        below_val = self.bins[below]
+        above_val = self.bins[above]
+        weight_above = (symlog_targets - below_val) / (above_val - below_val + 1e-8)
+        weight_below = 1.0 - weight_above
+
+        # Two-hot target distribution
+        target_dist = torch.zeros_like(logits)
+        target_dist.scatter_(1, below.unsqueeze(1), weight_below.unsqueeze(1))
+        target_dist.scatter_(1, above.unsqueeze(1), weight_above.unsqueeze(1))
+
+        # Cross-entropy loss
+        log_probs = F.log_softmax(logits, dim=-1)
+        loss = -(target_dist * log_probs).sum(dim=-1).mean()
+        return loss
+
+
 def layer_init(layer, std=np.sqrt(2), bias_const=0.0):
     torch.nn.init.orthogonal_(layer.weight, std)
     torch.nn.init.constant_(layer.bias, bias_const)
@@ -162,12 +237,14 @@ class PPO_GTrXL_Agent(nn.Module):
         d_ff=None,
         use_structured_obs=False,
         use_popart=False,
+        use_symlog=False,
     ):
         super().__init__()
         self.hidden_size = hidden_size
         self.memory_len = memory_len
         self.num_transformer_layers = num_transformer_layers
         self.use_popart = use_popart
+        self.use_symlog = use_symlog
 
         if d_ff is None:
             d_ff = hidden_size * 4
@@ -194,7 +271,9 @@ class PPO_GTrXL_Agent(nn.Module):
 
         # Actor/Critic heads
         self.actor_head = layer_init(nn.Linear(hidden_size, n_actions), std=0.01)
-        if use_popart:
+        if use_symlog:
+            self.critic_head = SymlogTwoHotLayer(hidden_size)
+        elif use_popart:
             self.critic_head = PopArtLayer(hidden_size, 1)
         else:
             self.critic_head = layer_init(nn.Linear(hidden_size, 1), std=1.0)
@@ -363,10 +442,12 @@ class PPO_GTrXL_Agent(nn.Module):
         value = self.critic_head(hidden)
         if self.use_popart:
             value = self.critic_head.denormalize(value)
+        # symlog forward() already returns real-scale values
         return value
 
     def get_action_and_value(self, x, memory, done, action=None):
-        if action is not None:
+        is_rollout = action is None
+        if not is_rollout:
             # Training: use batched path (all T steps in parallel)
             hidden, memory = self.get_states_train(x, memory, done)
         else:
@@ -377,7 +458,8 @@ class PPO_GTrXL_Agent(nn.Module):
         if action is None:
             action = probs.sample()
         value = self.critic_head(hidden)
-        if self.use_popart and action is None:
+        if self.use_popart and is_rollout:
             # During rollout, denormalize for GAE computation
             value = self.critic_head.denormalize(value)
-        return action, probs.log_prob(action), probs.entropy(), value, memory
+        # symlog forward() already returns real-scale values
+        return action, probs.log_prob(action), probs.entropy(), value, memory, hidden

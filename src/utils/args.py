@@ -109,6 +109,8 @@ class GTrXL_Args(PPO_Args):
     """final entropy coefficient (-1 = no annealing, use ent_coef throughout)"""
     use_popart: bool = False
     """if toggled, use PopArt adaptive value normalization"""
+    use_symlog: bool = False
+    """if toggled, use symlog two-hot distributional value head (DreamerV3-style)"""
 
 
 @dataclass
