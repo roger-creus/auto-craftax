@@ -255,7 +255,7 @@ class PPO_GTrXL_Agent(nn.Module):
         positions = torch.zeros(T, batch_size, device=device, dtype=torch.long)
         running_pos = torch.full((batch_size,), mem_len, device=device, dtype=torch.long)
         for t in range(T):
-            running_pos = torch.where(done[t], torch.zeros_like(running_pos), running_pos)
+            running_pos = torch.where(done[t].bool(), torch.zeros_like(running_pos), running_pos)
             positions[t] = running_pos
             running_pos = running_pos + 1
         return positions  # (T, B)
