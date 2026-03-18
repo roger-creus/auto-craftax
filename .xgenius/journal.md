@@ -1690,3 +1690,104 @@ KEY INSIGHT: gae_lambda changes (0.9 in h028, 0.95 in h008) both hurt with num_s
 PATTERN: Every change that reduces exploration (low entropy, PopArt, higher gae_lambda) makes agent overly conservative with survival-focused long episodes but 0% dungeon entry. The default ent_coef=0.01 and gae_lambda=0.8 seem well-calibrated for PPO-LSTM. The main lever is num_steps (64→128 gave +20.7%).
 
 NEXT: Wait for pilot results h025-h036. Process 1B results when they complete (~12-20h). Key 1B races: h021 vs h023 — will 128 steps maintain advantage at scale?
+
+---
+**[2026-03-18 20:21 UTC]**
+
+=== SESSION: h031 GRU BREAKTHROUGH — Best pilot ever, scaling up ===
+
+Triggered by: h031-pilot-s1 (28282164, fir) SUCCESS.
+
+h031-pilot-s1 (PPO-GRU + struct obs + gamma=0.999, 64 steps):
+  avg_return=28.54, avg_length=597, wall=7205s (2.0h)
+  64% dungeon entry! find_bow 60%, fire_bow 48%, collect_diamond 12%
+  iron_sword 40%, iron_pickaxe 16%, sapphire 8%
+  VERDICT: BEST PILOT EVER. GRU with only 64 steps beats LSTM+128steps (h023: 26.82, 60% dungeon).
+
+ALSO PROCESSED — h026 and h027 (disappeared but actually completed):
+  h026 (ReLU+LN): avg_return=19.70, avg_length=1480, 0% dungeon — CLOSED. Conservative pattern.
+  h027 (lr=3e-4): avg_return=19.42, avg_length=1796, 0% dungeon — CLOSED. Higher LR doesn't help.
+
+LEADERBOARD UPDATE (200M pilots, same-config comparison):
+  h031 GRU (64 steps):     28.54, 64% dungeon — NEW #1 (this session)
+  h023 LSTM (128 steps):   26.82, 60% dungeon
+  h021 LSTM (64 steps):    22.22, 40% dungeon
+  h029 LSTM (2048 envs):   21.3,  44% dungeon — closed
+  h028 LSTM (gae=0.9):     20.34, 0% dungeon  — closed
+  h026 LSTM (ReLU+LN):     19.70, 0% dungeon  — closed (this session)
+  h027 LSTM (lr=3e-4):     19.42, 0% dungeon  — closed (this session)
+  h024 LSTM (ent=0.002):   18.98, 0% dungeon  — closed
+
+KEY INSIGHT: GRU is dramatically better than LSTM for this task.
+  GRU vs LSTM at 64 steps: 28.54 vs 22.22 (+28.5%)
+  GRU (64 steps) vs LSTM (128 steps): 28.54 vs 26.82 (+6.4%)
+  Possible reasons:
+  - GRU has fewer params → faster optimization
+  - GRU's simpler gating may generalize better
+  - GRU's single hidden state may be more stable for policy gradients
+
+EXPERIMENTS SUBMITTED:
+  h037-pilot-s1 (fir 28310386): GRU + 128 steps pilot — HIGHEST PRIORITY
+    If 64→128 helps LSTM by 20.7%, similar boost for GRU could give ~34+ return at 200M!
+  h031-1B-s1 (narval 57961766): GRU 1B seed 1
+  h031-1B-s2 (rorqual 8557852): GRU 1B seed 2
+  h031-1B-s3 (nibi 10545091): GRU 1B seed 3
+
+ACTIVE JOBS (22 total):
+  1B RUNS:
+    h021 LSTM: s1(rorqual 3.7h), s2(narval 2.3h), s3(fir 2.9h) — ~6-9h remaining
+    h023 LSTM+128: s1(rorqual 0.6h), s2(fir 0.7h), s3(narval 1h) — ~9-12h remaining
+    h031 GRU: s1(narval queued), s2(rorqual queued), s3(nibi queued) — ~10-13h total
+    h009/h012 GTrXL: ~5 jobs, 1-5h remaining (for completeness)
+
+  PILOTS (200M):
+    h025 (grad_norm=1.0): narval 2.3h — ~0.5h remaining
+    h030 (gae_lambda=0.95): rorqual 2.2h — ~0.5h remaining
+    h032 (entropy annealing): narval 2h — ~1h remaining
+    h034 (LSTM 128steps+gae=0.95): fir 0.5h — ~1.5h remaining
+    h037 (GRU+128steps): fir queued — HIGHEST PRIORITY ~2h
+    h033/h035/h036 (nibi pending, LSTM variants)
+
+NEXT SESSION PRIORITIES:
+  1. Parse h025/h030/h032 pilot results (completing soon)
+  2. Parse h034 (LSTM 128+gae=0.95) pilot result
+  3. Parse h037 (GRU+128steps) pilot — THE KEY EXPERIMENT
+  4. Parse h021/h023 1B results when complete (~6-13h)
+  5. If h037 beats h031 (28.54), submit h037 1B x3 immediately
+  6. Consider: GRU variants — GRU+128steps+gae=0.95, GRU+entropy anneal, etc.
+  7. Start thinking about deeper strategies for Floor 2+ if we get consistent dungeon entry
+
+---
+**[2026-03-18 20:42 UTC]**
+
+=== SESSION: h025 result — max_grad_norm=1.0 MAJOR FINDING ===
+
+Triggered by: h025-pilot-s1 (57955430, narval) SUCCESS.
+
+h025-pilot-s1 (PPO-LSTM + struct obs + gamma=0.999 + max_grad_norm=1.0):
+  avg_return=28.58, avg_length=604, wall=8861s (2.5h) narval A100
+  60% dungeon entry! find_bow 60%, fire_bow 48%, collect_diamond 4%, sapphire 16%
+  VERDICT: MAJOR FINDING. max_grad_norm 0.5→1.0 gives +28.6% for LSTM (22.22→28.58).
+  LSTM at grad_norm=1.0 MATCHES GRU at 0.5 (h031: 28.54, 64% dungeon).
+  LSTM wasn't inherently worse than GRU — tight gradient clipping (0.5 default) was the bottleneck.
+
+UPDATED LEADERBOARD (200M pilots):
+  h025 LSTM (64 steps, grad=1.0):  28.58, 60% dungeon — NEW #1 tied with GRU
+  h031 GRU (64 steps, grad=0.5):   28.54, 64% dungeon — #2 (very close)
+  h023 LSTM (128 steps, grad=0.5): 26.82, 60% dungeon — #3
+  h021 LSTM (64 steps, grad=0.5):  22.22, 40% dungeon — baseline for comparison
+
+CRITICAL IMPLICATIONS FOR RUNNING EXPERIMENTS:
+  - h021-1B-s1 uses grad_norm=1.0 → should be much better than s2/s3 (0.5)
+  - h023-1B all 3 seeds use default 0.5 → suboptimal but still informative
+  - h031-1B all 3 seeds use default 0.5 → GRU works well at 0.5 anyway
+  - All currently running LSTM experiments (h030, h032, h034, h035, h036) use 0.5
+
+NEW HYPOTHESES SUBMITTED:
+  h038 (narval 57962506): LSTM + 128 steps + grad_norm=1.0 — combines two biggest LSTM wins
+  h039 (rorqual 8558946): GRU + grad_norm=1.0 — test if GRU also benefits
+  h040 (fir 28315857): GRU + 128 steps + grad_norm=1.0 — ultimate combo
+
+STRATEGY: h038 and h040 are the most promising pilots. If either pushes past 30+ at 200M, submit 1B x3 immediately. The max_grad_norm=1.0 finding reshapes the entire optimization landscape — every LSTM config should be re-evaluated with 1.0.
+
+NEXT SESSION: Parse h038/h039/h040 results (~2-3h), h037 (GRU+128 at 0.5), h034 (LSTM+128+gae=0.95). Parse h021/h023/h031 1B results (~10-20h).
