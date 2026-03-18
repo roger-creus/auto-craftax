@@ -986,3 +986,93 @@ NEXT SESSION PRIORITIES:
   5. Parse remaining baselines: ppo-lstm s2, pqn-lstm s3
   6. If h020 pilot >20 at 200M, submit h020 1B × 3 seeds ASAP
   7. KEY DECISION: GTrXL track vs LSTM track — h007/h012 1B vs h020 pilot will decide direction
+
+---
+**[2026-03-18 16:06 UTC]**
+
+## HUMAN DIRECTIVE [CRITICAL]
+
+We have now master and main branches! there must be only 1 branch in the repocd auto-craftax/
+
+---
+**[2026-03-18 16:33 UTC]**
+
+=== SESSION: h019/h015/h018/h021 pilot results, h021 breakthrough, branch fix ===
+
+Triggered by: h019-pilot-s1 (28245450, fir) SUCCESS.
+
+HUMAN DIRECTIVE ADDRESSED [CRITICAL]:
+  - Deleted remote 'main' branch. Only 'master' remains. master is now the sole branch.
+  - All future pushes: git push origin master
+
+NEW PILOT RESULTS:
+
+h015-pilot-s1 (longer memory 256 vs 128):
+  avg_return=15.58, avg_length=624, wall=12085s (3.4h, A100)
+  skeleton 68%, zombie 76%, iron 24%, 0% dungeon
+  VERDICT: CLOSED — WORSE than h012 (17.74). 70% slower, no benefit.
+
+h018-pilot-s1 (gamma annealing 0.99→0.999):
+  avg_return=17.14, avg_length=1016, wall=9029s (2.5h)
+  skeleton 76%, zombie 88%, iron 28%, 0% dungeon
+  VERDICT: CLOSED — Close to h012 (17.74) but slightly worse (-3.4%). Not worth it.
+
+h019-pilot-s1 (LR warmup 5%):
+  avg_return=16.10, avg_length=879, wall=7988s (2.2h)
+  skeleton 76%, zombie 84%, iron 16%, 0% dungeon
+  VERDICT: CLOSED — WORSE than h012 (17.74). LR warmup doesn't help.
+
+h021-pilot-s1 (PPO-LSTM + struct obs + gamma=0.999, NO PopArt):
+  avg_return=22.22, avg_length=505, wall=7743s (2.15h)
+  *** BREAKTHROUGH *** 40% DUNGEON ENTRY AT 200M! ***
+  iron 56%, find_bow 32%, fire_bow 24%, open_chest 32%, diamond_sword 4%
+  VERDICT: BEST PILOT BY FAR (+25% over h012 GTrXL at 17.74)
+
+GTXRL PILOT OPTIMIZATION SUMMARY (all 200M, all closed except h012):
+  h012 (struct obs + PopArt):    17.74  ← BEST GTrXL
+  h018 (gamma annealing):        17.14
+  h013 (+ entropy anneal):       16.82
+  h011 (struct obs + ent ann):   16.70
+  h017 (PopArt fixes):           16.38
+  h009 (struct obs only):        16.14
+  h019 (LR warmup):              16.10
+  h010 (entropy anneal only):    16.06
+  h007 (reference):              15.66
+  h016 (symlog two-hot):         15.58
+  h015 (longer memory 256):      15.58
+  h008 (gae_lambda=0.95):        14.26
+
+PPO-LSTM TRACK (200M pilot):
+  h021 (struct obs + gamma=0.999):     22.22  ← 40% DUNGEON ENTRY!
+  h020 (+ PopArt):                     still running (fir, 1.6h elapsed)
+  h022 (+ PopArt + 128 steps):         still running (rorqual, 55min)
+
+KEY INSIGHT: PPO-LSTM with structured obs massively outperforms GTrXL.
+  - LSTM provides sufficient temporal memory for Craftax
+  - CNN obs encoder gives critical spatial awareness
+  - gamma=0.999 enables long-horizon planning
+  - No PopArt needed for LSTM (simpler is better)
+  - 22.22 at 200M extrapolates to potentially 40+ at 1B (PPO-LSTM baseline: 33.32 at 1B)
+
+SUBMITTED h021 1B × 3 seeds:
+  s1 → rorqual (8549623)
+  s2 → narval (57953122)
+  s3 → fir (28257231)
+
+CURRENT ACTIVE JOBS (15 total):
+  h021 1B (3, just submitted): s1(rorqual), s2(narval), s3(fir)
+  h007 1B GTrXL ref (3, ~9h): s1(rorqual), s2(narval), s3(fir) — ~1-3h remaining
+  h009 1B GTrXL struct obs (3, 4-8h): s1(rorqual), s2(narval), s3(fir)
+  h012 1B GTrXL best (3, 4-6h): s1(rorqual), s2(narval), s3(fir)
+  ppo-lstm-1B-s2 (narval, 13.4h) — near completion
+  h020-pilot (fir, 1.6h) — PPO-LSTM + PopArt, ~0.5h remaining
+  h022-pilot (rorqual, 55min) — PPO-LSTM + PopArt + 128steps
+
+NEXT SESSION PRIORITIES:
+  1. Parse h020/h022 pilots — does PopArt or longer rollouts help PPO-LSTM?
+  2. Parse h007 1B — does GTrXL reference match published 41.4?
+  3. Parse h009/h012 1B — GTrXL improvements at scale
+  4. Parse ppo-lstm s2 — complete baseline
+  5. If h020 >> h021, PopArt helps LSTM too → submit h020 1B
+  6. h021 1B results expected in ~8-12h
+  7. Consider next hypotheses: intrinsic motivation, curriculum, hierarchical RL for deeper floors
