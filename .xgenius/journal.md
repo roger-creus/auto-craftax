@@ -2222,3 +2222,56 @@ NEXT SESSION PRIORITIES:
   5. Parse first 1B results: h009-s2, h012-s2 (close GTrXL), h021 (first LSTM 1B)
   6. Parse h040-1B and h043-1B as they complete (~10-12h)
   7. Start thinking about next improvements: curriculum learning, intrinsic motivation, or architectural changes if 1B results plateau
+
+---
+**[2026-03-18 23:48 UTC]**
+
+=== SESSION: h012-1B-s2 + h009-1B-s2 completed — GTrXL track fully closed ===
+
+Triggered by: h012-1B-s2 (57941362, narval) SUCCESS, h009-1B-s2 also completed.
+
+h012-1B-s2 (GTrXL + struct obs + PopArt, seed 2):
+  avg_return=17.94, avg_length=340. 0% dungeon entry.
+  skeleton 56%, zombie 72%, iron_sword 36%, iron_pickaxe 8%.
+  Consistent with s1 (17.78). Wall 41928s (11.6h).
+
+h009-1B-s2 (GTrXL + struct obs, seed 2):
+  avg_return=18.70, avg_length=3373. 0% dungeon entry.
+  skeleton 76%, zombie 80%, iron_pickaxe 28%, iron_sword 28%.
+  Very long survival episodes (3373 avg_length). Wall 40675s (11.3h).
+
+FINAL GTrXL RESULTS — ALL HYPOTHESES CLOSED:
+  h007 (reference): s1=18.10 s2=19.14 s3=19.78 mean=19.01±0.84. 0% dungeon.
+  h009 (struct obs): s1=15.42 s2=18.70 s3=20.38 mean=18.17±2.50. 0-4% dungeon.
+  h012 (struct obs+PopArt): s1=17.78 s2=17.94 s3=23.62 mean=19.78±3.35. 0-48% dungeon.
+
+GTrXL TRACK VERDICT: DEAD END. Published reference claims 41.4 (18.3%), our best mean is 19.78 (h012). Our PPO-LSTM track already gets 22.22 at only 200M (h021 pilot) and 30+ at 200M with improvements (h040/h043). GTrXL is 2-3x slower per step and far worse.
+
+ACTIVE JOBS (25 total — 22 running, 3 pending):
+  PILOTS (~1-3h remaining):
+    h038 (LSTM+128s+grad=1.0): narval 2h13m
+    h044 (GRU ent+128s+grad=1.0): narval 2h10m
+    h045 (GRU+64s+ent+grad=1.0): fir 32m
+    h033 (LSTM 256s): nibi 1h8m
+    h035 (LSTM 768h): nibi 1h8m
+    h036 (LSTM 8 epochs): nibi 43m
+    h041 (LSTM ent+grad=1.0): nibi 21m
+  1B RUNS (~3-12h remaining):
+    h021 (LSTM base): 3 seeds running (rorqual 7h, narval 6h, fir 6h)
+    h023 (LSTM+128s): 3 seeds running (rorqual 4h, narval 5h, fir 4h)
+    h031 (GRU base): 2 running + 1 pending (narval 3h, rorqual 3h, nibi pending)
+    h032 (LSTM+ent): 3 seeds running (narval 2h, rorqual 3h, fir 3h)
+    h040 (GRU+128s+grad): 1 running + 2 pending (narval 24m, nibi/fir pending)
+    h043 (LSTM ultimate): 3 seeds running (rorqual 25m, narval 24m, fir 9m)
+
+NO NEW SUBMISSIONS NEEDED — all important combos are already being tested:
+  h038 fills LSTM+128s+grad (no ent) gap
+  h041 fills LSTM+ent+grad (64s) gap
+  h044 fills GRU ultimate (ent+128s+grad) gap
+  h045 fills GRU+64s+ent+grad gap
+
+NEXT SESSION PRIORITIES:
+  1. Parse pilot results as they complete: h038, h044, h045, h033, h035, h036, h041
+  2. First 1B results expected: h021-s1 (rorqual ~3h), h021-s3 (fir ~4h)
+  3. h023/h031/h032 1B results: 6-12h out
+  4. h040/h043 1B results: 10-14h out
