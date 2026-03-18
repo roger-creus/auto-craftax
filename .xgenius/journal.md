@@ -1357,3 +1357,65 @@ NEXT SESSION PRIORITIES:
   5. Submit h028/h029 pilots when slots open
   6. CRITICAL: Parse h021 1B results when they arrive (~10h)
   7. After web search results, consider novel approaches (auxiliary losses, obs normalization, etc.)
+
+---
+**[2026-03-18 18:11 UTC]**
+
+=== SESSION CONTINUED: Web search findings + new hypotheses h030-h032 ===
+
+WEB SEARCH FINDINGS (key actionable insights):
+1. gae_lambda=0.8 is TOO LOW for gamma=0.999. Creates mismatch: value function looks far ahead but
+   advantage estimates are near-term. Raising to 0.9-0.95 is the #1 recommended HP change.
+2. GRU matches or exceeds LSTM in RL with fewer params and faster training.
+3. Entropy annealing (high→low) helps explore diverse strategies early, then sharpen.
+4. Stale LSTM hidden states are a known issue — longer num_steps helps.
+5. Auxiliary spatial reconstruction loss forces LSTM to maintain spatial awareness.
+6. Scalable option learning (hierarchical RL) is the only approach that demonstrably helps with
+   deep floor progression in roguelikes (NetHack). Worth considering later.
+7. Pure intrinsic motivation (RND/ICM) does NOT help on Craftax (confirmed by original paper).
+
+CODE CHANGES:
+- Added use_gru flag to PPO_Args and PPO_LSTM_Agent — drop-in GRU replacement for LSTM
+- Added ent_coef_end to PPO_Args — linear entropy annealing support
+- Renamed agent.lstm → agent.rnn for clarity
+- GRU state wrapped in tuple (h, dummy_zeros) for full backward compatibility
+- Synced code to all clusters (rorqual, narval, fir)
+- NOTE: Running h021 1B jobs use old cached code (safe — Python caches modules at import)
+
+NEW HYPOTHESES SUBMITTED:
+  h028 (28281805, fir queued): gae_lambda=0.9
+  h029 (8553015, rorqual queued): num_envs=2048
+  h030 (8553586, rorqual queued): gae_lambda=0.95 — #1 recommended change
+  h031 (28282164, fir queued): GRU instead of LSTM
+  h032 (57955858, narval queued): entropy annealing 0.03→0.005
+
+FULL ACTIVE JOB LIST (21 total):
+  1B RUNS (CRITICAL):
+    h021-1B-s1: rorqual RUNNING (1.5h in, ~9h total)
+    h021-1B-s3: fir RUNNING (45min in, ~10h total)
+    h021-1B-s2: narval QUEUED (will start after h007-1B-s2)
+    h007-1B-s2: narval RUNNING (10.5h, finishing soon)
+    h009-1B: rorqual(8h), narval(6h), fir(10h) — GTrXL for completeness
+    h012-1B: rorqual(8h), narval(6h), fir(7.5h) — GTrXL for completeness
+
+  PILOTS RUNNING:
+    h023 (128 steps, no PopArt): fir (50min)
+    h024 (ent=0.002): rorqual (50min)
+    h026 (ReLU+LN): narval (25min)
+    h027 (lr=3e-4): narval (25min)
+
+  PILOTS QUEUED:
+    h025 (grad_norm=1.0): narval (queued behind h007-1B-s2)
+    h028 (gae_lambda=0.9): fir (queued)
+    h029 (num_envs=2048): rorqual (queued)
+    h030 (gae_lambda=0.95): rorqual (queued)
+    h031 (GRU): fir (queued)
+    h032 (entropy annealing): narval (queued)
+
+EXPECTED COMPLETION ORDER:
+  ~1h: h007-1B-s2, h009-1B-s3 (frees narval + fir slots → starts h025, h028, h031)
+  ~1.5h: h023, h024 (current pilots)
+  ~2.5h: h026, h027 (narval pilots)
+  ~3-4h: h009/h012 1B remaining seeds
+  ~4-5h: h029, h030, h032 (queued pilots, start as 1B jobs finish)
+  ~10h: h021 1B s1/s3 (THE MAIN EVENT)
