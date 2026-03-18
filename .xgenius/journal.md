@@ -1928,3 +1928,29 @@ NEXT SESSION PRIORITIES:
   4. Parse h021-1B results (first PPO-LSTM 1B data) — ~6-8h
   5. If any combo pilot beats h032 (29.74), submit 1B x3 immediately
   6. Consider cancelling nibi low-priority pilots (h033/h035/h036) if combo pilots show clear winner
+
+---
+**[2026-03-18 21:47 UTC]**
+
+=== SESSION: h012-1B-s1 result processed ===
+
+Triggered by: h012-1B-s1 (8526719, rorqual) SUCCESS.
+
+h012-1B-s1 (PPO-GTrXL + struct obs + PopArt, seed 1, 1B):
+  avg_return=17.78, avg_length=352, wall=37234s (10.3h)
+  0% dungeon entry. skeleton 68% zombie 56%.
+  DISAPPOINTING — much worse than s3 (23.62, 48% dungeon).
+  Huge seed variance for GTrXL+PopArt at 1B: s1=17.78, s3=23.62.
+
+h012 STATUS: s1=17.78, s3=23.62. Mean so far: 20.70. s2 running on narval (~1-3h remaining).
+GTrXL track confirmed dead end — even best config (h012) averages ~20.7 at 1B vs PPO-LSTM pilots 28-30 at only 200M.
+
+RUNNING JOBS (26 active):
+  NEXT TO COMPLETE: h034 pilot (fir, 2h elapsed — should finish any minute)
+  SOON: h037 (GRU+128, fir ~0.5-1h), h039 (GRU+grad=1.0, rorqual ~1-1.5h), h040 (GRU+128+grad=1.0, fir ~1-1.5h)
+  LATER: h042, h043, h038, h044 pilots (~1.5-3h)
+  1B RUNS: h009-s2/h012-s2 narval ~1-3h, h021 ~5-10h, h023 ~8-12h, h031/h032 ~9-14h
+  PENDING: h033/h035/h036/h041 on nibi
+
+WAITING for pilot results — especially h037 (GRU+128) and h040/h043/h044 (ultimate combos).
+Nothing else to do this session — all experiments actively running.
