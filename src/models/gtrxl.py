@@ -107,6 +107,7 @@ class PPO_GTrXL_Agent(nn.Module):
         memory_len=64,
         num_mlp_layers=2,
         d_ff=None,
+        use_structured_obs=False,
     ):
         super().__init__()
         self.hidden_size = hidden_size
@@ -117,10 +118,14 @@ class PPO_GTrXL_Agent(nn.Module):
             d_ff = hidden_size * 4
 
         # Input projection: obs → hidden_size
-        proj_layers = [layer_init(nn.Linear(obs_dim, hidden_size)), nn.ReLU()]
-        for _ in range(num_mlp_layers - 1):
-            proj_layers.extend([layer_init(nn.Linear(hidden_size, hidden_size)), nn.ReLU()])
-        self.input_proj = nn.Sequential(*proj_layers)
+        if use_structured_obs:
+            from src.models.models import CraftaxObsEncoder
+            self.input_proj = CraftaxObsEncoder(hidden_size)
+        else:
+            proj_layers = [layer_init(nn.Linear(obs_dim, hidden_size)), nn.ReLU()]
+            for _ in range(num_mlp_layers - 1):
+                proj_layers.extend([layer_init(nn.Linear(hidden_size, hidden_size)), nn.ReLU()])
+            self.input_proj = nn.Sequential(*proj_layers)
 
         # Positional encoding (sinusoidal, large enough for memory + segment)
         self.register_buffer('pos_enc', self._make_pos_encoding(memory_len + 256, hidden_size))

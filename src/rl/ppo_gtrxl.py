@@ -86,6 +86,7 @@ if __name__ == "__main__":
         num_transformer_layers=trxl_layers,
         memory_len=trxl_memory,
         num_mlp_layers=trxl_mlp_layers,
+        use_structured_obs=args.use_structured_obs,
     ).to(device)
     print("-------------")
     print(agent)

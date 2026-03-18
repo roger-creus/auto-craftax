@@ -8,6 +8,71 @@ def layer_init(layer, std=np.sqrt(2), bias_const=0.0):
     torch.nn.init.constant_(layer.bias, bias_const)
     return layer
 
+
+class CraftaxObsEncoder(nn.Module):
+    """Structured observation encoder for Craftax-Symbolic-v1.
+
+    Splits the 8268-dim flat obs into:
+      - Spatial map (9x11x83): processed with CNN
+      - Player stats (51): processed with MLP
+    Then combines into a single hidden_size vector.
+    """
+
+    MAP_H, MAP_W, MAP_C = 9, 11, 83
+    MAP_DIM = MAP_H * MAP_W * MAP_C  # 8217
+    STATS_DIM = 51
+
+    def __init__(self, hidden_size):
+        super().__init__()
+        # Spatial map encoder: 2-layer CNN + adaptive pool
+        self.map_cnn = nn.Sequential(
+            nn.Conv2d(self.MAP_C, 32, 3, padding=1),
+            nn.ReLU(),
+            nn.Conv2d(32, 64, 3, padding=1),
+            nn.ReLU(),
+            nn.AdaptiveAvgPool2d((3, 4)),  # → (B, 64, 3, 4) = 768
+        )
+        map_flat_dim = 64 * 3 * 4
+        self.map_proj = nn.Sequential(
+            layer_init(nn.Linear(map_flat_dim, hidden_size)),
+            nn.ReLU(),
+        )
+
+        # Player stats encoder: 2-layer MLP
+        stats_hidden = max(hidden_size // 2, 64)
+        self.stats_mlp = nn.Sequential(
+            layer_init(nn.Linear(self.STATS_DIM, stats_hidden)),
+            nn.ReLU(),
+            layer_init(nn.Linear(stats_hidden, stats_hidden)),
+            nn.ReLU(),
+        )
+
+        # Combine map + stats → hidden_size
+        self.combine = nn.Sequential(
+            layer_init(nn.Linear(hidden_size + stats_hidden, hidden_size)),
+            nn.ReLU(),
+        )
+
+    def forward(self, obs):
+        # Split observation
+        map_flat = obs[..., :self.MAP_DIM]
+        stats = obs[..., self.MAP_DIM:]
+
+        # Encode map spatially
+        batch_shape = map_flat.shape[:-1]
+        map_2d = map_flat.reshape(-1, self.MAP_H, self.MAP_W, self.MAP_C)
+        map_2d = map_2d.permute(0, 3, 1, 2)  # (B, C, H, W)
+        map_feat = self.map_cnn(map_2d).flatten(1)
+        map_emb = self.map_proj(map_feat)
+        map_emb = map_emb.reshape(*batch_shape, -1)
+
+        # Encode stats
+        stats_emb = self.stats_mlp(stats)
+
+        # Combine
+        return self.combine(torch.cat([map_emb, stats_emb], dim=-1))
+
+
 class MLP(nn.Module):
     def __init__(self, input_size, hidden_size, num_layers, activation_fn, use_ln=False):
         super().__init__()
@@ -119,11 +184,16 @@ class PPO_Agent(nn.Module):
         num_layers: int = 5,
         activation_fn: nn.Module = nn.Tanh,
         use_ln: bool = False,
+        use_structured_obs: bool = False,
     ):
         super().__init__()
-        
-        self.critic_trunk = MLP(obs_dim, hidden_size, num_layers, activation_fn, use_ln=use_ln)
-        self.actor_trunk = MLP(obs_dim, hidden_size, num_layers, activation_fn, use_ln=use_ln)
+
+        if use_structured_obs:
+            self.critic_trunk = nn.Sequential(CraftaxObsEncoder(hidden_size), MLP(hidden_size, hidden_size, max(num_layers - 2, 1), activation_fn, use_ln=use_ln))
+            self.actor_trunk = nn.Sequential(CraftaxObsEncoder(hidden_size), MLP(hidden_size, hidden_size, max(num_layers - 2, 1), activation_fn, use_ln=use_ln))
+        else:
+            self.critic_trunk = MLP(obs_dim, hidden_size, num_layers, activation_fn, use_ln=use_ln)
+            self.actor_trunk = MLP(obs_dim, hidden_size, num_layers, activation_fn, use_ln=use_ln)
         self.critic_head = layer_init(nn.Linear(hidden_size, 1), std=1.0)
         self.actor_head = layer_init(nn.Linear(hidden_size, n_actions), std=0.01)
 
