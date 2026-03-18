@@ -1543,3 +1543,127 @@ NEXT SESSION PRIORITIES:
   3. If any pilot tweak beats h021 by >10%, combine with 128 steps and submit as h033+
   4. CRITICAL: Parse h021 1B and h023 1B when they arrive (~10h)
   5. If h023 1B > 40, start investigating deeper floor strategies (hierarchical RL, auxiliary losses)
+
+---
+**[2026-03-18 19:32 UTC]**
+
+=== SESSION: h029-pilot-s1 result — num_envs=2048 doesn't help ===
+
+Triggered by: h029-pilot-s1 (8553015, rorqual) SUCCESS.
+
+h029-pilot-s1 (PPO-LSTM + struct obs + gamma=0.999 + num_envs=2048):
+  avg_return=21.3, avg_length=556, wall=4961s (1.4h)
+  44% dungeon entry, find_bow 40%, fire_bow 16%
+  skeleton 52%, zombie 48%, collect_diamond 0%
+  VERDICT: WORSE than h021 (22.22, 40% dungeon). Slightly more dungeon entry (44% vs 40%)
+  but lower overall return. Doubling envs halves per-env trajectory quality.
+  Faster wall time (4961s vs 7743s for h021) but not worth the quality loss.
+  STATUS: CLOSED.
+
+ACTIVE JOBS (17 running, 2 pending):
+  1B CRITICAL:
+    h021-1B: s1(rorqual 3.1h), s2(narval 1.5h), s3(fir 2h) — ~7-10h remaining
+    h023-1B: s1(nibi PENDING), s2(fir PENDING), s3(narval 17min) — ~10-13h total
+    h009-1B: s1(rorqual 9.3h), s2(narval 7.8h) — ~1-3h remaining (GTrXL)
+    h012-1B: s1(rorqual 9.3h), s2(narval 7.8h), s3(fir 9.3h) — ~1-3h remaining (GTrXL)
+
+  PPO-LSTM PILOTS (200M, completing in 0.5-2.5h):
+    h024 (ent=0.002): rorqual 2.3h
+    h025 (grad_norm=1.0): narval 1.5h
+    h026 (ReLU+LN): narval 2h
+    h027 (lr=3e-4): narval 2h
+    h028 (gae_lambda=0.9): fir 1.3h
+    h030 (gae_lambda=0.95): rorqual 1.3h
+    h031 (GRU): fir 1.2h
+    h032 (entropy annealing): narval 1.2h
+
+UPDATED LEADERBOARD:
+  h023 (200M pilot): 26.82, 60% dungeon — BEST EVER, 1B submitted
+  PPO-LSTM baseline (1B): 33.88 — target to beat at 1B
+  PPO baseline (1B): 26.83 — h023 ALREADY MATCHES at 200M!
+  h021 (200M pilot): 22.22, 40% dungeon — 1B running
+  h029 (200M pilot): 21.3, 44% dungeon — CLOSED (num_envs=2048 doesn't help)
+
+NEXT SESSION PRIORITIES:
+  1. Parse h024-h032 pilot results as they complete
+  2. Parse h009/h012 1B (GTrXL, for completeness)
+  3. If any pilot tweak beats h021 by >10%, combine with 128 steps and submit as h033+
+  4. CRITICAL: Parse h021 1B and h023 1B when they arrive (~8-13h)
+  5. Consider: if gae_lambda=0.95 (h030) helps on 64-step config, combine with 128 steps
+
+---
+**[2026-03-18 19:42 UTC]**
+
+=== SESSION: h024 pilot result — low entropy HURTS, new hypotheses h033-h034 ===
+
+Triggered by: h024-pilot-s1 (8550716, rorqual) SUCCESS.
+
+h024-pilot-s1 (PPO-LSTM + struct obs + gamma=0.999 + ent_coef=0.002):
+  avg_return=18.98, avg_length=1189, wall=7580s (2.1h)
+  skeleton 76%, zombie 88%, iron 88%, coal 92%. 0% dungeon entry.
+  VERDICT: CLOSED. ent_coef=0.002 makes agent OVERLY CONSERVATIVE — same pattern as PopArt.
+  Long survival episodes (1189 steps vs h021's 505) but no floor progression.
+  WORSE than h021 (22.22, 40% dungeon). Default ent_coef=0.01 is optimal for PPO-LSTM.
+
+PATTERN EMERGING — things that make agent conservative ALL hurt:
+  PopArt (h020=18.94, h022=18.78) — HURTS
+  Low entropy (h024=18.98) — HURTS
+  More envs (h029=21.3) — marginal/hurts
+  All produce long episodes (1000+ steps) but low return and 0% dungeon entry.
+  Agent learns to survive (collect resources, fight zombies) but NOT to progress (enter dungeon).
+
+INFRASTRUCTURE ACTIONS:
+  - Cancelled h023-1B-s1 from nibi (10542951) — stuck pending (Priority, nibi unreliable)
+  - Resubmitted h023-1B-s1 to rorqual (8557125) — will start after GTrXL 1B job finishes
+  - h023-1B-s2 now RUNNING on fir (28287927, started 1.5min ago)
+  - h023-1B-s3 RUNNING on narval (57959723, 23min in)
+
+NEW HYPOTHESES SUBMITTED:
+  h033 (8557164, rorqual queued): num_steps=256 — test even longer rollouts.
+    If 64→128 gave +20.7%, does 256 give more? Halves gradient updates (3814 vs 7629).
+  h034 (28299658, fir queued): h023 config + gae_lambda=0.95
+    Web research says #1 HP fix for gamma=0.999 is raising gae_lambda.
+    Even if h030 (64-step + 0.95) doesn't beat h021, test with 128 steps.
+
+ACTIVE JOBS (20 total):
+  1B RUNS (CRITICAL):
+    h021-1B: s1(rorqual 3h), s2(narval 1.7h), s3(fir 2.3h) — ~7-11h remaining
+    h023-1B: s1(rorqual queued), s2(fir 2min), s3(narval 23min) — ~10-13h total
+    h009-1B: s1(rorqual 9.3h), s2(narval 7.7h) — ~1-5h remaining (GTrXL)
+    h012-1B: s1(rorqual 9.3h), s2(narval 7.6h), s3(fir 9.2h) — ~1-5h remaining (GTrXL)
+
+  PPO-LSTM PILOTS (200M, completing in 0.5-2h):
+    h025 (grad_norm=1.0): narval 1.7h
+    h026 (ReLU+LN): narval 2.1h
+    h027 (lr=3e-4): narval 2.1h
+    h028 (gae_lambda=0.9): fir 1.6h — ~25min remaining
+    h030 (gae_lambda=0.95): rorqual 1.5h — ~30min remaining
+    h031 (GRU): fir 1.5h — ~35min remaining
+    h032 (entropy annealing): narval 1.4h — ~1.5h remaining
+    h033 (num_steps=256): rorqual queued
+    h034 (h023+gae_lambda=0.95): fir queued
+
+EXPECTED COMPLETIONS:
+  ~25min: h028 (fir), h030 (rorqual)
+  ~35min: h031 (fir)
+  ~1h: h009/h012 1B on rorqual/fir (GTrXL, for completeness), h026/h027 (narval)
+  ~1.5h: h025, h032 (narval)
+  ~2-3h: h033, h034 (start after pilots finish)
+  ~7-11h: h021 1B, h023 1B (THE MAIN EVENT)
+
+UPDATED LEADERBOARD:
+  h023 (200M pilot): 26.82, 60% dungeon — BEST EVER, 1B running
+  PPO-LSTM baseline (1B): 33.88 — target to beat at 1B
+  PPO baseline (1B): 26.83 — h023 ALREADY MATCHES at 200M!
+  h021 (200M pilot): 22.22, 40% dungeon — 1B running
+  h029 (200M pilot): 21.3, 44% dungeon — CLOSED
+  h024 (200M pilot): 18.98, 0% dungeon — CLOSED (low entropy hurts)
+
+NEXT SESSION PRIORITIES:
+  1. Parse h028/h030/h031 pilot results (~25-35min)
+  2. Parse h025-h027/h032 pilot results (~1-1.5h)
+  3. Parse h009/h012 1B (GTrXL, for completeness)
+  4. Parse h033/h034 pilot results (~3-4h)
+  5. CRITICAL: Parse h021 1B and h023 1B when they arrive (~7-13h)
+  6. If any pilot beats h023 (26.82), submit combined 1B immediately
+  7. If h021 1B > 40, start investigating deeper floor strategies
