@@ -1291,3 +1291,69 @@ NEXT SESSION PRIORITIES:
   6. CRITICAL: Parse h021 1B — our best method at scale
   7. If any pilot beats h021 (22.22), combine winners and submit 1B immediately
   8. If h021 1B > 40, start investigating deeper floor strategies
+
+---
+**[2026-03-18 18:01 UTC]**
+
+=== SESSION: h022 pilot result, infrastructure optimization ===
+
+Triggered by: h022-pilot-s1 (8548230, rorqual) SUCCESS.
+
+RESULTS PARSED:
+
+h022-pilot-s1 (PPO-LSTM + struct obs + PopArt + gamma=0.999 + 128 steps):
+  avg_return=18.78, avg_length=1198, wall=7423s (2.1h)
+  skeleton 84%, zombie 96%, iron 64%, coal 84%. 0% dungeon entry.
+  VERDICT: CLOSED. PopArt + 128 steps = 18.78 — WORSE than h021 (22.22).
+  PopArt consistently hurts PPO-LSTM: h020=18.94, h022=18.78 vs h021=22.22.
+  Agent becomes conservative/survival-focused (long episodes, low return, no progression).
+
+POPART + PPO-LSTM VERDICT (DEFINITIVE):
+  h020 (PopArt, 64 steps): 18.94, 0% dungeon
+  h022 (PopArt, 128 steps): 18.78, 0% dungeon
+  h021 (no PopArt, 64 steps): 22.22, 40% dungeon
+  CONCLUSION: PopArt is HARMFUL for PPO-LSTM. Do NOT use. Makes agent overly conservative.
+
+INFRASTRUCTURE ACTIONS:
+  - Cancelled h021-1B-s2 (10537503) and h025-pilot (10537504) from nibi — stuck pending (ReqNodeNotAvail, all GPU nodes down)
+  - Resubmitted h021-1B-s2 to narval (57955428) — will queue behind h007-1B-s2 (finishing in ~2h)
+  - Resubmitted h025-pilot to narval (57955430)
+
+NEW HYPOTHESES PREPARED (not yet submitted — waiting for slots):
+  h028: PPO-LSTM + struct obs + gamma=0.999 + gae_lambda=0.9
+    Intermediate GAE lambda (0.9 vs default 0.8). h008 showed 0.95 hurts GTrXL but PPO-LSTM may differ.
+  h029: PPO-LSTM + struct obs + gamma=0.999 + num_envs=2048
+    Double parallel environments (2048 vs 1024). More diverse samples per update.
+
+RUNNING JOBS TIMELINE:
+  PILOTS (200M, ~2h each on H100, ~3h on A100):
+    h023 (128 steps, no PopArt): fir, 50min in — ETA ~1.5h
+    h024 (ent=0.002): rorqual, 48min in — ETA ~1.5h
+    h025 (grad_norm=1.0): narval, just queued — ETA after h007-1B-s2 finishes + ~3h
+    h026 (ReLU+LN): narval, 25min in — ETA ~2.5h
+    h027 (lr=3e-4): narval, 25min in — ETA ~2.5h
+
+  1B RUNS (CRITICAL):
+    h021-1B-s1: rorqual, 1h22m in — ETA ~9h
+    h021-1B-s3: fir, 34min in — ETA ~10h
+    h021-1B-s2: narval, queued — ETA after h007-1B-s2 finishes + ~13h
+    h007-1B-s2: narval, 10h17m — ETA ~2-3h (last GTrXL result, for completeness)
+    h009 1B (3 seeds): rorqual 7.5h, narval 6h, fir 9.5h — ETA ~1-5h
+    h012 1B (3 seeds): rorqual 7.5h, narval 6h, fir 7.5h — ETA ~2-6h
+
+OVERALL LEADERBOARD (all methods, best scores):
+  PPO-LSTM + struct obs (h021, 200M pilot): 22.22 ← BEST (40% dungeon entry!)
+  PPO-LSTM baseline (1B): 33.88 ← Need to beat this at 1B
+  PPO baseline (1B): 26.83
+  PQN-LSTM baseline (1B): 24.23
+  PQN baseline (1B): 20.95
+  GTrXL reference (h007, 1B): 18.94 (FAILED vs published 41.4)
+
+NEXT SESSION PRIORITIES:
+  1. Parse h023/h024 pilots (expected next completions)
+  2. Parse h026/h027 pilots
+  3. Parse h007-1B-s2, h009 1B, h012 1B (GTrXL track, for completeness)
+  4. If any pilot beats h021 (22.22), combine winners and submit 1B
+  5. Submit h028/h029 pilots when slots open
+  6. CRITICAL: Parse h021 1B results when they arrive (~10h)
+  7. After web search results, consider novel approaches (auxiliary losses, obs normalization, etc.)
