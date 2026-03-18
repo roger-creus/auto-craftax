@@ -130,8 +130,25 @@ if __name__ == "__main__":
         # annealing the rate if instructed to do so.
         frac = 1.0 - (iteration - 1.0) / args.num_iterations
         if args.anneal_lr:
-            lrnow = frac * args.learning_rate
+            if args.lr_warmup_frac > 0:
+                warmup_iters = int(args.lr_warmup_frac * args.num_iterations)
+                if iteration <= warmup_iters:
+                    lrnow = args.learning_rate * (iteration / warmup_iters)
+                else:
+                    lrnow = frac * args.learning_rate
+            else:
+                lrnow = frac * args.learning_rate
             optimizer.param_groups[0]["lr"] = lrnow
+
+        # gamma annealing
+        if args.gamma_start >= 0:
+            anneal_iters = int(args.gamma_anneal_frac * args.num_iterations)
+            if iteration <= anneal_iters:
+                gamma_now = args.gamma_start + (args.gamma - args.gamma_start) * (iteration / anneal_iters)
+            else:
+                gamma_now = args.gamma
+        else:
+            gamma_now = args.gamma
 
         # entropy coefficient annealing
         if args.ent_coef_end >= 0:
@@ -186,8 +203,8 @@ if __name__ == "__main__":
                 else:
                     nextnonterminal = 1.0 - dones[t + 1]
                     nextvalues = values[t + 1]
-                delta = rewards[t] + args.gamma * nextvalues * nextnonterminal - values[t]
-                advantages[t] = lastgaelam = delta + args.gamma * args.gae_lambda * nextnonterminal * lastgaelam
+                delta = rewards[t] + gamma_now * nextvalues * nextnonterminal - values[t]
+                advantages[t] = lastgaelam = delta + gamma_now * args.gae_lambda * nextnonterminal * lastgaelam
             returns = advantages + values
 
         # flatten the batch

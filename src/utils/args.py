@@ -111,6 +111,12 @@ class GTrXL_Args(PPO_Args):
     """if toggled, use PopArt adaptive value normalization"""
     use_symlog: bool = False
     """if toggled, use symlog two-hot distributional value head (DreamerV3-style)"""
+    gamma_start: float = -1.0
+    """initial gamma for discount annealing (-1 = no annealing, use gamma throughout)"""
+    gamma_anneal_frac: float = 0.2
+    """fraction of training over which to anneal gamma from gamma_start to gamma"""
+    lr_warmup_frac: float = 0.0
+    """fraction of training for LR warmup (0 = no warmup)"""
 
 
 @dataclass
