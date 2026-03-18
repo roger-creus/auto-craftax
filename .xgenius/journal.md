@@ -314,3 +314,88 @@ NEXT SESSION PRIORITIES (GTrXL pilots should complete in ~3-5h):
   5. LSTM baselines should still be running (~15h remaining from then)
   6. Consider new hypotheses based on web research (agent running in background)
   7. Incorporate research findings on entropy scheduling, auxiliary losses, observation encoding
+
+---
+**[2026-03-18 05:34 UTC]**
+
+=== RESEARCH FINDINGS: Web search for Craftax SOTA improvements ===
+
+KEY FINDINGS (ranked by expected impact):
+
+1. OBSERVATION ENCODER REDESIGN (HIGH PRIORITY):
+   - The 8268-dim flat obs = (9,11,83) spatial map + player stats
+   - 83 channels: block type [0:42] one-hot, mob ID [42:82] one-hot, light [82]
+   - Current approach: flatten and MLP — loses spatial structure
+   - Better: CNN/spatial attention for map + separate MLP for stats, concat before transformer
+   - Low risk, high potential. Compatible with any backbone.
+
+2. MAMBA-2 ARCHITECTURE (MEDIUM PRIORITY):
+   - 8x less memory, 4.5x throughput vs TransformerXL (RLBenchNet 2025)
+   - Matches GTrXL on hard memory tasks
+   - Would need new implementation but could allow much larger context/batch
+
+3. AGaLiTe (MEDIUM PRIORITY):
+   - Gated linear attention, beats GTrXL on Craftax-Symbolic
+   - 40% cheaper inference, 50% less memory
+   - Code at github.com/subho406/agalite (JAX only — would need PyTorch port)
+
+4. ADAPTIVE ENTROPY SCHEDULING (LOW-MEDIUM):
+   - Start ent_coef=0.01-0.02, anneal to 0.001-0.005
+   - Cosine schedule or performance-adaptive: ent_coef = base * (1 - normalized_return)
+   - Standard constant entropy is suboptimal for long training
+
+5. ACHIEVEMENT PREDICTION AUXILIARY LOSS (NOVEL):
+   - Add head predicting current achievement state from transformer hidden
+   - Forces representations to track game progress
+   - Not tested on Craftax in published work — novel direction
+
+6. PHASIC POLICY GRADIENT (PPG):
+   - Separate policy/value training phases to avoid gradient interference
+   - Especially useful with shared transformer backbone
+
+CONFIRMED: Intrinsic motivation (RND, ICM, E3B) does NOT help on Craftax (tested in paper).
+CONFIRMED: Best published model-free: GTrXL 18.3% at 1B, 20.6% at 4B. No one has exceeded ~20% at 1B.
+CONFIRMED: The 18.3%→20.6% gap at 4B likely comes from longer training + better context management.
+
+---
+**[2026-03-18 05:42 UTC]**
+
+=== SESSION SUMMARY: Implemented obs encoder + entropy scheduling, submitted h009/h010 ===
+
+ENGINEERING CHANGES:
+1. CraftaxObsEncoder (src/models/models.py): Structured observation encoder
+   - Splits 8268-dim flat obs into spatial map (9x11x83) + player stats (51)
+   - Map: 2-layer CNN (83→32→64, 3x3 conv, AdaptiveAvgPool → 768-dim) → linear → hidden_size
+   - Stats: 2-layer MLP (51→128→128) 
+   - Combine: cat + linear → hidden_size
+   - 361K params vs 2.2M for flat MLP (42% reduction for 256 hidden)
+   - Activated via --use-structured-obs flag
+   - Integrated into both PPO_Agent and PPO_GTrXL_Agent
+
+2. Entropy coefficient annealing (src/rl/ppo_gtrxl.py, src/utils/args.py):
+   - New --ent-coef-end flag for linear annealing from ent_coef to ent_coef_end
+   - Default -1 = no annealing (backward compatible)
+
+NEW HYPOTHESES SUBMITTED:
+  h009-pilot-s1 → fir (28219638): GTrXL ref + --use-structured-obs (200M steps)
+  h010-pilot-s1 → fir (28219649): GTrXL ref + ent 0.01→0.002 anneal (200M steps)
+
+FULL ACTIVE JOB LIST (12 total):
+  Baselines (6, ~18h remaining):
+    ppo-lstm-1B: s1(rorqual), s2(narval), s3(nibi pending)
+    pqn-lstm-1B: s1(fir), s2(rorqual), s3(narval)
+  GTrXL pilots (6):
+    h006-pilot-s1 (rorqual 8510270): 512h/3L/64mem, ~3h in
+    h007-pilot-s1 (nibi 10522776): ref 256h/2L/128mem, pending
+    h007-pilot-s1-fir (fir 28219284): ref duplicate
+    h008-pilot-s1 (narval 57936329): ref + gae_lambda=0.95
+    h009-pilot-s1 (fir 28219638): ref + structured obs
+    h010-pilot-s1 (fir 28219649): ref + entropy annealing
+
+NEXT SESSION PRIORITIES:
+  1. CRITICAL: Parse GTrXL pilot results (h006/h007/h008/h009/h010) — compare all variants
+  2. If h007 matches reference 18.3% (41.4/226), submit best GTrXL variant at 1B × 3 seeds
+  3. Best variant = h007 (baseline) + best improvements from h008/h009/h010
+  4. Parse LSTM baseline results when ready (~15h from now)
+  5. Consider combining winning improvements (structured obs + entropy + best GAE)
+  6. Future ideas from web research: Mamba-2 (8x less memory), AGaLiTe, PPG, auxiliary losses
