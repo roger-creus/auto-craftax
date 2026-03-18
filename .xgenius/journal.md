@@ -1791,3 +1791,87 @@ NEW HYPOTHESES SUBMITTED:
 STRATEGY: h038 and h040 are the most promising pilots. If either pushes past 30+ at 200M, submit 1B x3 immediately. The max_grad_norm=1.0 finding reshapes the entire optimization landscape — every LSTM config should be re-evaluated with 1.0.
 
 NEXT SESSION: Parse h038/h039/h040 results (~2-3h), h037 (GRU+128 at 0.5), h034 (LSTM+128+gae=0.95). Parse h021/h023/h031 1B results (~10-20h).
+
+---
+**[2026-03-18 21:01 UTC]**
+
+=== SESSION: h009-1B-s1 complete + h032 BREAKTHROUGH ===
+
+Triggered by: h009-1B-s1 (8526711, rorqual) SUCCESS.
+
+RESULTS PROCESSED:
+
+h009-1B-s1 (PPO-GTrXL + struct obs, seed 1, 1B):
+  avg_return=15.42, avg_length=2289, 0% dungeon entry. Wall 35561s (9.9h).
+  WORSE than 200M pilot (16.14) — agent stuck in survival loop at 1B.
+  GTrXL + struct obs 1B seeds: s1=15.42, s3=20.38. Huge variance. s2 still running.
+  Confirms GTrXL track is a dead end vs PPO-LSTM.
+
+h030-pilot-s1 (PPO-LSTM + gae_lambda=0.95, 200M):
+  avg_return=19.02, avg_length=1412, 0% dungeon entry. Wall 7969s.
+  gae_lambda=0.95 hurts PPO-LSTM — survival-focused, no progression. CLOSED.
+  Consistent with h028 (gae=0.9 also hurt). Default gae_lambda=0.8 is optimal.
+
+h032-pilot-s1 (PPO-LSTM + entropy annealing 0.03→0.005, 200M):
+  *** NEW BEST PILOT ***: avg_return=29.74, 80% dungeon entry!
+  +33.8% over h021 (22.22), +4.1% over h025 (28.58), +10.9% over h023 (26.82).
+  Short efficient episodes (410 avg_length). find_bow 76%, fire_bow 60%, diamond 4%.
+  Uses DEFAULT grad_norm=0.5 — combining with 1.0 could push even higher.
+  Entropy annealing 0.03→0.005 is a MAJOR finding for PPO-LSTM.
+
+UPDATED LEADERBOARD (200M pilots):
+  h032 LSTM (ent anneal 0.03→0.005):     29.74, 80% dungeon — NEW #1
+  h025 LSTM (grad=1.0):                   28.58, 60% dungeon
+  h031 GRU (64 steps):                    28.54, 64% dungeon
+  h023 LSTM (128 steps):                  26.82, 60% dungeon
+  h021 LSTM (64 steps, baseline):         22.22, 40% dungeon
+
+SUBMISSIONS:
+  h032-1B-s1 (narval 57963722): LSTM + ent anneal 1B seed 1
+  h032-1B-s2 (rorqual 8560259): LSTM + ent anneal 1B seed 2
+  h032-1B-s3 (fir 28319453):    LSTM + ent anneal 1B seed 3
+
+  h041-pilot-s1 (nibi 10545945):   LSTM + ent anneal + grad_norm=1.0 — HIGHEST PRIORITY
+  h042-pilot-s1 (rorqual 8560277): GRU + ent anneal
+  h043-pilot-s1 (fir 28319459):    LSTM + ent anneal + 128 steps + grad_norm=1.0 (ultimate LSTM)
+  h044-pilot-s1 (narval 57963746): GRU + ent anneal + 128 steps + grad_norm=1.0 (ultimate GRU)
+
+ACTIVE JOBS (28 total):
+  1B RUNS:
+    h009 GTrXL:  s2(narval ~2h remaining)
+    h012 GTrXL+PopArt: s1(rorqual ~2h), s2(narval ~2h), s3(fir ~2h) — all near completion
+    h021 LSTM:   s1(rorqual ~6h), s2(narval ~10h), s3(fir ~7h)
+    h023 LSTM+128: s1(rorqual ~9h), s2(fir ~9h), s3(narval ~12h)
+    h031 GRU:    s1(narval ~10h), s2(rorqual ~8h), s3(nibi pending)
+    h032 LSTM+ent: s1(narval queued), s2(rorqual queued), s3(fir queued)
+
+  PILOTS (200M):
+    h034 (LSTM+128+gae=0.95): fir ~0.8h remaining
+    h037 (GRU+128):           fir ~1.5h remaining — KEY EXPERIMENT
+    h038 (LSTM+128+grad=1.0): narval pending ~22:15 start
+    h039 (GRU+grad=1.0):      rorqual just started ~2h
+    h040 (GRU+128+grad=1.0):  fir ~2h
+    h041 (LSTM+ent+grad=1.0): nibi pending — TOP PRIORITY
+    h042 (GRU+ent):           rorqual queued
+    h043 (LSTM+ent+128+grad): fir queued — ULTIMATE LSTM
+    h044 (GRU+ent+128+grad):  narval queued — ULTIMATE GRU
+    h033/h035/h036:            nibi pending
+
+NIBI STATUS: 4 jobs pending due to Priority. Estimated starts 2026-03-19 11:10-12:30 UTC.
+
+KEY INSIGHT FROM THIS SESSION:
+  Entropy annealing 0.03→0.005 is the single biggest improvement found so far.
+  h032 at 29.74 beats everything including h025 (grad_norm=1.0 at 28.58).
+  Critically, h032 uses the DEFAULT 0.5 grad norm. The combination h041 (ent anneal + grad_norm=1.0)
+  could give multiplicative gains since these likely address different aspects of optimization:
+  - Entropy annealing: better exploration→exploitation schedule
+  - Grad norm 1.0: allows stronger gradient updates for long-horizon credit
+
+NEXT SESSION PRIORITIES:
+  1. Parse h034 (LSTM+128+gae=0.95) and h037 (GRU+128) pilots — completing soon
+  2. Parse h038/h039/h040 pilots — completing ~2h
+  3. Parse h041 (LSTM+ent+grad=1.0) pilot — THE KEY EXPERIMENT (nibi pending)
+  4. Parse h042/h043/h044 pilots — ultimate combos
+  5. Parse 1B results as they complete: h009/h012 GTrXL (soon), h021/h023/h031 (~6-12h)
+  6. If h041 or h043/h044 beat h032 (29.74), submit 1B x3 immediately
+  7. Start evaluating whether we need 1B runs for the best combo once pilots stabilize
