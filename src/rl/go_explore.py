@@ -93,16 +93,16 @@ class FrontierBuffer:
 
 def extract_single_env_state(batched_env_state, idx):
     """Extract a single environment's state from the batched JAX state."""
-    return jax.tree_map(lambda x: x[idx], batched_env_state)
+    return jax.tree.map(lambda x: x[idx], batched_env_state)
 
 
 def replace_env_states_batched(batched_env_state, env_indices, replacement_states):
     """Replace multiple env states in the batched state."""
     if not env_indices:
         return batched_env_state
-    stacked = jax.tree_map(lambda *xs: jnp.stack(xs), *replacement_states)
+    stacked = jax.tree.map(lambda *xs: jnp.stack(xs), *replacement_states)
     indices = jnp.array(env_indices)
-    return jax.tree_map(
+    return jax.tree.map(
         lambda old, new: old.at[indices].set(new),
         batched_env_state,
         stacked,
