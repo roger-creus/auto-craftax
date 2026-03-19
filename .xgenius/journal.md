@@ -3989,3 +3989,85 @@ NEXT SESSION PRIORITIES:
   6. Monitor h057-1B-s2 and h060-1B-s2 — obs augment at scale
   7. If obs augment shows >1% improvement at 1B: submit remaining seeds
   8. If not: try curriculum learning (pre-fill kills in env state)
+
+---
+**[2026-03-19 16:03 UTC]**
+
+---
+**[2026-03-19 16:05 UTC]**
+
+=== SESSION: h040-1B-s1=40.14 + curriculum learning (h062/h063) implemented ===
+
+Triggered by: h040-1B-s1 (57977300, narval) SUCCESS.
+
+RESULTS PARSED:
+
+h040-1B-s1 (PPO-GRU + 128 steps + grad=1.0, NO ent anneal):
+  avg_return=40.14, 96% dungeon, orc_soldier 76%, orc_mage 68%.
+  find_bow 96%, fire_bow 88%, diamond 16%, sapphire 20%.
+  make_iron_sword 16%, make_diamond_sword 4%. 0% deeper floors.
+  Wall 41975s (11.7h) on narval A100.
+  
+h040 PARTIAL (n=2): s1=40.14, s2=41.46, mean=40.80.
+  CURRENT BEST CONFIG — +7.1% over h023 (38.10).
+  s3 still running on fir (14.7h elapsed, near completion).
+
+KEY FINDING: h040 (NO ent anneal) is BETTER than h044 (WITH ent anneal):
+  h040 mean=40.80 (n=2) vs h044 mean=38.2 (n=2).
+  Entropy annealing is NOT beneficial for GRU at 1B scale.
+  GRU + 128 steps + grad=1.0 + default ent=0.01 is the optimal config.
+
+NEW HYPOTHESES IMPLEMENTED AND SUBMITTED:
+
+h062 — Curriculum learning with pre-filled kills (narval 57997426):
+  Pre-fill monsters_killed=[5,6,7] for 30% of reset envs on floor 0.
+  Anneals curriculum fraction to 0% over first 50% of training.
+  h040 base config (NO ent anneal, NO obs augment).
+  Rationale: Directly addresses floor 2 barrier. Agent rarely kills 8 monsters
+  in normal play, so it never experiences floor transitions. Pre-filling kills
+  means agent only needs 1-3 more kills to unlock ladder, experiencing floor 2
+  much more often. This teaches floor transition and floor 2 behaviors.
+  Implementation: After auto-reset, modify env_state.monsters_killed via JAX
+  .replace() for a fraction of done envs. Clean and non-intrusive.
+
+h063 — Curriculum + obs augment combined (nibi 10589696):
+  Same as h062 but also adds kill count to observation (--obs-augment).
+  Agent sees its kill count AND gets more floor transitions.
+  May queue on nibi until Mar 20.
+
+h061 — Resubmitted on rorqual (8603947):
+  Combined obs augment + aux kill prediction. Cancelled from nibi (stuck until Mar 20).
+
+RUNNING JOBS (8 total):
+  1B RUNS (3):
+    h040-1B-s3 (fir 14.7h — NEAR COMPLETION)
+    h044-1B-s3 (fir 11.3h — ~1-3h left)
+    h057-1B-s2 (narval 30min — ~12h left)
+  PILOTS (5):
+    h059 aux kill pred v4 (fir ~47min — ~1.5h left)
+    h060 obs augment on h040 (rorqual 1.5h — ~1h left)
+    h061 combined obs+aux (rorqual, queued)
+    h062 curriculum kills (narval, just submitted)
+    h063 curriculum+obs augment (nibi, may queue until Mar 20)
+  PENDING:
+    h060-1B-s2 (rorqual, pending)
+
+1B LEADERBOARD (updated):
+  h040 GRU+128+grad:      s1=40.14 s2=41.46 mean=40.80 (PARTIAL n=2, s3 running) — BEST
+  h044 GRU+ent+128+grad:  s1=35.5 s2=40.9 mean=38.2 (PARTIAL n=2, s3 running)
+  h023 LSTM+128:          mean=38.10 (COMPLETE n=3) — BEST COMPLETE
+  h043 LSTM+ent+128+grad: mean=36.98 (COMPLETE n=3) — CLOSED
+  h031 GRU 64:            mean=32.90 (COMPLETE n=3) — CLOSED
+  PPO-LSTM baseline:      mean=33.88
+
+NEXT SESSION PRIORITIES:
+  1. Parse h040-1B-s3 (IMMINENT on fir) — finalize h040 (all 3 seeds!)
+  2. Parse h044-1B-s3 — finalize h044 (all 3 seeds!)
+  3. Parse h059 pilot — does aux kill prediction help?
+  4. Parse h060 pilot — does obs augment help h040 config?
+  5. Parse h061 pilot — combined obs+aux
+  6. Parse h062 pilot — CURRICULUM LEARNING (most anticipated)
+  7. If h062 shows ANY floor 2 entry: submit 1B seeds IMMEDIATELY
+  8. If h040 mean stays >40: declare h040 as champion config
+  9. If curriculum helps: combine with best features (obs augment, aux pred)
+  10. Consider further curriculum variants (different kill ranges, multi-floor curriculum)
