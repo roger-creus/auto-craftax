@@ -3069,3 +3069,50 @@ NEXT SESSION PRIORITIES:
   4. Parse h032, h040, h043, h044 1B — which is best config overall?
   5. If Go-Explore helps: submit 1B seeds immediately
   6. If deeper floors remain 0% everywhere: need more radical approaches
+
+---
+**[2026-03-19 07:03 UTC]**
+
+=== SESSION: h021-1B-s2 complete — all h021 seeds done ===
+
+Triggered by: h021-1B-s2 (57955428, narval A100) SUCCESS.
+
+h021-1B-s2 (PPO-LSTM + struct obs + gamma=0.999, no PopArt):
+  avg_return=33.5, avg_length=796, wall=46095s (12.8h) on narval A100.
+  80% dungeon entry. find_bow 80%, fire_bow 76%, diamond 16%, ruby 12%.
+  0% deeper floors.
+
+h021 COMPLETE — ALL 3 SEEDS:
+  s1=30.22 (60% dungeon, grad_norm=1.0, rorqual H100, 11.1h)
+  s2=33.5 (80% dungeon, grad_norm=0.5, narval A100, 12.8h)
+  s3=34.06 (84% dungeon, grad_norm=0.5, fir H100, 10.6h)
+  mean=32.59±1.97. 0% deeper floors across all seeds.
+  VERDICT: CLOSED. Comparable to PPO-LSTM baseline (33.88). Struct obs + gamma=0.999
+  alone is NOT a significant improvement — ironically s1 (with grad_norm=1.0) scored lowest.
+  The real gains come from entropy annealing + 128 steps + grad_norm=1.0 (h043/h044).
+
+ACTIVE JOBS (22 total — 17 1B + 5 pilots):
+  1B runs:
+    h023: s1 (rorqual 11.3h), s3 (narval 11.7h) — IMMINENT
+    h031: s1 (narval 10.5h), s2 (rorqual 10.6h), s3 (rorqual 3h) — s1+s2 close
+    h032: s1 (narval 9.3h), s2 (rorqual 10h), s3 (fir 10h) — 1-3h out
+    h043: s1 (rorqual 7.6h), s2 (narval 7.6h), s3 (fir 7.3h) — 3-6h out
+    h040: s1 (narval 2.9h), s2 (narval 7.6h), s3 (fir 5.8h) — 4-10h out
+    h044: s1 (narval 6.4h), s2 (rorqual 6.4h), s3 (fir 2.4h) — 5-10h out
+  Pilots (all ~1-2h from completion):
+    h051 Go-Explore (fir), h052 obs norm (rorqual), h053 residual MLP (rorqual)
+    h054 PBRS (fir), h055 Go-Explore+PBRS (fir)
+
+1B RESULTS SO FAR:
+  h021 (LSTM+struct+gamma=0.999): mean=32.59 — comparable to baseline (33.88)
+  h023 (LSTM+struct+gamma=0.999+128steps): s2=40.98 NEW BEST — waiting s1+s3
+  PPO-LSTM baseline: mean=33.88
+  PPO baseline: mean=26.83
+
+NEXT SESSION PRIORITIES:
+  1. h023 s1+s3 should be complete — parse and confirm 40.98 is not outlier
+  2. h031 1B (GRU) — KEY: does GRU maintain 200M advantage at 1B?
+  3. Pilots h051-h055 — any qualitative improvements for deeper floors?
+  4. h032/h043 1B — entropy annealing at scale
+  5. h040/h044 1B — best configs, most anticipated
+  6. If pilots show promise, submit 1B seeds immediately
