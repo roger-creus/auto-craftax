@@ -2326,3 +2326,65 @@ NEXT STEPS:
 - h046/h047 test if we can push past 30.7 with LSTM tweaks
 - 1B results for h021/h023/h031/h032/h040/h043 expected in 6-18h
 - Total active jobs: 26 (23 running + 3 pending)
+
+---
+**[2026-03-19 00:36 UTC]**
+
+=== SESSION: h044 pilot complete — NEW BEST 32.62 ===
+
+Triggered by: h044-pilot-s1 (57963746, narval) SUCCESS.
+
+h044 RESULT — NEW BEST: GRU+ent_anneal(0.03→0.005)+128steps+grad_norm=1.0
+  avg_return=32.62, avg_length=735.36. 84% dungeon entry!
+  find_bow 80%, fire_bow 76%, collect_diamond 12%, collect_ruby 8%, collect_sapphire 8%.
+  drink_potion 56%. defeat_skeleton 56%, defeat_zombie 68%.
+  Wall 9545s (2.65h) on narval A100.
+  
+  Beats h040 GRU (30.86) by +5.7%. Beats h043 LSTM (30.7) by +6.3%.
+  KEY INSIGHT: Entropy annealing helps GRU at 128 steps but hurts at 64 steps (h042: 25.62).
+  The 128-step rollout enables enough trajectory diversity for entropy exploration to be useful.
+  At 64 steps, GRU already sees enough context and ent annealing just adds noise.
+
+UPDATED LEADERBOARD (200M pilots):
+  h044 GRU (ent+128s+grad=1.0):         32.62, 84% dungeon — NEW BEST!
+  h040 GRU (128s+grad=1.0):              30.86, 76% dungeon
+  h043 LSTM (ent+128s+grad=1.0):         30.7, 80% dungeon
+  h032 LSTM (ent anneal):                29.74, 80% dungeon
+  h025 LSTM (grad=1.0):                  28.58, 60% dungeon
+  h031 GRU (64 steps):                   28.54, 64% dungeon
+  h023 LSTM (128 steps):                 26.82, 60% dungeon
+  h021 LSTM (64 steps, baseline):        22.22, 40% dungeon
+
+SUBMITTED:
+  h044-1B-s1 on narval (57972045)
+  h044-1B-s2 on rorqual (8567575)
+  h044-1B-s3 on nibi (10551562)
+  h048-pilot-s1 on fir (28343690) — GRU+ent(0.05→0.003)+128s+grad=1.0 (more aggressive entropy)
+
+ACTIVE JOBS (28 total — 25 running/submitted, 3 pending):
+  1B RUNS (21 jobs across 7 hypotheses):
+    h021 x3 (LSTM base): rorqual 8h, narval 6.5h, fir 7h — ~50% done
+    h023 x3 (LSTM+128s): rorqual 5h, narval 5h, fir 4.5h — ~40% done
+    h031 x3 (GRU base): narval 4h, rorqual 4h, nibi pending — ~30% done
+    h032 x3 (LSTM+ent): narval 3h, rorqual 3h, fir 3h — ~25% done
+    h040 x3 (GRU+128+grad): narval 1h, nibi pending, fir pending — ~10% done
+    h043 x3 (LSTM ultimate): rorqual 1h, narval 1h, fir 1h — ~10% done
+    h044 x3 (GRU ultimate): narval/rorqual/nibi — just submitted
+  PILOTS (7 jobs):
+    h033 (LSTM+256s, nibi): ~2h in
+    h035 (LSTM+hidden=768, nibi): ~2h in
+    h036 (LSTM+8epochs, nibi): ~1.5h in
+    h041 (LSTM+ent+grad=1.0, nibi): ~1h in
+    h045 (GRU+ent+grad 64s, fir): ~1h in
+    h046 (LSTM ent 0.05→0.003, narval): ~15m in
+    h047 (LSTM clip=0.1, rorqual): ~15m in
+    h048 (GRU ent 0.05→0.003, fir): just submitted
+
+NEXT SESSION PRIORITIES:
+  1. Parse pilots: h041, h045, h033, h035, h036 (nibi batch — expect ~2-4h)
+  2. Parse h046, h047 pilots (~2h remaining)
+  3. Parse h048 pilot when complete
+  4. First 1B results: h021 x3 expected in ~4-6h
+  5. h023, h031, h032 1B results: 6-12h out
+  6. h040, h043, h044 1B results: 10-18h out
+  7. If h044 1B confirms as best, consider further GRU optimizations
