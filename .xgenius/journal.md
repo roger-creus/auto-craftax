@@ -2846,3 +2846,40 @@ NEXT PRIORITIES:
      - h051: obs normalization (already implemented, test on h044 config)
      - Consider reward shaping for deeper floor progression if 1B results plateau at floor 1
   5. KEY QUESTION: Do 1B runs push beyond floor 1 (dungeon)? If not, need qualitative changes.
+
+---
+**[2026-03-19 03:56 UTC]**
+
+WEB RESEARCH RESULTS — strategies for deeper floor progression:
+
+KEY FINDING: Even at 10B steps, flat PPO-RNN shows only marginal improvement into deeper floors (Craftax ICML 2024 paper). Pure HP tuning will NOT break through floor 1 consistently. Need qualitative changes.
+
+SCALAR (2026, arXiv 2603.09036) achieves 88.2% diamond + 9.1% floor 2:
+  - Uses LLM-guided skill decomposition (not directly applicable)
+  - KEY INSIGHT: Frontier checkpointing — save env states at milestones, reset some envs there
+  - This avoids wasting episodes re-executing prerequisite chains (craft tools → enter dungeon)
+  - Craftax is pure JAX so env state serialization is native
+
+PRIORITIZED NEXT HYPOTHESES (implement when slots free up):
+
+h051: Obs normalization — h044 config + --obs-norm. Already implemented. Quick test.
+
+h052: Go-Explore checkpointing — save JAX env states when agent reaches key milestones
+  (enter_dungeon, enter_gnomish_mines, etc.). Periodically reset some parallel envs to these
+  saved states instead of episode start. Directly addresses prerequisite chain bottleneck.
+  HIGHEST EXPECTED IMPACT for deeper floors.
+
+h053: Potential-based reward shaping — define phi(s) = f(floor, equipment_quality, achievements).
+  Add gamma*phi(s') - phi(s) to reward. Provably preserves optimal policy (unlike h002 raw bonuses).
+  Different from h002 which used raw additive bonuses that caused reward hacking.
+
+h054: Auxiliary prediction losses — add floor prediction + achievement prediction heads.
+  Cheap to implement, improves representation quality for rare states (deep floors).
+
+h055: Residual MLP — already implemented (--mlp-class residual_mlp), never tested.
+
+CONFIRMED NOT WORTH TRYING:
+  - Intrinsic motivation (RND/ICM/E3B): paper confirms hurts on Craftax
+  - More steps beyond 1B: diminishing returns confirmed
+  - Model-based (DreamerV3-style): only tested on Craftax-Classic, huge implementation effort
+  - Population-based training: useful but complex, save for later
