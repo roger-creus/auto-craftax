@@ -97,6 +97,12 @@ class PPO_Args:
     """the MLP class to use"""
     pbrs: bool = False
     """if toggled, use potential-based reward shaping for milestone achievements"""
+    kill_bonus: bool = False
+    """if toggled, add intrinsic reward for killing monsters on current floor (+towards 8-kill threshold)"""
+    kill_bonus_scale: float = 0.5
+    """reward per monster killed on current floor"""
+    floor_bonus_scale: float = 5.0
+    """reward per floor descended"""
     
     # BC
     bc_dataset_path: str = ""

@@ -90,6 +90,16 @@ if __name__ == "__main__":
         prev_phi = torch.zeros(args.num_envs, device=device)
         print(f"PBRS enabled: potential-based reward shaping for milestone achievements")
 
+    # Kill bonus state: track monsters_killed and player_level per env
+    prev_floor_kills = None
+    prev_player_level = None
+    kill_bonus_total = 0.0
+    floor_bonus_total = 0.0
+    if args.kill_bonus:
+        prev_floor_kills = torch.zeros(args.num_envs, device=device, dtype=torch.float32)
+        prev_player_level = torch.zeros(args.num_envs, device=device, dtype=torch.float32)
+        print(f"Kill bonus enabled: kill_scale={args.kill_bonus_scale}, floor_scale={args.floor_bonus_scale}")
+
     agent = PPO_LSTM_Agent(
         obs_dim=np.array(envs.single_observation_space.shape).prod(),
         n_actions=envs.single_action_space.n,
@@ -192,6 +202,34 @@ if __name__ == "__main__":
                 reward = reward.view(-1) + pbrs_bonus
                 # Update prev_phi: reset to 0 for done envs (fresh episode)
                 prev_phi = next_phi * (~next_done).float()
+
+            # Kill bonus: direct reward for killing monsters and descending floors
+            if prev_floor_kills is not None:
+                env_state = envs.env._state.env_state
+                player_level = torch.as_tensor(np.asarray(env_state.player_level), device=device).float()
+                monsters_killed = np.asarray(env_state.monsters_killed)  # (num_envs, num_floors)
+                # Get kills on current floor for each env
+                pl_np = np.asarray(env_state.player_level).astype(int)
+                current_kills = torch.as_tensor(
+                    monsters_killed[np.arange(args.num_envs), pl_np],
+                    device=device
+                ).float().clamp(max=8.0)
+
+                # Kill delta: reward for each new kill (capped at 8)
+                kill_delta = (current_kills - prev_floor_kills).clamp(min=0.0)
+                # Floor delta: reward for descending to new floor
+                floor_delta = (player_level - prev_player_level).clamp(min=0.0)
+
+                intrinsic = kill_delta * args.kill_bonus_scale + floor_delta * args.floor_bonus_scale
+                reward = reward.view(-1) + intrinsic
+
+                kill_bonus_total += kill_delta.sum().item()
+                floor_bonus_total += floor_delta.sum().item()
+
+                # Update tracking: reset for done envs
+                prev_floor_kills = current_kills * (~next_done).float()
+                prev_player_level = player_level * (~next_done).float()
+
             rewards[step] = reward.view(-1)
 
             done_indices = torch.nonzero(next_done, as_tuple=False).squeeze(-1)
@@ -332,10 +370,12 @@ if __name__ == "__main__":
         explained_var = np.nan if var_y == 0 else 1 - np.var(y_true - y_pred) / var_y
 
         sps = int(global_step / (time.time() - start_time))
+        extra = ""
         if frontier_buffer is not None:
-            print(f"SPS: {sps} | GoExplore: buffer={len(frontier_buffer)}, saves={frontier_total_saves}, resets={frontier_total_resets}")
-        else:
-            print(f"SPS: {sps}")
+            extra += f" | GoExplore: buffer={len(frontier_buffer)}, saves={frontier_total_saves}, resets={frontier_total_resets}"
+        if prev_floor_kills is not None:
+            extra += f" | KillBonus: kills={kill_bonus_total:.0f}, floors={floor_bonus_total:.0f}"
+        print(f"SPS: {sps}{extra}")
 
         if iteration in args.log_iterations:
             # log training data to csv
