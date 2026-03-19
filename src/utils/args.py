@@ -95,6 +95,8 @@ class PPO_Args:
     """probability of resetting a done env to a frontier state instead of fresh start"""
     mlp_class: str = "mlp"
     """the MLP class to use"""
+    pbrs: bool = False
+    """if toggled, use potential-based reward shaping for milestone achievements"""
     
     # BC
     bc_dataset_path: str = ""

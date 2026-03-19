@@ -15,6 +15,7 @@ from src.models.models import PPO_LSTM_Agent
 from src.utils.args import PPO_Args
 from src.utils.utils import get_optimizer_class, get_activation_fn, get_mlp_class, RunningMeanStd
 from src.rl.go_explore import FrontierBuffer, detect_and_save_milestones, apply_frontier_resets
+from src.rl.pbrs import compute_potential, compute_pbrs_bonus
 
 if __name__ == "__main__":
     import os
@@ -82,6 +83,12 @@ if __name__ == "__main__":
     if args.go_explore:
         frontier_buffer = FrontierBuffer(max_size=args.frontier_buffer_size)
         print(f"Go-Explore enabled: buffer_size={args.frontier_buffer_size}, reset_prob={args.frontier_reset_prob}")
+
+    # PBRS state
+    prev_phi = None
+    if args.pbrs:
+        prev_phi = torch.zeros(args.num_envs, device=device)
+        print(f"PBRS enabled: potential-based reward shaping for milestone achievements")
 
     agent = PPO_LSTM_Agent(
         obs_dim=np.array(envs.single_observation_space.shape).prod(),
@@ -173,6 +180,13 @@ if __name__ == "__main__":
                 obs_rms.update(next_obs)
                 next_obs = obs_rms.normalize(next_obs, args.obs_clip)
             next_done = torch.logical_or(terminations, truncations)
+            # PBRS: add potential-based shaping bonus
+            if prev_phi is not None:
+                next_phi = compute_potential(infos, device=device)
+                pbrs_bonus = compute_pbrs_bonus(prev_phi, next_phi, next_done, args.gamma)
+                reward = reward.view(-1) + pbrs_bonus
+                # Update prev_phi: reset to 0 for done envs (fresh episode)
+                prev_phi = next_phi * (~next_done).float()
             rewards[step] = reward.view(-1)
 
             done_indices = torch.nonzero(next_done, as_tuple=False).squeeze(-1)
