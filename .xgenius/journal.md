@@ -3659,3 +3659,80 @@ NEXT SESSION PRIORITIES:
   6. Parse h031-1B-s3 — finalize h031
   7. If h056 helps: submit 1B seeds immediately
   8. If h056 doesn't help: implement RND or curriculum for floor 2
+
+---
+**[2026-03-19 12:34 UTC]**
+
+=== SESSION: h040-1B-s2=41.46 NEW BEST + h057/h058 obs augmentation submitted ===
+
+Triggered by: h040-1B-s2 (57970302, narval) SUCCESS.
+
+RESULTS PARSED:
+
+h040-1B-s2 (PPO-GRU + 128 steps + grad=1.0, NO ent anneal):
+  avg_return=41.46, 96% dungeon, avg_length=759.96, wall=45563s (12.7h) on narval A100.
+  orc_mage 76%, orc_soldier 88%, find_bow 96%, fire_bow 96%.
+  collect_diamond 12%, ruby 4%, sapphire 20%, make_iron_sword 44%.
+  0% deeper floors.
+  NEW SINGLE-SEED BEST — beats h044-1B-s2 (40.9) and h023-1B-s2 (40.98).
+  h040 partial: s2=41.46 (s1+s3 still running).
+
+KEY INSIGHT: h040 (NO ent anneal) got 41.46 vs h044 (WITH ent anneal) got 40.9.
+At the 200M pilot stage, h044 (32.62) beat h040 (30.86) by 5.7%.
+But at 1B, h040 s2 beats h044 s2 by 1.4%.
+Entropy annealing may NOT help at 1B for GRU — it accelerates early learning
+but doesn't improve final performance. Need all 3 seeds to confirm.
+
+RESEARCH FINDINGS (web search):
+  1. NO ONE has achieved floor 2+ at 1B steps in published work.
+     SCALAR (NeurIPS 2025) gets 9.1% gnomish mines but uses LLM-guided skills.
+  2. RND/ICM/E3B UNDERPERFORMED plain PPO on Craftax (original paper).
+  3. The kill count is NOT in the observation — only a boolean 'ladder unlocked?'.
+     This is a critical INFORMATION bottleneck: agent can't learn the 8-kill strategy
+     because it doesn't know how many kills it has (0-8).
+  4. The real bottleneck is SURVIVAL in combat, not motivation.
+
+NEW HYPOTHESES SUBMITTED:
+
+h057 — Observation augmentation with kill count (nibi 10577051):
+  Add normalized kill count (0-1) to obs, so agent sees 'I have 5/8 kills'.
+  Same h044 base config + --obs-augment flag.
+  Rationale: Agent can't plan the 8-kill strategy without this information.
+
+h058 — Kill count in obs + kill bonus reward (fir 28402044):
+  Combine h057 (information) + h056 (incentive): agent both SEES kill count
+  AND gets +0.5 per kill. Complementary mechanisms.
+  Same h044 base config + --obs-augment --kill-bonus flags.
+
+RUNNING JOBS (10 total):
+  1B RUNS (6):
+    h043-1B-s2 (narval 13h — IMMINENT)
+    h044-1B-s1 (narval 12h — NEAR)
+    h040-1B-s3 (fir 11h — NEAR)
+    h040-1B-s1 (narval 8h — ~4-5h)
+    h044-1B-s3 (fir 8h — ~3-4h)
+    h031-1B-s3 (rorqual 8h — ~2-4h)
+  PILOTS (4):
+    h051 Go-Explore FIXED (narval 3.5h/4h limit — completing soon)
+    h056 Kill Bonus (rorqual 30min — ~2h remaining)
+    h057 Obs Augment (nibi, just submitted — ~2-3h)
+    h058 Obs+Kill (fir, just submitted — ~2-3h)
+
+1B LEADERBOARD (completed seeds):
+  h040 GRU+128+grad:      s2=41.46 (NEW BEST, s1+s3 running)
+  h044 GRU+ent+128+grad:  s2=40.9 (s1+s3 running)
+  h043 LSTM+ent+128+grad: s1=32.7, s3=40.38 (s2 imminent)
+  h023 LSTM+128:          mean=38.10 — BEST COMPLETE
+  h031 GRU 64:            s1=33.54, s2=37.06 (s3 running)
+  PPO-LSTM baseline:      mean=33.88
+
+NEXT SESSION PRIORITIES:
+  1. Parse h043-1B-s2 (IMMINENT) — will it pull h043 mean above h023?
+  2. Parse h040-1B-s3 (NEAR) — second data point for h040
+  3. Parse h044-1B-s1 (NEAR) — first data point for h044
+  4. Parse h051 pilot — Go-Explore with final fix attempt
+  5. Parse h056 pilot — kill bonus effectiveness
+  6. Parse h057/h058 pilots — obs augmentation for floor progression
+  7. Parse h040-1B-s1, h044-1B-s3, h031-1B-s3
+  8. If obs augment shows ANY floor 2 entry: submit 1B seeds immediately
+  9. If nothing helps floor 2: try auxiliary kill-count prediction head or combat curriculum
