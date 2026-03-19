@@ -2781,3 +2781,68 @@ NEXT SESSION PRIORITIES:
   4. If slots free up, submit obs normalization pilot (h051): h044 config + --obs-norm
   5. Consider GELU activation pilot (h052): h044 config + --activation-fn gelu
   6. Consider trying Craftax-specific improvements like floor-based reward bonuses
+
+---
+**[2026-03-19 03:54 UTC]**
+
+=== SESSION: h050 pilot result — 4 minibatches hurts GRU ===
+
+Triggered by: h050-pilot-s1 (10555141, nibi) SUCCESS.
+
+h050-pilot-s1 (PPO-GRU + ent anneal 0.03→0.005 + 128 steps + grad=1.0 + 4 minibatches):
+  avg_return=22.26, avg_length=534.44, wall=5659s (1.57h) on nibi H100
+  44% dungeon entry. find_bow 40%, fire_bow 24%, collect_diamond 12%.
+  
+  VERDICT: CLOSED. WORSE than h044 (32.62, 84% dungeon with 8 minibatches default).
+  Doubling minibatch size (4 minibatches → 32K vs 8 → 16K) significantly hurts.
+  Larger minibatches provide more stable gradients but lose per-example signal diversity.
+  8 minibatches (16K minibatch size) is optimal for GRU+128 steps.
+  
+  MINIBATCH SEARCH COMPLETE: Default 8 minibatches is optimal.
+
+UPDATED LEADERBOARD (200M pilots, all closed pilots omitted):
+  h044 GRU (ent+128s+grad=1.0):         32.62, 84% dungeon — BEST
+  h040 GRU (128s+grad=1.0):              30.86, 76% dungeon
+  h043 LSTM (ent+128s+grad=1.0):         30.7, 80% dungeon
+  h032 LSTM (ent anneal):                29.74, 80% dungeon
+  h031 GRU (64 steps):                   28.54, 64% dungeon
+  h025 LSTM (grad=1.0):                  28.58, 60% dungeon
+  h023 LSTM (128 steps):                 26.82, 60% dungeon
+  h050 GRU (4 minibatches):              22.26, 44% dungeon — CLOSED
+
+COMPLETED HP SEARCH SUMMARY (all confirmed at 200M):
+  Architecture: GRU > LSTM (h031 28.54 vs h021 22.22)
+  num_steps: 128 optimal (both arch)
+  max_grad_norm: 1.0 optimal at 128 steps (h025, h040)
+  entropy_annealing: 0.03→0.005 optimal (h032, h044)
+  entropy_range: 0.05→0.003 hurts both arch (h046, h048)
+  clip_coef: 0.2 optimal (h047 shows 0.1 hurts)
+  update_epochs: 4 optimal (h036 shows 8 hurts)
+  gae_lambda: 0.8 optimal (h028, h030, h034 all show 0.9/0.95 hurt)
+  hidden_size: 512 optimal (h035 shows 768 hurts)
+  num_minibatches: 8 optimal (h050 shows 4 hurts)
+  PopArt: hurts PPO-LSTM/GRU (h020, h022)
+  Obs normalization: implemented (--obs-norm), not yet tested
+
+ACTIVE JOBS (22 total — 19 running, 3 pending):
+  1B RUNS (21 jobs, 7 hypotheses):
+    h021 x3: rorqual 11h, narval 10h, fir 10h — first to complete (~3-5h)
+    h023 x3: rorqual 8h, narval 9h, fir 8h — ~5-8h out
+    h031 x3: narval 7h, rorqual 8h + nibi PENDING (ReqNodeNotAvail) 
+    h032 x3: narval 6h, rorqual 7h, fir 7h
+    h040 x3: narval 4h, fir 3h + nibi PENDING (ReqNodeNotAvail)
+    h043 x3: rorqual 4h, narval 4h, fir 4h
+    h044 x3: narval 3h, rorqual 3h + nibi PENDING (Priority)
+  PILOT (1 remaining):
+    h049 (GRU+cosine LR, nibi): 1.7h in — ~1-2h out
+
+NIBI ISSUE: 3 pending 1B jobs stuck 7-11h. Nodes g7,g26,g37 down. All other clusters saturated — cannot resubmit elsewhere. Jobs should start when h049 pilot finishes or nodes recover.
+
+NEXT PRIORITIES:
+  1. h049 pilot result (~1-2h) — if cosine LR helps, submit 1B seeds when slots open
+  2. First 1B results: h021 expected in ~3-5h
+  3. When 1B results arrive: update leaderboard, analyze floor progression depth
+  4. Prepare new hypotheses for when slots free up:
+     - h051: obs normalization (already implemented, test on h044 config)
+     - Consider reward shaping for deeper floor progression if 1B results plateau at floor 1
+  5. KEY QUESTION: Do 1B runs push beyond floor 1 (dungeon)? If not, need qualitative changes.
