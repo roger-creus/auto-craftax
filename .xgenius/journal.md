@@ -3293,3 +3293,54 @@ NEXT SESSION PRIORITIES:
   5. h040/h043/h044 1B results — most anticipated
   6. If Go-Explore works: may need to also submit fixed Go-Explore 1B seeds
   7. If PBRS works: submit 1B seeds
+
+---
+**[2026-03-19 08:14 UTC]**
+
+=== SESSION: h032-1B-s3 + h052 pilot results ===
+
+Triggered by: h032-1B-s3 (28319453, fir) SUCCESS + h052-pilot-s1v2 (8585250, rorqual) auto-detected.
+
+h032-1B-s3 (PPO-LSTM + struct obs + gamma=0.999 + entropy annealing 0.03→0.005, 64 steps):
+  avg_return=30.74, 72% dungeon, 0% deeper floors, wall=39588s (11h) on fir H100
+  DISAPPOINTING: barely improved from 200M pilot (29.74 → 30.74, only +3.4%)
+  Compare to h023: pilot 26.82 → 1B mean 38.10 = +42% scaling
+  KEY INSIGHT: 64-step configs don't scale well to 1B. 128 steps is essential.
+  h032 s1+s2 still running (narval 10.5h, rorqual 11h — both near completion)
+
+h052-pilot-s1v2 (PPO-GRU + h044 config + obs normalization):
+  avg_return=21.5, 4% dungeon, avg_length=1385 — CATASTROPHICALLY BAD
+  Obs normalization makes agent purely survival-focused. 0% bow/fire/progression.
+  CLOSED. Obs norm is NOT compatible with this training setup.
+
+RUNNING JOBS (17 total):
+  1B runs (13):
+    h031 GRU 64: s1 (narval 11.7h — imminent), s3 (rorqual 4.1h)
+    h032 LSTM+ent 64: s1 (narval 10.5h — near), s2 (rorqual 11.1h — near)
+    h040 GRU+128+grad: s1 (narval 4.1h), s2 (narval 8.8h), s3 (fir 7h)
+    h043 LSTM+ent+128+grad: s1 (rorqual 8.8h), s2 (narval 8.8h), s3 (fir 8.5h)
+    h044 GRU+ent+128+grad: s1 (narval 7.5h), s2 (rorqual 7.5h), s3 (fir 3.6h)
+  Pilots (4):
+    h051 Go-Explore FIXED (fir, 3min) — ~2-3h
+    h053 residual MLP (rorqual, 2.2h) — ~0.5-1h
+    h054 PBRS FIXED (rorqual, 4min) — ~2-3h
+    h055 Go-Explore+PBRS FIXED (narval, 3min) — ~2-3h
+
+1B LEADERBOARD (completed):
+  h023 LSTM+128: mean=38.10 (s1=37.51, s2=40.98, s3=35.82) — CURRENT BEST
+  h031 GRU 64: s2=37.06 (partial)
+  h032 LSTM+ent 64: s3=30.74 (partial, disappointing)
+  h021 LSTM: mean=32.59 — CLOSED
+  PPO-LSTM baseline: mean=33.88
+
+KEY FINDING: 64-step configs plateau around 30-31 at 1B (h032-1B-s3=30.74).
+128-step configs continue improving dramatically (h023 pilot 26.82 → 1B 38.10).
+This means h040/h043/h044 (all 128-step) are most promising for 1B.
+
+NEXT SESSION PRIORITIES:
+  1. Parse h053 pilot (residual MLP, ~1h out) — quick check
+  2. Parse h051/h054/h055 fixed pilots (~2-3h out) — CRITICAL for deeper floors
+  3. Parse h031-1B-s1 (imminent) and h032-1B-s1/s2 (near completion)
+  4. Parse h040/h043/h044 1B results as they complete (~3-10h)
+  5. If Go-Explore/PBRS help at 200M: submit 1B seeds immediately
+  6. Consider RND (random network distillation) if Go-Explore/PBRS don't break the deeper floor barrier
