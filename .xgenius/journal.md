@@ -2618,3 +2618,57 @@ NEXT SESSION PRIORITIES:
   3. First 1B results: h021 expected in ~4-6h
   4. h023/h031/h032 1B results: 6-12h out
   5. h040/h043/h044 1B results: 12-20h out
+
+---
+**[2026-03-19 02:30 UTC]**
+
+=== SESSION: h047 pilot result — tighter clipping is a dead end ===
+
+Triggered by: h047-pilot-s1 (8567199, rorqual) SUCCESS.
+
+h047-pilot-s1 (PPO-LSTM + struct obs + gamma=0.999 + ent anneal 0.03→0.005 + 128 steps + grad=1.0 + clip_coef=0.1):
+  avg_return=27.30, avg_length=658.24, wall=7590s (2.11h)
+  60% dungeon entry. find_bow 52%, fire_bow 48%, collect_diamond 12%, ruby 8%.
+  
+  VERDICT: CLOSED. WORSE than h043 (30.7, 80% dungeon with clip=0.2 default).
+  Tighter PPO clipping (0.1 vs 0.2) reduces performance by 11.1%.
+  With grad_norm=1.0 allowing larger gradient steps, clip=0.2 is needed to permit
+  sufficient policy updates. Reducing to 0.1 makes updates too conservative.
+  
+  CLIPPING CONCLUSION: Default clip_coef=0.2 is optimal. Do NOT reduce.
+
+UPDATED LEADERBOARD (200M pilots):
+  h044 GRU (ent+128s+grad=1.0):         32.62, 84% dungeon — BEST
+  h040 GRU (128s+grad=1.0):              30.86, 76% dungeon
+  h043 LSTM (ent+128s+grad=1.0):         30.7, 80% dungeon
+  h032 LSTM (ent anneal):                29.74, 80% dungeon
+  h031 GRU (64 steps):                   28.54, 64% dungeon
+  h025 LSTM (grad=1.0):                  28.58, 60% dungeon
+  h047 LSTM (ent+128+grad+clip=0.1):     27.30, 60% dungeon — CLOSED (tighter clip hurts)
+  h023 LSTM (128 steps):                 26.82, 60% dungeon
+
+ACTIVE JOBS (25 total — 22 running, 3 pending):
+  1B RUNS (21 jobs across 7 hypotheses):
+    h021 x3 (LSTM base): rorqual/narval/fir
+    h023 x3 (LSTM+128s): rorqual/narval/fir  
+    h031 x3 (GRU base): narval/rorqual + nibi pending
+    h032 x3 (LSTM+ent): narval/rorqual/fir
+    h040 x3 (GRU+128+grad): narval/fir + nibi pending
+    h043 x3 (LSTM+ent+128+grad): rorqual/narval/fir
+    h044 x3 (GRU+ent+128+grad): narval/rorqual + nibi pending — CURRENT BEST 32.62 at 200M
+  PILOTS (4 remaining):
+    h046 (LSTM aggressive ent, narval)
+    h048 (GRU aggressive ent, fir)
+    h049 (GRU+cosine LR, nibi)
+    h050 (GRU+4 minibatches, nibi)
+
+All clusters saturated. Waiting for 1B results and remaining pilots. No new submissions needed.
+
+CONFIRMED HP SEARCH RESULTS:
+  - clip_coef: 0.2 optimal (h047 shows 0.1 hurts)
+  - max_grad_norm: 1.0 optimal at 128 steps
+  - entropy annealing: 0.03→0.005 optimal (testing 0.05→0.003 in h046/h048)
+  - num_steps: 128 optimal for both LSTM and GRU with HP tweaks
+  - update_epochs: 4 optimal (8 causes over-optimization)
+  - gae_lambda: 0.8 optimal (0.9 and 0.95 both hurt)
+  - hidden_size: 512 optimal (768 hurts)
