@@ -3588,3 +3588,74 @@ NEXT SESSION PRIORITIES:
   7. If kill bonus doesn't help: implement RND (novel state exploration)
   8. Close h031 after s3 completes
 
+
+---
+**[2026-03-19 11:59 UTC]**
+
+=== SESSION: h055 CLOSED + h043-1B-s1=32.7 + h044-1B-s2=40.9 ===
+
+Triggered by: h055-pilot-s1v4 (28385442, fir) SUCCESS.
+
+NEW RESULTS PARSED:
+
+h055-pilot-s1v4 (PPO-GRU + h044 config + Go-Explore + PBRS):
+  avg_return=17.53, 20% dungeon, avg_length=1469 — CATASTROPHIC.
+  Go-Explore + PBRS combined is WORST pilot on h044 base config.
+  orc_soldier only 16%, find_bow 0%, fire_bow 0%. Wall 12137s (3.4h).
+  CLOSED. Both mechanisms together destroy learning completely.
+
+h043-1B-s1 (PPO-LSTM + ent anneal + 128 steps + grad=1.0) — DISAPPEARED on rorqual, CSV recovered:
+  avg_return=32.7, 88% dungeon, find_bow 88% fire_bow 80% diamond 12%.
+  0% deeper floors. Wall 38895s (10.8h).
+  WEAK SEED — s3 got 40.38. h043 partial: s1=32.7, s3=40.38, mean=36.54.
+  s2 still running on narval (~12.5h, near completion).
+
+h044-1B-s2 (PPO-GRU + ent anneal + 128 steps + grad=1.0) — DISAPPEARED on rorqual, CSV recovered:
+  avg_return=40.9, 100% dungeon, orc_mage 76% orc_soldier 80%!
+  find_bow 96% fire_bow 96% diamond 24% ruby 12% sapphire 16%.
+  make_diamond_sword 4%, make_diamond_pickaxe 4%. 0% deeper floors.
+  Wall 36568s (10.2h). EXCELLENT — strong floor 1 combat.
+  h044 partial: s2=40.9. s1 running (narval ~11h), s3 running (fir ~7h).
+
+ACTIONS THIS SESSION:
+  1. Closed h055 (Go-Explore+PBRS = catastrophic, 17.53)
+  2. Cancelled h056 on nibi (pending until March 21)
+  3. Resubmitted h056-pilot-s1v2 on rorqual (8589584) — kill bonus pilot
+  4. Recovered h043-1B-s1 and h044-1B-s2 from disappeared rorqual jobs
+  5. Updated results bank
+
+1B LEADERBOARD (completed seeds):
+  h044 GRU+ent+128+grad:  s2=40.9 (partial — s1+s3 running)
+  h043 LSTM+ent+128+grad: s1=32.7, s3=40.38 (partial mean=36.54, s2 running)
+  h023 LSTM+128:          mean=38.10 (s1=37.51 s2=40.98 s3=35.82) — BEST COMPLETE
+  h031 GRU 64:            s1=33.54 s2=37.06 (partial mean=35.30, s3 running)
+  h040 GRU+128+grad:      ALL 3 RUNNING (0 completed)
+  PPO-LSTM baseline:      mean=33.88
+
+RUNNING JOBS (9 total):
+  1B RUNS (7):
+    h043-s2 (narval 12.5h — IMMINENT)
+    h040-s2 (narval 12.5h — IMMINENT)
+    h040-s3 (fir 10.75h — NEAR)
+    h044-s1 (narval 11.3h — ~1-2h)
+    h040-s1 (narval 7.8h — ~4-5h)
+    h044-s3 (fir 7.3h — ~3-4h)
+    h031-s3 (rorqual 7.85h — ~2-3h)
+  PILOTS (2):
+    h051 Go-Explore (narval 3h — should complete within 30-60min)
+    h056 Kill Bonus (rorqual, just submitted)
+
+KEY FINDING: h044-1B-s2 (40.9) shows GRU fighting 76-80% orc rates on floor 1
+but STILL 0% floor 2 entry. The 8-kill threshold remains the hard bottleneck.
+Agent enters dungeon 100% with bow+fire (96%) but rarely has diamond gear (4%).
+It likely kills 3-5 orcs per episode but needs 8 to unblock the ladder.
+
+NEXT SESSION PRIORITIES:
+  1. Parse h043-1B-s2 (IMMINENT) — will it rescue h043 mean?
+  2. Parse h040 1B (s2 imminent, s3 near) — GRU without ent anneal at scale
+  3. Parse h051 pilot — does Go-Explore alone work? (completing soon)
+  4. Parse h044-1B-s1/s3 — complete h044 picture
+  5. Parse h056 pilot — kill bonus for floor progression
+  6. Parse h031-1B-s3 — finalize h031
+  7. If h056 helps: submit 1B seeds immediately
+  8. If h056 doesn't help: implement RND or curriculum for floor 2
