@@ -79,6 +79,8 @@ class PPO_Args:
     """if toggled, use GRU instead of LSTM in recurrent agent"""
     ent_coef_end: float = -1.0
     """final entropy coefficient (-1 = no annealing, use ent_coef throughout)"""
+    lr_schedule: str = "linear"
+    """learning rate schedule: 'linear' (default) or 'cosine'"""
     optimizer: str = "adam"
     """the optimizer to use"""
     mlp_class: str = "mlp"

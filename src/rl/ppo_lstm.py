@@ -118,7 +118,12 @@ if __name__ == "__main__":
 
         # annealing the rate if instructed to do so.
         if args.anneal_lr:
-            frac = 1.0 - (iteration - 1.0) / args.num_iterations
+            progress = (iteration - 1.0) / args.num_iterations
+            if args.lr_schedule == "cosine":
+                import math
+                frac = 0.5 * (1.0 + math.cos(math.pi * progress))
+            else:
+                frac = 1.0 - progress
             lrnow = frac * args.learning_rate
             optimizer.param_groups[0]["lr"] = lrnow
 
