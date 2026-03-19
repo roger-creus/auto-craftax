@@ -4146,3 +4146,77 @@ NEXT SESSION PRIORITIES:
   7. Parse h044-1B-s3 — finalize h044 all 3 seeds
   8. If h064 shows ANY floor 2 entry: submit 1B seeds IMMEDIATELY
   9. If floor 2 barrier persists: try even more aggressive curriculum (100% fraction, kills=7)
+
+---
+**[2026-03-19 17:21 UTC]**
+
+=== SESSION: h059 pilot parsed + CLOSED + new curriculum variants submitted ===
+
+Triggered by: h059-pilot-s1v4 (28411952, fir) SUCCESS.
+
+RESULTS PARSED:
+
+h059-pilot-s1v4 (PPO-GRU + h044 config + aux kill-count prediction):
+  avg_return=31.94, 80% dungeon, orc_soldier 44%, orc_mage 12%, zombie 60%.
+  find_bow 76%, fire_bow 60%, diamond 0%. Wall 7261s (2.0h) on fir H100 3g.40gb.
+  -2.1% vs h044 pilot (32.62). Aux kill prediction does NOT help.
+  CLOSED — no benefit over baseline.
+
+SUMMARY OF AUX/OBS APPROACHES (ALL CLOSED):
+  h057 obs augment on h044: +1.6% (marginal, 1B scaling run submitted)
+  h059 aux kill pred on h044: -2.1% — CLOSED
+  h060 obs augment on h040: -11.4% — CLOSED
+  h058 kill bonus + obs augment: catastrophic — CLOSED
+  h056 kill bonus: catastrophic — CLOSED
+  CONCLUSION: Reward shaping and auxiliary losses do NOT help floor progression.
+  Only obs augment on h044 shows marginal improvement.
+
+ACTIONS TAKEN:
+  1. Cancelled buggy h063 on nibi (floor 0 curriculum, same bug as h062)
+  2. Closed h063 in results bank
+  3. Submitted h066 — AGGRESSIVE curriculum (kills=7-8 on floors 1,2) on narval (57999877)
+     Agent needs only 0-1 more kills to progress. Maximizes floor 2 exposure.
+  4. Submitted h067 — Curriculum (floors 1,2) + obs augment on h044 config on rorqual (8606132)
+     Fixed version of h063. Uses h044 config since obs augment helps h044 (+1.6%).
+  5. Submitted h068 — Persistent curriculum (no annealing, end_frac=1.0) on nibi (10592719)
+     Tests if continued curriculum throughout training helps vs annealing to 0.
+
+RUNNING JOBS (5 active + 5 pending):
+  1B RUNS (3 running):
+    h040-1B-s3 (fir 28337300, 16h elapsed — LONGER THAN EXPECTED ~12h)
+    h044-1B-s3 (fir 28364197, 13h elapsed)
+    h057-1B-s2 (narval 57994663, 2h elapsed — ~12h left)
+  PILOTS (2 running):
+    h061 obs+aux combined (rorqual 8603947, 1.3h elapsed — ~1.5h left)
+    h062 buggy floor-0 curriculum (narval 57997426, 1h elapsed — ~1.5h left)
+  PENDING:
+    h064 multi-floor curriculum h040 (rorqual, behind h061)
+    h065 multi-floor curriculum h044 (fir, behind h040+h044 1B)
+    h066 aggressive curriculum (narval, behind h062)
+    h067 curriculum+obs h044 (rorqual, behind h064)
+    h068 persistent curriculum (nibi, queued until Mar 20)
+
+CURRICULUM EXPERIMENT MATRIX:
+  h062: floor 0 BUG (kills 5-7) — running narval — expect WORSE
+  h064: floors 1,2 kills 5-7 h040 config — pending rorqual — BASELINE CURRICULUM
+  h065: floors 1,2 kills 5-7 h044 config (ent anneal) — pending fir
+  h066: floors 1,2 kills 7-8 h040 config — pending narval — AGGRESSIVE
+  h067: floors 1,2 kills 5-7 h044+obs augment — pending rorqual
+  h068: floors 1,2 kills 5-7 h040 persistent — pending nibi (Mar 20)
+
+1B LEADERBOARD (unchanged):
+  h040 GRU+128+grad:      s1=40.14 s2=41.46 mean=40.80 (n=2, s3 running) — BEST
+  h044 GRU+ent+128+grad:  s1=35.5 s2=40.9 mean=38.2 (n=2, s3 running)
+  h023 LSTM+128:           mean=38.10 (n=3, COMPLETE)
+
+NEXT SESSION PRIORITIES:
+  1. Parse h040-1B-s3 (should complete soon, 16h+) — finalize h040 3-seed
+  2. Parse h044-1B-s3 — finalize h044 3-seed
+  3. Parse h061 pilot — combined obs+aux
+  4. Parse h062 pilot — buggy curriculum (expected WORSE)
+  5. Parse h064 pilot — MULTI-FLOOR CURRICULUM (MOST ANTICIPATED)
+  6. Parse h065 pilot — curriculum + ent anneal
+  7. Parse h066 pilot — AGGRESSIVE curriculum
+  8. Parse h067 pilot — curriculum + obs augment + ent anneal
+  9. If ANY curriculum pilot shows floor 2 entry: submit 1B seeds IMMEDIATELY
+  10. If no floor 2: consider hierarchical RL, different architectures, or env modifications
