@@ -3930,3 +3930,62 @@ NEXT SESSION PRIORITIES:
   6. Parse h044-1B-s3 — third seed for h044
   7. If ANY pilot shows improvement: submit 1B seeds immediately
   8. If none help: try decomposed value heads or UNREAL auxiliary tasks
+
+---
+**[2026-03-19 15:26 UTC]**
+
+=== SESSION UPDATE: h057 pilot result + 1B runs submitted ===
+
+h057-pilot-s1v3 (obs augment on h044 config) COMPLETED:
+  avg_return=33.14, 92% dungeon, +1.6% over h044 pilot (32.62).
+  orc_soldier 36%, orc_mage 4%, find_bow 84%, fire_bow 76%, diamond 16%.
+  0% floor 2 (as expected at 200M). Marginal but real improvement.
+  Wall 8968s (2.49h) on narval A100.
+
+OBSERVATION: Obs augment adds kill_count/8.0 to the observation.
+This gives the agent direct information about floor progression (0-8 kills).
+At 200M, it improves return by +1.6% and dungeon entry by +8% (92% vs 84%).
+The improvement is small but consistent with the hypothesis that kill count info helps.
+
+SUBMITTED 1B SCALING RUNS:
+  h057-1B-s2 on narval (57994663) — obs augment on h044 config, seed 2
+  h060-1B-s2 on rorqual (8603257) — obs augment on h040 config (NO ent anneal), seed 2
+  Both use seed 2 for direct comparison with h044-1B-s2 (40.9) and h040-1B-s2 (41.46).
+
+CRAFTAX KILL THRESHOLD FINDINGS (from code inspection):
+  MONSTERS_KILLED_TO_CLEAR_LEVEL = 8 is HARD-CODED in craftax/constants.py.
+  NOT parameterizable. For curriculum learning, would need to:
+  1. Monkey-patch the constant in the installed package before JAX compilation
+  2. Pre-fill monsters_killed in env state via wrapper
+  3. Fork Craftax and make it a parameter
+  Approach 2 (pre-fill kills) is most practical for curriculum learning.
+
+RUNNING JOBS (9 total):
+  1B RUNS (5):
+    h040-1B-s3 (fir 14.2h — IMMINENT)
+    h040-1B-s1 (narval 11.2h — ~2h left)
+    h044-1B-s3 (fir 10.8h — ~3h left)
+    h057-1B-s2 (narval, just submitted)
+    h060-1B-s2 (rorqual, just submitted)
+  PILOTS (3+1 pending):
+    h059 aux kill pred v4 (fir ~15min — ~2.5h left)
+    h060 obs augment pilot (rorqual ~55min — ~2h left)
+    h061 combined (nibi, pending)
+
+1B LEADERBOARD (completed seeds):
+  h040 GRU+128+grad:      s2=41.46 (PARTIAL n=1, s1+s3 running)
+  h044 GRU+ent+128+grad:  s1=35.5, s2=40.9 (PARTIAL n=2, mean=38.2, s3 running)
+  h023 LSTM+128:          mean=38.10 (COMPLETE n=3) — BEST COMPLETE
+  h043 LSTM+ent+128+grad: mean=36.98 (COMPLETE n=3) — CLOSED
+  h031 GRU 64:            mean=32.90 (COMPLETE n=3) — CLOSED
+  PPO-LSTM baseline:      mean=33.88
+
+NEXT SESSION PRIORITIES:
+  1. Parse h040-1B-s3 (IMMINENT) — second seed for h040
+  2. Parse h060 pilot — does obs augment help h040 config?
+  3. Parse h059 pilot — does aux prediction work?
+  4. Parse h040-1B-s1, h044-1B-s3
+  5. If h040/h044 mean ≥40: CURRENT BEST, declare victory on current approach
+  6. Monitor h057-1B-s2 and h060-1B-s2 — obs augment at scale
+  7. If obs augment shows >1% improvement at 1B: submit remaining seeds
+  8. If not: try curriculum learning (pre-fill kills in env state)
