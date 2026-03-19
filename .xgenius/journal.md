@@ -4279,3 +4279,73 @@ NEXT SESSION PRIORITIES:
   7. If ANY curriculum pilot shows floor 2 entry: submit 1B seeds IMMEDIATELY
   8. If curriculum fails: consider RND (intrinsic motivation), hierarchical RL
   9. Backup plan: implement RND exploration bonus for novel state discovery
+
+---
+**[2026-03-19 18:57 UTC]**
+
+=== SESSION: h062 pilot parsed + pending jobs redistributed ===
+
+Triggered by: h062-pilot-s1 (57997426, narval) SUCCESS.
+
+RESULTS PARSED:
+
+h062-pilot-s1 (PPO-GRU + h040 config + BUGGY floor 0 curriculum):
+  avg_return=33.58, 88% dungeon, orc_soldier 52%, orc_mage 8%, zombie 52%.
+  find_bow 88%, fire_bow 72%, diamond 4%, sapphire 8%, ruby 20%.
+  make_iron_sword 36%. 0% gnomish mines. Wall 8698s (2.4h) on narval A100.
+  
+  SURPRISING: +8.8% vs h040 pilot (30.86) despite the curriculum BUG.
+  Bug set floor 0 kills to 5-7 (from 10), which CLOSED the overworld ladder
+  requiring 1-3 more kills. This forced the agent to practice more combat
+  before descending, accidentally improving overall combat skills.
+  
+  KEY INSIGHT: Delaying dungeon descent until agent has more combat practice
+  improves performance. This is complementary to the floor 1,2 curriculum
+  that helps with deeper floor transitions.
+
+ACTIONS TAKEN:
+  1. Recorded h062 pilot in results bank. Status: open (interesting finding).
+  2. Cancelled h068 on nibi (wouldn't start until Mar 21). Resubmitted on narval (58005230).
+  3. Cancelled h067 on rorqual (ReqNodeNotAvail). Resubmitted on narval (58005245).
+  4. h067 and h068 will start on narval after h066 completes (~1h).
+
+PENDING HYPOTHESIS h069 (NOT YET SUBMITTED):
+  Combined curriculum: --curriculum-target-floors 0,1,2 with kills=5-7.
+  Floor 0: reduce from 10 to 5-7 (agent must kill 1-3 more to unlock ladder).
+  Floors 1,2: increase from 0 to 5-7 (agent only needs 1-3 more to unlock).
+  Waiting for h064/h066 results first — 5 curriculum variants already queued.
+
+RUNNING JOBS (4 running):
+  h040-1B-s3 (fir 28337300, 17.7h — near completion, fir H100 is slower)
+  h044-1B-s3 (fir 28364197, 14.3h — ~2h left)
+  h057-1B-s2 (narval 57994663, 3.4h — ~10h left)
+  h066-pilot-s1 (narval 57999877, 1.5h — ~1h left, AGGRESSIVE curriculum)
+
+QUEUED JOBS (4 pending):
+  h064-pilot-s1 (rorqual 8605774, Priority — MOST ANTICIPATED, multi-floor curriculum)
+  h065-pilot-s1 (fir 28424598, Priority — behind h040/h044 1B)
+  h067-pilot-s1 (narval 58005245, queued behind h066)
+  h068-pilot-s1 (narval 58005230, queued behind h067)
+
+1B LEADERBOARD (unchanged):
+  h040 GRU+128+grad:      s1=40.14 s2=41.46 mean=40.80 (n=2, s3 running) — BEST
+  h044 GRU+ent+128+grad:  s1=35.5 s2=40.9 mean=38.2 (n=2, s3 running)
+  h023 LSTM+128:           mean=38.10 (n=3, COMPLETE)
+
+CURRICULUM EXPERIMENT STATUS:
+  h062: floor 0 BUG — 33.58 (+8.8% vs h040) — DONE, OPEN (interesting finding)
+  h064: floors 1,2 kills 5-7 h040 config — PENDING rorqual
+  h065: floors 1,2 kills 5-7 h044 config — PENDING fir
+  h066: floors 1,2 kills 7-8 h040 AGGRESSIVE — RUNNING narval (~1h left)
+  h067: floors 1,2 h044+obs augment — QUEUED narval
+  h068: floors 1,2 persistent (no annealing) — QUEUED narval
+
+NEXT SESSION PRIORITIES:
+  1. Parse h066 pilot (AGGRESSIVE curriculum, MOST ANTICIPATED) — running now
+  2. Parse h040-1B-s3 — finalize h040 3-seed mean
+  3. Parse h044-1B-s3 — finalize h044 3-seed mean
+  4. Parse h064 pilot — multi-floor curriculum h040
+  5. Parse h067, h068 pilots — curriculum variants
+  6. If ANY curriculum pilot shows floor 2 entry: submit 1B seeds IMMEDIATELY
+  7. If h064 shows improvement: submit h069 (combined floor 0+1+2 curriculum)
+  8. If curriculum fails: consider RND intrinsic motivation or hierarchical RL
