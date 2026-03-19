@@ -3506,3 +3506,85 @@ NEXT SESSION PRIORITIES:
   4. Parse h040 1B (3 seeds) — GRU+128+grad at scale
   5. Parse h044 1B (3 seeds) — BEST PILOT (32.62), MOST ANTICIPATED
   6. Parse h031-1B-s3 — finalize h031
+
+---
+**[2026-03-19 10:49 UTC]**
+
+
+=== SESSION: h054 PBRS CLOSED + h032 CLOSED + h056 KILL BONUS submitted ===
+
+Triggered by: h054-pilot-s1v3 (8586825, rorqual) SUCCESS.
+
+RESULTS PARSED THIS SESSION:
+
+h054-pilot-s1v3 (PPO-GRU + h044 config + PBRS):
+  avg_return≈31.5, ~71% dungeon, max=52.1, wall=8697s (2.4h) on rorqual H100.
+  WORSE than h044 (32.62, 84%). PBRS doesn't help.
+  ROOT CAUSE: PBRS has terminal penalty issue. When agent dies, it gets
+  F = 0 - phi(s_last) = -phi(s_last), which PENALIZES having progress.
+  Agent with dungeon entry + bow + diamonds gets punished more at death
+  than agent that never progressed. This is counterproductive.
+  CLOSED.
+
+h032-1B-s1 (PPO-LSTM + ent anneal 0.03→0.005, 64 steps):
+  avg_return=27.86, 64% dungeon, wall=46114s (12.8h) on narval A100.
+  WORST h032 seed. h032 ALL COMPLETE: mean=30.03 (s1=27.86, s2=31.5, s3=30.74).
+  BELOW PPO-LSTM baseline (33.88). 64-step entropy annealing doesn't scale.
+  KEY FINDING: 64-step configs plateau around 30 at 1B regardless of improvements.
+  128 steps is ESSENTIAL for scaling to 1B.
+  CLOSED.
+
+DEEP FLOOR PROGRESSION ANALYSIS:
+  Analyzed WHY agents achieve 100% dungeon but 0% floor 2:
+  1. Floor 0→1 (overworld→dungeon): NO kill requirement. Just find ladder + DESCEND.
+  2. Floor 1→2 (dungeon→gnomish mines): REQUIRES killing 8 enemies on floor 1.
+     Then find unblocked ladder + DESCEND.
+  
+  h043-1B-s3 (best: 40.38, 100% dungeon) combat breakdown:
+    defeat_orc_soldier: 92% (kills at least 1 orc)
+    defeat_orc_mage: 8% (rarely kills mage variant)
+    defeat_skeleton: 44%, defeat_zombie: 48% (overworld enemies, NOT floor 1)
+    enter_gnomish_mines: 0% — NEVER reaches floor 2
+  
+  CONCLUSION: Agent knows DESCEND (uses it 100% for overworld→dungeon).
+  But floor 1 requires 8 kills to unblock ladder. Agent likely kills 2-5 enemies
+  before dying. The 8-kill threshold is the SPECIFIC bottleneck.
+
+NEW HYPOTHESIS:
+h056 — Kill Progress + Floor Descent Bonus (direct rewards, NOT PBRS):
+  - +0.5 per enemy killed on current floor (capped at 8)
+  - +5.0 per floor descended
+  - No terminal penalty (unlike PBRS)
+  - Directly incentivizes the 8-kill prerequisite
+  - Based on h044 config (GRU+ent+128+grad=1.0)
+  Pilot submitted: h056-pilot-s1 on nibi (10574901). ~2-3h.
+
+RUNNING JOBS (12 active + 1 pending):
+  1B RUNS (10):
+    h043 LSTM+ent+128+grad: s1 (rorqual 11.4h), s2 (narval 11.4h) — NEAR COMPLETION
+    h044 GRU+ent+128+grad: s1 (narval 10.2h), s2 (rorqual 10.2h), s3 (fir 6.2h)
+    h040 GRU+128+grad: s1 (narval 6.7h), s2 (narval 11.4h — NEAR), s3 (fir 9.6h)
+    h031 GRU 64: s3 (rorqual 6.7h)
+  PILOTS (2 active + 1 pending):
+    h051 Go-Explore FIXED (narval 1.9h — COMPLETING SOON)
+    h055 Go-Explore+PBRS FIXED (fir 2.3h — COMPLETING SOON)
+    h056 Kill Bonus (nibi, pending)
+
+1B LEADERBOARD (completed):
+  h043 LSTM+ent+128+grad: s3=40.38 (partial — s1+s2 imminent)
+  h023 LSTM+128:          mean=38.10 (s1=37.51, s2=40.98, s3=35.82) — BEST COMPLETE
+  h031 GRU 64:            s1=33.54, s2=37.06 (partial, s3 running)
+  h032 LSTM+ent 64:       mean=30.03 — CLOSED (below baseline)
+  PPO-LSTM baseline:      mean=33.88
+  PPO baseline:           mean=26.83
+
+NEXT SESSION PRIORITIES:
+  1. Parse h051/h055 pilots — Go-Explore with fix (completing soon)
+  2. Parse h043-1B-s1/s2 — will h043 be new 1B champion?
+  3. Parse h040 1B seeds — GRU+128+grad at scale
+  4. Parse h044 1B seeds — MOST ANTICIPATED (best pilot 32.62)
+  5. Parse h056 pilot — does kill bonus help floor progression?
+  6. If kill bonus helps: submit 1B seeds immediately
+  7. If kill bonus doesn't help: implement RND (novel state exploration)
+  8. Close h031 after s3 completes
+
