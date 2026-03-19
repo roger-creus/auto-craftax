@@ -3736,3 +3736,62 @@ NEXT SESSION PRIORITIES:
   7. Parse h040-1B-s1, h044-1B-s3, h031-1B-s3
   8. If obs augment shows ANY floor 2 entry: submit 1B seeds immediately
   9. If nothing helps floor 2: try auxiliary kill-count prediction head or combat curriculum
+
+---
+**[2026-03-19 12:55 UTC]**
+
+=== SESSION: h058 CRASH FIX + h043-1B-s2=37.86 + h044-1B-s1=35.5 ===
+
+Triggered by: h058-pilot-s1 (28402044, fir) SUCCESS (but actually CRASHED).
+
+BUG FIX:
+h058-pilot-s1 crashed at step 131072 with RuntimeError: shape '[-1, 8268]' invalid for input of size 1083834368.
+Root cause: line 310 of ppo_lstm.py used envs.single_observation_space.shape (8268) for reshape,
+but --obs-augment adds 1 extra feature (kill count) making obs 8269-dimensional.
+Fix: changed to use obs_shape which correctly includes extra_stats_dim. Committed and synced.
+
+RESULTS PARSED:
+
+h043-1B-s2 (PPO-LSTM + ent anneal + 128 steps + grad=1.0) — disappeared on narval, CSV recovered:
+  avg_return=37.86, 92% dungeon, orc_soldier 88%, orc_mage 4%, bow 92%, fire 92%.
+  h043 ALL 3 SEEDS COMPLETE: s1=32.7, s2=37.86, s3=40.38, mean=36.98±3.85.
+  CLOSED — BELOW h023 (38.10). Ent anneal + grad=1.0 doesn't improve LSTM at 1B.
+
+h044-1B-s1 (PPO-GRU + ent anneal + 128 steps + grad=1.0) — completed on narval:
+  avg_return=35.5, 84% dungeon, orc_soldier 52%, orc_mage 12%, bow 84%, fire 80%.
+  h044 partial: s1=35.5, s2=40.9. Mean so far: 38.2. s3 running on fir (~8h).
+
+h051-pilot-s1v6 (Go-Explore) — hit 4h walltime on narval, no CSV saved.
+  CLOSED after 6 versions of bugs and failures. Go-Explore approach abandoned.
+
+RESUBMISSIONS:
+  h057-pilot-s1v3 on narval (57989503) — obs augmentation (kill count in obs). Just started.
+  h058-pilot-s1v3 on fir (28403825) — obs augment + kill bonus. Just started.
+  (Previously submitted on nibi but pending until March 20 — cancelled and resubmitted on faster clusters)
+
+CRAFTAX MECHANICS FINDINGS:
+  - Only hostile mob kills count toward 8-kill threshold (NOT passive snails)
+  - Floor 1: Orc Soldier (melee, hp=7, dmg=3) + Orc Mage (ranged, hp=5, dmg=3)
+  - Max 3 melee + 2 ranged = 5 hostile enemies alive at once
+  - Spawn rate TRIPLES (6%→18% melee, 5%→15% ranged per turn) until 8 kills reached
+  - Kill count NOT in base observation — only boolean 'ladder unlocked?'
+
+1B LEADERBOARD (updated):
+  h040 GRU+128+grad:      s2=41.46 (PARTIAL n=1, s1+s3 running)
+  h044 GRU+ent+128+grad:  s1=35.5, s2=40.9 (PARTIAL n=2, mean=38.2, s3 running)
+  h023 LSTM+128:          mean=38.10 (COMPLETE n=3) — BEST COMPLETE
+  h043 LSTM+ent+128+grad: mean=36.98 (COMPLETE n=3) — CLOSED
+  h031 GRU 64:            s1=33.54, s2=37.06 (PARTIAL n=2, s3 running)
+
+RUNNING JOBS (9 total):
+  1B: h040-s1 (narval 9h), h040-s3 (fir 12h near!), h044-s3 (fir 8.5h), h031-s3 (rorqual 9h)
+  PILOTS: h056 kill bonus (rorqual 1h), h057 obs augment (narval just started), h058 obs+kill (fir just started)
+
+NEXT SESSION PRIORITIES:
+  1. Parse h040-1B-s3 (NEAR completion on fir ~12h)
+  2. Parse h056 pilot — does kill bonus alone help?
+  3. Parse h057/h058 pilots — obs augmentation ± kill bonus
+  4. Parse h044-1B-s3, h040-1B-s1, h031-1B-s3
+  5. If any pilot shows floor 2 entry → submit 1B seeds immediately
+  6. If none help → try escalating kill bonus or auxiliary kill prediction head
+  7. Close h031 and h040 when all 3 seeds done
