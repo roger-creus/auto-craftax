@@ -4220,3 +4220,62 @@ NEXT SESSION PRIORITIES:
   8. Parse h067 pilot — curriculum + obs augment + ent anneal
   9. If ANY curriculum pilot shows floor 2 entry: submit 1B seeds IMMEDIATELY
   10. If no floor 2: consider hierarchical RL, different architectures, or env modifications
+
+---
+**[2026-03-19 18:16 UTC]**
+
+=== SESSION: h061 pilot parsed + CLOSED ===
+
+Triggered by: h061-pilot-s1v2 (8603947, rorqual) SUCCESS.
+
+RESULTS PARSED:
+
+h061-pilot-s1v2 (PPO-GRU + h044 config + obs augment + aux kill prediction):
+  avg_return=29.14, 68% dungeon, orc_soldier 8%, orc_mage 0%.
+  find_bow 60%, fire_bow 56%, diamond 4%. Wall 7629s (2.1h) on rorqual H100.
+  -10.7% vs h044 pilot (32.62). MUCH WORSE than either component alone.
+  h057 (obs augment only): 33.14 (+1.6%)
+  h059 (aux kill pred only): 31.94 (-2.1%)
+  h061 (both combined): 29.14 (-10.7%)
+  CONCLUSION: Combining obs augment + aux kill pred is COUNTERPRODUCTIVE.
+  Likely redundant kill-count signals compete/interfere with learning.
+  CLOSED.
+
+COMPLETE SUMMARY OF AUX/OBS/REWARD APPROACHES (ALL CLOSED):
+  h057 obs augment on h044:     +1.6% (marginal, 1B scaling run in progress)
+  h059 aux kill pred on h044:   -2.1% — CLOSED
+  h060 obs augment on h040:    -11.4% — CLOSED
+  h061 combined obs+aux:       -10.7% — CLOSED
+  h058 kill bonus + obs augment: catastrophic — CLOSED
+  h056 kill bonus:               catastrophic — CLOSED
+  VERDICT: None of these approaches help meaningfully. Curriculum learning
+  is the only remaining approach targeting the floor 2 barrier.
+
+RUNNING JOBS (5):
+  h040-1B-s3 (fir 28337300, 17h elapsed — overdue, typically ~12h)
+  h044-1B-s3 (fir 28364197, 13.6h elapsed — near completion)
+  h057-1B-s2 (narval 57994663, 2.7h elapsed — ~10h left)
+  h062-pilot-s1 (narval 57997426, ~2h elapsed — buggy floor 0 curriculum)
+  h066-pilot-s1 (narval 57999877, 48min elapsed — aggressive curriculum)
+
+PENDING JOBS (4):
+  h064-pilot-s1 (rorqual 8605774, Priority — should start now that h061 finished)
+  h065-pilot-s1 (fir 28424598, Priority — behind h040/h044 1B)
+  h067-pilot-s1 (rorqual 8606132, ReqNodeNotAvail)
+  h068-pilot-s1 (nibi 10592719, scheduled Mar 21)
+
+1B LEADERBOARD (unchanged):
+  h040 GRU+128+grad:      s1=40.14 s2=41.46 mean=40.80 (n=2, s3 running) — BEST
+  h044 GRU+ent+128+grad:  s1=35.5 s2=40.9 mean=38.2 (n=2, s3 running)
+  h023 LSTM+128:           mean=38.10 (n=3, COMPLETE)
+
+NEXT SESSION PRIORITIES:
+  1. Parse h040-1B-s3 (OVERDUE at 17h on fir) — finalize h040 3-seed
+  2. Parse h044-1B-s3 — finalize h044 3-seed
+  3. Parse h062 pilot — buggy floor 0 curriculum (expect WORSE)
+  4. Parse h066 pilot — AGGRESSIVE curriculum (MOST ANTICIPATED)
+  5. Parse h064 pilot — multi-floor curriculum h040
+  6. Parse h065 pilot — multi-floor curriculum h044
+  7. If ANY curriculum pilot shows floor 2 entry: submit 1B seeds IMMEDIATELY
+  8. If curriculum fails: consider RND (intrinsic motivation), hierarchical RL
+  9. Backup plan: implement RND exploration bonus for novel state discovery
