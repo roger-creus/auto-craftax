@@ -4349,3 +4349,77 @@ NEXT SESSION PRIORITIES:
   6. If ANY curriculum pilot shows floor 2 entry: submit 1B seeds IMMEDIATELY
   7. If h064 shows improvement: submit h069 (combined floor 0+1+2 curriculum)
   8. If curriculum fails: consider RND intrinsic motivation or hierarchical RL
+
+---
+**[2026-03-19 19:57 UTC]**
+
+=== SESSION: h066 pilot parsed + h069 1B scaling submitted ===
+
+Triggered by: h066-pilot-s1 (57999877, narval) SUCCESS.
+
+RESULTS PARSED:
+
+h066-pilot-s1 (PPO-GRU + h040 config + AGGRESSIVE floor 1,2 curriculum kills=7-8):
+  avg_return=28.06, 72% dungeon, orc_soldier 12%, orc_mage 4%, zombie 56%.
+  find_bow 72%, fire_bow 56%, diamond 8%. Wall 8266s (2.3h) on narval A100.
+  -9.1% vs h040 pilot (30.86). WORSE than baseline.
+  CLOSED — aggressive floor 1,2 curriculum HURTS performance.
+
+KEY INSIGHT — FLOOR CURRICULUM ANALYSIS:
+  h062 floor 0 (kills 5-7, CLOSES ladder):  33.58 (+8.8% vs h040) — WORKS
+  h066 floors 1,2 (kills 7-8, trivially easy): 28.06 (-9.1% vs h040) — FAILS
+  
+  WHY: Floor 1,2 curriculum doesn't help because the bottleneck is REACHING
+  floor 1, not clearing it. The agent rarely gets to floor 1 (72% enter dungeon,
+  0% gnomish mines), so pre-filling kills on unreachable floors provides no
+  learning signal. Meanwhile, floor 0 curriculum works because ALL agents
+  start on floor 0 — forcing more combat practice there builds combat skills.
+
+ACTIONS TAKEN:
+  1. Recorded h066 in results bank. Status: CLOSED.
+  2. Cancelled h067 (narval 58005245) and h068 (narval 58005230) — both floor 1,2
+     curriculum variants, unlikely to help given h066 failure.
+  3. Created h069: Intentional floor 0 curriculum (h062 approach) at 1B scale.
+     h062 pilot showed +8.8%, projecting ~44+ at 1B vs h040's 40.80.
+  4. Submitted h069-1B-s1 on nibi (10601608)
+  5. Submitted h069-1B-s2 on narval (58009758, behind h057-1B-s2)
+  6. Submitted h069-1B-s3 on rorqual (8616355, behind h064)
+  7. Created h070: More aggressive floor 0 curriculum (kills=3-5, needs 3-5 more kills).
+     Pilot submitted on nibi (10601700).
+  8. Created h071: Floor 0 curriculum + entropy annealing (h044+h062 combined).
+     Pilot submitted on narval (58010085, behind h057+h069).
+
+RUNNING JOBS (3 running):
+  h040-1B-s3 (fir 28337300, 18.7h elapsed — near completion)
+  h044-1B-s3 (fir 28364197, 15.3h elapsed — ~4-8h left)
+  h057-1B-s2 (narval 57994663, 4.4h elapsed — ~8h left)
+
+PENDING/QUEUED JOBS (6):
+  h064-pilot-s1 (rorqual 8605774, Priority — 7h pending, floor 1,2 curriculum)
+  h065-pilot-s1 (fir 28424598, Priority — behind 1B runs)
+  h069-1B-s1 (nibi 10601608 — should start soon, MOST IMPORTANT)
+  h069-1B-s2 (narval 58009758 — behind h057-1B-s2)
+  h069-1B-s3 (rorqual 8616355 — behind h064)
+  h070-pilot-s1 (nibi 10601700 — behind h069-1B-s1)
+  h071-pilot-s1 (narval 58010085 — behind h057+h069)
+
+1B LEADERBOARD (unchanged):
+  h040 GRU+128+grad:      s1=40.14 s2=41.46 mean=40.80 (n=2, s3 running) — BEST
+  h044 GRU+ent+128+grad:  s1=35.5 s2=40.9 mean=38.2 (n=2, s3 running)
+  h023 LSTM+128:           mean=38.10 (n=3, COMPLETE)
+
+PROJECTION FOR h069:
+  h062 pilot = 33.58 (+8.8% vs h040 pilot 30.86)
+  h040 scaling: pilot 30.86 → 1B 40.80 (+32%)
+  h069 projection: 33.58 * 1.32 ≈ 44.3 (potential NEW BEST)
+
+NEXT SESSION PRIORITIES:
+  1. Parse h040-1B-s3 (near completion) — finalize h040 3-seed mean
+  2. Parse h044-1B-s3 — finalize h044 3-seed mean
+  3. Parse h064/h065 pilots — floor 1,2 curriculum variants (expected neutral/negative)
+  4. Parse h070 pilot — more aggressive floor 0 curriculum
+  5. Parse h071 pilot — floor 0 + entropy annealing combined
+  6. Monitor h069 1B runs — HIGHEST PRIORITY scaling experiment
+  7. If h069 shows improvement at 1B: this becomes new best config
+  8. If h070/h071 pilots are promising: submit 1B scaling runs
+  9. Consider RND (Random Network Distillation) for intrinsic exploration motivation
