@@ -46,3 +46,13 @@ Both jobs resubmitted: h020→nibi (10532814), h021→rorqual (8541287).
 **Fix:** Read achievements directly from JAX env state (`env_state.achievements`) which has the true per-step boolean values. Added `get_achievements_from_state()` helper. Cancelled broken h054/h055 pilots, resubmitted h051/h054/h055 with fix.
 
 **Impact:** All previous h051 pilot results were invalid (Go-Explore not working). h054/h055 were also invalid. This is the first time these mechanisms will actually function.
+
+## 2026-03-19 15:00 — h059 aux_head device mismatch (CPU vs CUDA)
+
+**Error:** `RuntimeError: Expected all tensors to be on the same device, but got mat1 is on cuda:0, different from other tensors on cpu`
+
+**Root cause:** `agent.init_aux_head()` is called AFTER `agent.to(device)`. The new `nn.Sequential` layers default to CPU. The forward pass then tries to use them with CUDA tensors from the GRU hidden state.
+
+**Also:** v2 of h059 crashed with "Unrecognized options: --aux-kill-pred" despite the field existing in args.py. This was caused by stale `__pycache__` on fir — Python cached an older version of args.py without the field.
+
+**Fix:** Added `agent.aux_head = agent.aux_head.to(device)` after `init_aux_head()`. Also cleared `__pycache__` on all clusters. v4 submitted with both fixes.

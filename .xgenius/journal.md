@@ -3861,3 +3861,72 @@ NEXT SESSION PRIORITIES:
   7. Determine 1B champion: h040 vs h044 vs h023
   8. If ANY pilot shows floor 2 entry: submit 1B seeds immediately
   9. If none help floor 2: try combined (obs augment + aux pred), or curriculum learning
+
+---
+**[2026-03-19 15:08 UTC]**
+
+=== SESSION: h058 CLOSED + h031 CLOSED + h059 device fix ===
+
+Triggered by: h058-pilot-s1v3 (28403825, fir) SUCCESS.
+
+RESULTS PARSED:
+
+h058-pilot-s1v3 (PPO-GRU + h044 config + obs augment + kill bonus):
+  avg_return=4.46, 0% dungeon, 0% skeleton, 4% zombie, 0% bow.
+  CATASTROPHIC — kill bonus (0.5/kill) is toxic even with obs augment.
+  Confirms: ANY kill bonus reward is FUNDAMENTALLY BROKEN for Craftax.
+  CLOSED.
+
+h031-1B-s3 (PPO-GRU + struct obs + gamma=0.999, 64 steps):
+  avg_return=28.10, 60% dungeon, find_bow 56% fire_bow 56%.
+  h031 ALL 3 SEEDS COMPLETE: s1=33.54, s2=37.06, s3=28.10, mean=32.90±4.51.
+  BELOW PPO-LSTM baseline (33.88). CLOSED.
+  KEY FINDING: GRU at 64 steps does NOT scale to 1B. Only benefits at 128 steps.
+
+BUG FIXES:
+  h059 v2 crashed: 'Unrecognized options: --aux-kill-pred' — __pycache__ issue on fir.
+  h059 v3 crashed: aux_head on CPU, hidden on CUDA — init_aux_head called AFTER .to(device).
+  Fixed by adding agent.aux_head = agent.aux_head.to(device).
+  h059 v4 resubmitted on fir (28411952).
+
+NEW HYPOTHESIS SUBMITTED:
+  h061 — Combined obs augment + aux kill prediction (h057+h059 combined):
+    Both kill count in input AND auxiliary prediction from hidden state.
+    Submitted on nibi (10587742) but likely stuck pending.
+
+WEB SEARCH FINDINGS:
+  - NO pure-RL method achieves floor 2 at 1B steps in published literature
+  - SCALAR (NeurIPS 2025): 9.1% gnomish mines but uses LLM-guided skills
+  - RND/ICM/E3B all underperform PPO on Craftax (confirmed by original paper)
+  - AGaLiTe (linear transformer) outperforms GTrXL on hard tasks
+  - Key promising directions: decomposed value heads, UNREAL-style reward prediction,
+    achievement distillation, skill/option hierarchies
+
+1B LEADERBOARD (updated):
+  h040 GRU+128+grad:      s2=41.46 (PARTIAL n=1, s1+s3 running)
+  h044 GRU+ent+128+grad:  s1=35.5, s2=40.9 (PARTIAL n=2, mean=38.2, s3 running)
+  h023 LSTM+128:          mean=38.10 (COMPLETE n=3) — BEST COMPLETE
+  h043 LSTM+ent+128+grad: mean=36.98 (COMPLETE n=3) — CLOSED
+  h031 GRU 64:            mean=32.90 (COMPLETE n=3) — CLOSED
+  PPO-LSTM baseline:      mean=33.88
+
+RUNNING JOBS (7 total):
+  1B RUNS (3):
+    h040-1B-s3 (fir 14h — SHOULD COMPLETE SOON)
+    h040-1B-s1 (narval 11h — ~2-3h left)
+    h044-1B-s3 (fir 10.5h — ~3-4h left)
+  PILOTS (3+1 pending):
+    h057 obs augment (narval 2.3h — should complete ~1-1.5h)
+    h060 obs augment on h040 (rorqual 42min — ~2.5h left)
+    h059 aux kill pred v4 (fir, just started — ~2.5h)
+    h061 combined obs+aux (nibi, pending)
+
+NEXT SESSION PRIORITIES:
+  1. Parse h057 pilot (IMMINENT) — does obs augment help at ALL?
+  2. Parse h040-1B-s3 (IMMINENT) — second seed for best config
+  3. Parse h059 v4 — does aux prediction work? (after device fix)
+  4. Parse h060 — obs augment on h040 config
+  5. Parse h040-1B-s1 — third seed for h040
+  6. Parse h044-1B-s3 — third seed for h044
+  7. If ANY pilot shows improvement: submit 1B seeds immediately
+  8. If none help: try decomposed value heads or UNREAL auxiliary tasks
