@@ -3116,3 +3116,51 @@ NEXT SESSION PRIORITIES:
   4. h032/h043 1B — entropy annealing at scale
   5. h040/h044 1B — best configs, most anticipated
   6. If pilots show promise, submit 1B seeds immediately
+
+---
+**[2026-03-19 07:33 UTC]**
+
+=== SESSION: h023-1B-s1 result (37.51), all jobs healthy ===
+
+Triggered by: h023-1B-s1 (8557125, rorqual) SUCCESS.
+
+h023-1B-s1 (PPO-LSTM + struct obs + gamma=0.999 + 128 steps):
+  avg_return=37.51, avg_length=812, wall=42336s (11.8h) on rorqual H100 3g.40gb
+  86.6% episodes >30, 51.4% >40, max=52.1
+  No achievement CSV (job lacked --hypothesis-id/--experiment-id flags)
+  LOWER than s2 (40.98) — seed variance is significant for h023.
+
+h023 STATUS: s1=37.51, s2=40.98, s3=running on narval (12.3h elapsed, should complete ~1-2h).
+  Mean so far: 39.25. Expected final mean if s3 ~39: ~39.2
+  Beats PPO-LSTM baseline (33.88) by ~16%. 0% deeper floors.
+
+RUNNING JOBS (21 total — all healthy):
+  PILOTS (5, completing in ~30min-1.5h):
+    h051 Go-Explore (fir 1.5h), h052 obs-norm (rorqual 1.5h), h053 residual MLP (rorqual 1.5h)
+    h054 PBRS (fir 1.5h), h055 Go-Explore+PBRS (fir 1.5h)
+  1B RUNS (16):
+    h023-1B-s3: narval 12.3h — IMMINENT
+    h031 x3 (GRU): narval 11h, rorqual 10.5h, rorqual 3.5h — s1+s2 near completion
+    h032 x3 (LSTM+ent): narval 9.9h, rorqual 10.5h, fir 10.5h — s2+s3 near completion
+    h043 x3 (LSTM+ent+128+grad): rorqual 8h, narval 8h, fir 7.9h — ~4-5h remaining
+    h040 x3 (GRU+128+grad): narval 8h, fir 6.4h, narval 3.4h — ~5-10h remaining
+    h044 x3 (GRU+ent+128+grad): narval 6.9h, rorqual 6.9h, fir 3h — ~5-10h remaining
+
+1B RESULTS SO FAR:
+  h023 (LSTM+128): s1=37.51, s2=40.98, s3=running → mean~39.25
+  h021 (LSTM base): mean=32.59 — CLOSED
+  PPO-LSTM baseline: mean=33.88
+
+NEXT COMPLETIONS (estimated):
+  ~30min-1.5h: h051-h055 pilots (Go-Explore, PBRS, obs norm, residual MLP)
+  ~1-2h: h023-1B-s3, h031-1B-s1, h031-1B-s2, h032-1B-s2, h032-1B-s3
+  ~3-5h: h032-1B-s1, h043 1B
+  ~5-10h: h040 1B, h044 1B (MOST ANTICIPATED — best 200M pilot 32.62)
+
+KEY QUESTIONS FOR NEXT SESSION:
+  1. Do pilots h051-h055 show any qualitative improvements?
+  2. Does h031 GRU 1B maintain advantage over LSTM? Pilot was 28.54 (best at 64 steps)
+  3. Does h032 LSTM+ent 1B confirm entropy annealing is key? Pilot was 29.74
+  4. Will h044 1B (best pilot 32.62) surpass h023 1B (mean ~39.25)?
+  5. Any deeper floor entry from Go-Explore or PBRS?
+
