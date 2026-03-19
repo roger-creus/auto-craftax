@@ -2883,3 +2883,68 @@ CONFIRMED NOT WORTH TRYING:
   - More steps beyond 1B: diminishing returns confirmed
   - Model-based (DreamerV3-style): only tested on Craftax-Classic, huge implementation effort
   - Population-based training: useful but complex, save for later
+
+---
+**[2026-03-19 04:15 UTC]**
+
+=== SESSION: h049 result + Go-Explore implementation ===
+
+Triggered by: h049-pilot-s1 (10555140, nibi) SUCCESS.
+
+h049-pilot-s1 (PPO-GRU + ent anneal + 128 steps + grad=1.0 + cosine LR):
+  avg_return=24.98, avg_length=621.52, wall=6042s (1.68h) on nibi H100
+  56% dungeon entry. find_bow 52%, fire_bow 40%.
+  VERDICT: CLOSED. WORSE than h044 (32.62, 84% dungeon with linear LR decay).
+  Cosine LR hurts GRU by -23.4%. Linear LR decay is optimal.
+
+HP SEARCH FULLY COMPLETE — ALL AXES EXPLORED:
+  Architecture: GRU > LSTM
+  num_steps: 128 optimal (both arch)
+  max_grad_norm: 1.0 optimal at 128 steps
+  entropy_annealing: 0.03→0.005 optimal
+  entropy_range: 0.05→0.003 hurts both arch
+  clip_coef: 0.2 optimal
+  update_epochs: 4 optimal
+  gae_lambda: 0.8 optimal
+  hidden_size: 512 optimal
+  num_minibatches: 8 optimal
+  PopArt: hurts
+  LR schedule: linear optimal (cosine hurts) ← NEW from h049
+  lr: 2e-4 optimal
+  activation: tanh optimal
+
+IMPLEMENTED: Go-Explore frontier checkpointing (src/rl/go_explore.py)
+  - FrontierBuffer: circular buffer of JAX env states at milestone achievements
+  - Milestone detection: tracks achievement transitions (False→True) for floor entries, equipment, etc.
+  - Frontier resets: replaces 25% of auto-reset (done) envs with frontier states
+  - State replacement via JAX tree_map + at[indices].set() batched operation
+  - LSTM/GRU hidden state naturally reset via done mask (no extra handling needed)
+  - New args: --go-explore, --frontier-buffer-size 128, --frontier-reset-prob 0.25
+
+SUBMITTED: h051-pilot-s1 (nibi 10563416) — h044 config + --go-explore
+  4h walltime, 200M steps. Highest-impact qualitative change.
+
+CANCELLED AND RESUBMITTED: 3 nibi pending 1B jobs (stuck 7-11h, nodes g7/g26/g37 down)
+  h031-1B-s3 → rorqual (8582832)
+  h040-1B-s1 → narval (57977300)
+  h044-1B-s3 → fir (28364197)
+  Will queue until h021 finishes (imminent — s1 at 11.4h vs ~10.75h estimated).
+
+ACTIVE JOBS (24 total — 18 running, 3 pending rorqual/narval/fir, 1 pending nibi, 2 pilot):
+  1B RUNS (21 jobs, 7 hypotheses):
+    h021 x3: rorqual 11.4h, narval 10h, fir 10.6h — SHOULD COMPLETE SOON
+    h023 x3: rorqual 8.3h, narval 8.7h, fir 8.4h
+    h031 x2 running + s3 resubmitted rorqual (8582832)
+    h032 x3: narval 6.3h, rorqual 7h, fir 7h
+    h040 x2 running + s1 resubmitted narval (57977300)
+    h043 x3: rorqual 4.6h, narval 4.6h, fir 4.3h
+    h044 x2 running + s3 resubmitted fir (28364197)
+  PILOTS (1):
+    h051 (Go-Explore, nibi): just submitted
+
+NEXT SESSION PRIORITIES:
+  1. FIRST 1B RESULTS: h021 should be done — parse, analyze floor depth
+  2. h051 pilot: if Go-Explore helps, submit 1B seeds
+  3. More 1B results: h023, h031 expected 2-5h out
+  4. If Go-Explore shows promise, consider combining with obs normalization
+  5. If 1B results plateau at floor 1, Go-Explore becomes even more critical
