@@ -4071,3 +4071,78 @@ NEXT SESSION PRIORITIES:
   8. If h040 mean stays >40: declare h040 as champion config
   9. If curriculum helps: combine with best features (obs augment, aux pred)
   10. Consider further curriculum variants (different kill ranges, multi-floor curriculum)
+
+---
+**[2026-03-19 16:53 UTC]**
+
+=== SESSION: h060 pilot parsed + CRITICAL curriculum bug found + h064/h065 submitted ===
+
+Triggered by: h060-pilot-s1 (8591657, rorqual) SUCCESS.
+
+RESULTS PARSED:
+
+h060-pilot-s1 (PPO-GRU + h040 config NO ent anneal + obs augment):
+  avg_return=27.34, 72% dungeon, orc_soldier 12%, orc_mage 4%.
+  find_bow 60%, fire_bow 48%, diamond 4%. Wall 7662s (2.1h).
+  WORSE than h040 pilot (30.86, 80% dungeon) by -11.4%.
+  Obs augment HURTS h040 config (no ent anneal).
+  Contrast: h057 (obs augment on h044 WITH ent anneal) got +1.6%.
+  CLOSED. h060-1B-s2 CANCELLED.
+
+CRITICAL FINDING — CURRICULUM BUG IN h062:
+  Inspected Craftax source: world_gen.py initializes monsters_killed with
+  floor 0 = 10 (ladder always open!). h062 sets mk[idx, 0] = 5-7, which
+  REDUCES floor 0 kills from 10 to 5-7, actually CLOSING the overworld
+  ladder. This is the OPPOSITE of the intent — it makes floor 0→1 HARDER.
+  
+  The real bottleneck is floor 1→2 (gnomish mines = 0% across ALL configs).
+  monsters_killed is indexed [env_idx, floor_idx] and persists across floors.
+  Pre-filling floor 1 kills at reset time will persist when agent descends.
+
+NEW HYPOTHESES IMPLEMENTED AND SUBMITTED:
+
+h064 — MULTI-FLOOR curriculum (pre-fill floors 1+2 kills):
+  Target floors 1,2 (NOT floor 0). Agent needs only 1-3 kills on floor 1
+  to unlock floor 2 (gnomish mines). Also pre-fill floor 2 for floor 3.
+  h040 base config (NO ent anneal).
+  Submitted on rorqual (8605774).
+  
+h065 — Same multi-floor curriculum but on h044 base (WITH ent anneal):
+  Test if curriculum + ent anneal interact differently.
+  Submitted on fir (28424598).
+
+RUNNING JOBS (10 total):
+  1B RUNS (3):
+    h040-1B-s3 (fir 28337300, ~16h elapsed, near completion)
+    h044-1B-s3 (fir 28364197, ~12h elapsed, ~2-4h left)
+    h057-1B-s2 (narval 57994663, ~1.5h elapsed, ~12h left)
+  PILOTS (5):
+    h059 aux kill pred v4 (fir 28411952, ~2h elapsed, ~0.5-1h left)
+    h061 combined obs+aux (rorqual 8603947, ~1h elapsed, ~1.5h left)
+    h062 floor-0 curriculum BUG (narval 57997426, ~0.5h elapsed, ~2h left)
+    h064 multi-floor curriculum (rorqual 8605774, just submitted)
+    h065 multi-floor curriculum+ent (fir 28424598, just submitted)
+  PENDING:
+    h063 curriculum+obs nibi (pending until Mar 21)
+
+1B LEADERBOARD (updated):
+  h040 GRU+128+grad:      s1=40.14 s2=41.46 mean=40.80 (n=2, s3 running) — BEST
+  h044 GRU+ent+128+grad:  s1=35.5 s2=40.9 mean=38.2 (n=2, s3 running)
+  h023 LSTM+128:           mean=38.10 (n=3, COMPLETE)
+
+KEY INSIGHTS THIS SESSION:
+  1. Obs augment hurts h040 (no ent anneal) by -11.4% but helps h044 (ent anneal) by +1.6%
+  2. Floor 0 starts with 10 kills — overworld ladder is ALWAYS open
+  3. h062 curriculum accidentally closes the overworld ladder
+  4. Multi-floor curriculum (h064/h065) pre-fills floor 1+2 kills — correct approach
+
+NEXT SESSION PRIORITIES:
+  1. Parse h040-1B-s3 (IMMINENT) — finalize h040 all 3 seeds
+  2. Parse h059 pilot — does aux kill prediction help?
+  3. Parse h061 pilot — combined obs+aux
+  4. Parse h062 pilot — floor 0 curriculum (expect WORSE due to bug)
+  5. Parse h064 pilot — MULTI-FLOOR curriculum (MOST ANTICIPATED)
+  6. Parse h065 pilot — multi-floor curriculum + ent anneal
+  7. Parse h044-1B-s3 — finalize h044 all 3 seeds
+  8. If h064 shows ANY floor 2 entry: submit 1B seeds IMMEDIATELY
+  9. If floor 2 barrier persists: try even more aggressive curriculum (100% fraction, kills=7)
