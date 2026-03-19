@@ -14,8 +14,8 @@ from src.utils.logger import write_row_csv, make_training_csv_craftax_classic, m
 from src.models.models import PPO_LSTM_Agent
 from src.utils.args import PPO_Args
 from src.utils.utils import get_optimizer_class, get_activation_fn, get_mlp_class, RunningMeanStd
-from src.rl.go_explore import FrontierBuffer, detect_and_save_milestones, apply_frontier_resets
-from src.rl.pbrs import compute_potential, compute_pbrs_bonus
+from src.rl.go_explore import FrontierBuffer, detect_and_save_milestones, apply_frontier_resets, get_achievements_from_state
+from src.rl.pbrs import compute_potential_from_state, compute_pbrs_bonus
 
 if __name__ == "__main__":
     import os
@@ -180,9 +180,14 @@ if __name__ == "__main__":
                 obs_rms.update(next_obs)
                 next_obs = obs_rms.normalize(next_obs, args.obs_clip)
             next_done = torch.logical_or(terminations, truncations)
+            # Get achievements from JAX state (not from infos which are zeroed for non-done envs)
+            achievements = None
+            if prev_phi is not None or frontier_buffer is not None:
+                achievements = get_achievements_from_state(envs.env._state.env_state, device)
+
             # PBRS: add potential-based shaping bonus
             if prev_phi is not None:
-                next_phi = compute_potential(infos, device=device)
+                next_phi = compute_potential_from_state(achievements, device=device)
                 pbrs_bonus = compute_pbrs_bonus(prev_phi, next_phi, next_done, args.gamma)
                 reward = reward.view(-1) + pbrs_bonus
                 # Update prev_phi: reset to 0 for done envs (fresh episode)
@@ -203,9 +208,9 @@ if __name__ == "__main__":
 
             # Go-Explore: detect milestones and apply frontier resets
             if frontier_buffer is not None:
-                # Detect and save new milestone states
+                # Detect and save new milestone states (using achievements from JAX state)
                 prev_milestone_status, n_saved = detect_and_save_milestones(
-                    frontier_buffer, infos, prev_milestone_status,
+                    frontier_buffer, achievements, prev_milestone_status,
                     next_done, envs.env._state.env_state, raw_next_obs, args.num_envs
                 )
                 frontier_total_saves += n_saved
