@@ -1,0 +1,686 @@
+slurmstepd: error: couldn't chdir to `/home/rogercc/'/scratch/rogercc/auto-craftax'': No such file or directory: going to /tmp instead
+slurmstepd: error: couldn't chdir to `/home/rogercc/'/scratch/rogercc/auto-craftax'': No such file or directory: going to /tmp instead
+sending incremental file list
+auto-craftax.sif
+
+sent 19,797,219,387 bytes  received 35 bytes  425,746,654.24 bytes/sec
+total size is 19,808,600,064  speedup is 1.00
+WARNING: Environment variable PYTHONPATH already has value [/src], will not forward new value [/src:/cvmfs/soft.computecanada.ca/custom/python/site-packages] from parent process environment
+Failed to import warp: No module named 'warp'
+Failed to import mujoco_warp: No module named 'warp'
+/opt/conda/envs/skill/lib/python3.10/site-packages/tyro/_parsers.py:353: UserWarning: The field `target-kl` is annotated with type `<class 'float'>`, but the default value `None` has type `<class 'NoneType'>`. We'll try to handle this gracefully, but it may cause unexpected behavior.
+  warnings.warn(message)
+Running with num_envs=1024, num_steps=128, minibatch_size=16384, max_grad_norm=1.0
+using device cuda
+Processing Craftax textures. This will take a minute but will be cached for future use.
+Textures loaded and saved to cache.
+Go-Explore enabled: buffer_size=128, reset_prob=0.25
+-------------
+PPO_LSTM_Agent(
+  (shared_pre_lstm): Sequential(
+    (0): CraftaxObsEncoder(
+      (map_cnn): Sequential(
+        (0): Conv2d(83, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        (1): ReLU()
+        (2): Conv2d(32, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        (3): ReLU()
+        (4): AdaptiveAvgPool2d(output_size=(3, 4))
+      )
+      (map_proj): Sequential(
+        (0): Linear(in_features=768, out_features=512, bias=True)
+        (1): ReLU()
+      )
+      (stats_mlp): Sequential(
+        (0): Linear(in_features=51, out_features=256, bias=True)
+        (1): ReLU()
+        (2): Linear(in_features=256, out_features=256, bias=True)
+        (3): ReLU()
+      )
+      (combine): Sequential(
+        (0): Linear(in_features=768, out_features=512, bias=True)
+        (1): ReLU()
+      )
+    )
+    (1): MLP(
+      (net): Sequential(
+        (0): Linear(in_features=512, out_features=512, bias=True)
+        (1): Tanh()
+      )
+    )
+  )
+  (rnn): GRU(512, 512)
+  (shared_post_lstm): MLP(
+    (net): Sequential(
+      (0): Linear(in_features=512, out_features=512, bias=True)
+      (1): Tanh()
+      (2): Linear(in_features=512, out_features=512, bias=True)
+      (3): Tanh()
+    )
+  )
+  (critic_head): Linear(in_features=512, out_features=1, bias=True)
+  (actor_head): Linear(in_features=512, out_features=43, bias=True)
+)
+Adam (
+Parameter Group 0
+    amsgrad: False
+    betas: (0.9, 0.999)
+    capturable: False
+    decoupled_weight_decay: False
+    differentiable: False
+    eps: 1e-05
+    foreach: None
+    fused: None
+    lr: 0.0002
+    maximize: False
+    weight_decay: 0
+)
+/src/src/rl/go_explore.py:119: UserWarning: The given NumPy array is not writable, and PyTorch does not support non-writable tensors. This means writing to this tensor will result in undefined behavior. You may want to copy the array to protect its data or make it writable before converting it to a tensor. This type of warning will be suppressed for the rest of this program. (Triggered internally at /pytorch/torch/csrc/utils/tensor_numpy.cpp:213.)
+  return torch.as_tensor(np.asarray(ach_jax), device=device).bool()
+global_step=33792, episodic_return=0.10000000894069672, episodic_length=33, avg_reward=0.10000000894069672
+global_step=36864, episodic_return=0.10000002384185791, episodic_length=36, avg_reward=0.10000001639127731
+global_step=39936, episodic_return=-0.8999999761581421, episodic_length=39, avg_reward=-0.2333333045244217
+global_step=43008, episodic_return=0.10000002384185791, episodic_length=42, avg_reward=-0.1499999761581421
+global_step=45056, episodic_return=-0.8999999761581421, episodic_length=44, avg_reward=-0.29999998211860657
+global_step=46080, episodic_return=0.10000000894069672, episodic_length=45, avg_reward=-0.2333333045244217
+global_step=50176, episodic_return=0.10000000894069672, episodic_length=49, avg_reward=-0.1857142597436905
+global_step=50176, episodic_return=-0.8999999761581421, episodic_length=49, avg_reward=-0.2749999761581421
+global_step=50176, episodic_return=0.10000000894069672, episodic_length=49, avg_reward=-0.23333331942558289
+global_step=51200, episodic_return=-0.9000000357627869, episodic_length=50, avg_reward=-0.30000001192092896
+global_step=52224, episodic_return=0.10000000894069672, episodic_length=51, avg_reward=-0.26363638043403625
+global_step=53248, episodic_return=0.09999996423721313, episodic_length=52, avg_reward=-0.23333334922790527
+global_step=55296, episodic_return=0.10000000149011612, episodic_length=54, avg_reward=-0.20769232511520386
+global_step=55296, episodic_return=0.09999996423721313, episodic_length=54, avg_reward=-0.18571431934833527
+global_step=57344, episodic_return=1.0999997854232788, episodic_length=56, avg_reward=-0.1000000387430191
+global_step=58368, episodic_return=-0.8999999761581421, episodic_length=57, avg_reward=-0.15000000596046448
+global_step=58368, episodic_return=0.10000000894069672, episodic_length=57, avg_reward=-0.1352941244840622
+global_step=59392, episodic_return=0.10000001639127731, episodic_length=58, avg_reward=-0.12222223728895187
+global_step=60416, episodic_return=-0.8999999761581421, episodic_length=59, avg_reward=-0.16315791010856628
+global_step=62464, episodic_return=0.09999997913837433, episodic_length=61, avg_reward=-0.15000002086162567
+global_step=62464, episodic_return=0.09999996423721313, episodic_length=61, avg_reward=-0.13809525966644287
+global_step=63488, episodic_return=2.0999999046325684, episodic_length=62, avg_reward=-0.036363665014505386
+global_step=63488, episodic_return=-0.8999999761581421, episodic_length=62, avg_reward=-0.07391307502985
+global_step=64512, episodic_return=0.10000000894069672, episodic_length=63, avg_reward=-0.06666667014360428
+global_step=69632, episodic_return=2.0999999046325684, episodic_length=68, avg_reward=0.019999990239739418
+global_step=69632, episodic_return=-0.8999999761581421, episodic_length=68, avg_reward=-0.020000005140900612
+global_step=69632, episodic_return=-0.8999999761581421, episodic_length=68, avg_reward=-0.06000000983476639
+global_step=69632, episodic_return=-0.8999999761581421, episodic_length=68, avg_reward=-0.060000013560056686
+global_step=70656, episodic_return=-0.8999999761581421, episodic_length=69, avg_reward=-0.10000001639127731
+global_step=72704, episodic_return=-0.8999999761581421, episodic_length=71, avg_reward=-0.10000001639127731
+global_step=73728, episodic_return=0.10000002384185791, episodic_length=72, avg_reward=-0.10000001639127731
+global_step=74752, episodic_return=-0.9000000357627869, episodic_length=73, avg_reward=-0.14000003039836884
+global_step=74752, episodic_return=-0.8999999761581421, episodic_length=73, avg_reward=-0.14000001549720764
+global_step=77824, episodic_return=-0.8999999761581421, episodic_length=76, avg_reward=-0.18000003695487976
+global_step=78848, episodic_return=1.0999999046325684, episodic_length=77, avg_reward=-0.10000003129243851
+global_step=79872, episodic_return=0.10000006854534149, episodic_length=78, avg_reward=-0.10000001639127731
+global_step=79872, episodic_return=1.0999997854232788, episodic_length=78, avg_reward=-0.06000002473592758
+global_step=79872, episodic_return=1.100000023841858, episodic_length=78, avg_reward=-0.020000029355287552
+global_step=81920, episodic_return=0.10000006854534149, episodic_length=80, avg_reward=-0.020000021904706955
+global_step=83968, episodic_return=1.1000001430511475, episodic_length=82, avg_reward=-0.019999999552965164
+global_step=86016, episodic_return=0.09999994933605194, episodic_length=84, avg_reward=0.01999998837709427
+global_step=87040, episodic_return=0.09999996423721313, episodic_length=85, avg_reward=0.019999992102384567
+global_step=87040, episodic_return=1.0999997854232788, episodic_length=85, avg_reward=0.059999980032444
+global_step=88064, episodic_return=0.1000000610947609, episodic_length=86, avg_reward=0.09999999403953552
+global_step=88064, episodic_return=0.10000006854534149, episodic_length=86, avg_reward=0.09999999403953552
+global_step=89088, episodic_return=0.10000000894069672, episodic_length=87, avg_reward=0.09999999403953552
+global_step=89088, episodic_return=0.10000001639127731, episodic_length=87, avg_reward=0.019999995827674866
+global_step=90112, episodic_return=1.0999997854232788, episodic_length=88, avg_reward=0.09999997913837433
+global_step=91136, episodic_return=1.1000001430511475, episodic_length=89, avg_reward=0.13999998569488525
+global_step=91136, episodic_return=-0.8999999761581421, episodic_length=89, avg_reward=0.020000005140900612
+global_step=91136, episodic_return=1.0999999046325684, episodic_length=89, avg_reward=0.10000000149011612
+global_step=92160, episodic_return=0.10000000894069672, episodic_length=90, avg_reward=0.14000000059604645
+global_step=93184, episodic_return=0.10000001639127731, episodic_length=91, avg_reward=0.18000000715255737
+global_step=94208, episodic_return=0.10000006854534149, episodic_length=92, avg_reward=0.2199999839067459
+global_step=95232, episodic_return=0.10000002384185791, episodic_length=93, avg_reward=0.25999999046325684
+global_step=97280, episodic_return=0.10000006854534149, episodic_length=95, avg_reward=0.25999999046325684
+global_step=97280, episodic_return=0.1000000387430191, episodic_length=95, avg_reward=0.29999998211860657
+global_step=98304, episodic_return=1.0999997854232788, episodic_length=96, avg_reward=0.37999996542930603
+global_step=98304, episodic_return=0.10000000894069672, episodic_length=96, avg_reward=0.41999998688697815
+global_step=98304, episodic_return=0.1000000387430191, episodic_length=96, avg_reward=0.3799999952316284
+global_step=98304, episodic_return=0.1000000387430191, episodic_length=96, avg_reward=0.3799999952316284
+global_step=99328, episodic_return=0.1000000387430191, episodic_length=97, avg_reward=0.3400000035762787
+global_step=100352, episodic_return=-0.8999999761581421, episodic_length=98, avg_reward=0.25999999046325684
+global_step=100352, episodic_return=0.1000000387430191, episodic_length=98, avg_reward=0.25999999046325684
+global_step=100352, episodic_return=0.10000000894069672, episodic_length=44, avg_reward=0.2199999988079071
+global_step=102400, episodic_return=1.0999997854232788, episodic_length=100, avg_reward=0.25999999046325684
+global_step=103424, episodic_return=0.10000006854534149, episodic_length=101, avg_reward=0.25999999046325684
+global_step=103424, episodic_return=-0.8999999165534973, episodic_length=101, avg_reward=0.17999997735023499
+global_step=104448, episodic_return=1.0999999046325684, episodic_length=102, avg_reward=0.2199999988079071
+global_step=104448, episodic_return=0.1000000461935997, episodic_length=102, avg_reward=0.2199999839067459
+global_step=105472, episodic_return=0.10000006854534149, episodic_length=103, avg_reward=0.2199999988079071
+global_step=106496, episodic_return=0.10000006854534149, episodic_length=104, avg_reward=0.2199999839067459
+global_step=108544, episodic_return=0.10000002384185791, episodic_length=106, avg_reward=0.18000002205371857
+global_step=108544, episodic_return=0.10000000894069672, episodic_length=106, avg_reward=0.14000000059604645
+global_step=108544, episodic_return=0.10000006854534149, episodic_length=106, avg_reward=0.18000000715255737
+global_step=109568, episodic_return=0.10000000894069672, episodic_length=107, avg_reward=0.14000000059604645
+global_step=110592, episodic_return=0.10000003129243851, episodic_length=108, avg_reward=0.14000001549720764
+global_step=110592, episodic_return=0.09999997168779373, episodic_length=108, avg_reward=0.14000001549720764
+global_step=110592, episodic_return=0.10000000894069672, episodic_length=108, avg_reward=0.14000000059604645
+global_step=111616, episodic_return=0.10000006854534149, episodic_length=109, avg_reward=0.14000001549720764
+global_step=111616, episodic_return=0.10000006854534149, episodic_length=109, avg_reward=0.14000001549720764
+global_step=111616, episodic_return=1.0999999046325684, episodic_length=109, avg_reward=0.18000000715255737
+global_step=113664, episodic_return=0.10000002384185791, episodic_length=111, avg_reward=0.14000001549720764
+global_step=113664, episodic_return=0.10000000894069672, episodic_length=54, avg_reward=0.14000001549720764
+global_step=113664, episodic_return=0.10000006854534149, episodic_length=111, avg_reward=0.14000003039836884
+global_step=113664, episodic_return=-0.8999999761581421, episodic_length=111, avg_reward=0.10000001639127731
+global_step=113664, episodic_return=-0.9000000357627869, episodic_length=111, avg_reward=0.060000017285346985
+global_step=115712, episodic_return=0.10000000149011612, episodic_length=113, avg_reward=0.10000001639127731
+global_step=115712, episodic_return=0.1000000536441803, episodic_length=113, avg_reward=0.10000003129243851
+global_step=115712, episodic_return=1.0999997854232788, episodic_length=113, avg_reward=0.14000001549720764
+global_step=117760, episodic_return=0.10000000894069672, episodic_length=115, avg_reward=0.10000000894069672
+global_step=117760, episodic_return=0.09999997913837433, episodic_length=115, avg_reward=0.10000001639127731
+global_step=118784, episodic_return=-0.8999999761581421, episodic_length=116, avg_reward=0.10000001639127731
+global_step=118784, episodic_return=0.1000000536441803, episodic_length=116, avg_reward=0.060000017285346985
+global_step=118784, episodic_return=-0.8999999761581421, episodic_length=116, avg_reward=0.020000014454126358
+global_step=119808, episodic_return=-0.9000000357627869, episodic_length=117, avg_reward=-0.01999998837709427
+global_step=119808, episodic_return=1.0999999046325684, episodic_length=117, avg_reward=0.019999999552965164
+global_step=119808, episodic_return=-0.9000000357627869, episodic_length=117, avg_reward=-0.019999997690320015
+global_step=119808, episodic_return=0.10000006854534149, episodic_length=117, avg_reward=-0.019999992102384567
+global_step=120832, episodic_return=0.10000003129243851, episodic_length=118, avg_reward=-0.020000005140900612
+global_step=120832, episodic_return=0.10000006854534149, episodic_length=118, avg_reward=-0.019999992102384567
+global_step=122880, episodic_return=-0.9000000357627869, episodic_length=78, avg_reward=-0.05999999865889549
+global_step=122880, episodic_return=0.1000000387430191, episodic_length=120, avg_reward=-0.059999994933605194
+global_step=122880, episodic_return=-0.8999999761581421, episodic_length=120, avg_reward=-0.10000000149011612
+global_step=123904, episodic_return=0.09999999403953552, episodic_length=121, avg_reward=-0.10000000894069672
+global_step=123904, episodic_return=0.1000000461935997, episodic_length=121, avg_reward=-0.10000000149011612
+global_step=126976, episodic_return=1.0999997854232788, episodic_length=124, avg_reward=-0.10000000149011612
+global_step=126976, episodic_return=1.0999997854232788, episodic_length=124, avg_reward=-0.06000002473592758
+global_step=128000, episodic_return=0.1000000387430191, episodic_length=125, avg_reward=-0.06000003218650818
+global_step=129024, episodic_return=0.10000000894069672, episodic_length=40, avg_reward=-0.06000002473592758
+global_step=129024, episodic_return=0.10000002384185791, episodic_length=126, avg_reward=-0.020000018179416656
+global_step=129024, episodic_return=0.10000000894069672, episodic_length=126, avg_reward=0.01999998837709427
+global_step=130048, episodic_return=1.0999999046325684, episodic_length=127, avg_reward=0.059999980032444
+global_step=130048, episodic_return=-0.8999999761581421, episodic_length=59, avg_reward=0.019999980926513672
+global_step=131072, episodic_return=0.10000000894069672, episodic_length=128, avg_reward=-0.020000014454126358
+global_step=131072, episodic_return=-0.8999999761581421, episodic_length=128, avg_reward=-0.06000000983476639
+global_step=131072, episodic_return=1.0999999046325684, episodic_length=128, avg_reward=-0.020000018179416656
+SPS: 1377 | GoExplore: buffer=0, saves=0, resets=0
+global_step=133120, episodic_return=0.10000000894069672, episodic_length=94, avg_reward=0.019999980926513672
+global_step=135168, episodic_return=-0.8999999761581421, episodic_length=132, avg_reward=-0.020000023767352104
+global_step=135168, episodic_return=0.10000003129243851, episodic_length=132, avg_reward=0.019999980926513672
+global_step=135168, episodic_return=0.10000006854534149, episodic_length=132, avg_reward=0.0599999763071537
+global_step=136192, episodic_return=0.10000002384185791, episodic_length=133, avg_reward=0.019999990239739418
+global_step=137216, episodic_return=-0.9000000357627869, episodic_length=134, avg_reward=0.01999998837709427
+global_step=139264, episodic_return=-0.9000000357627869, episodic_length=136, avg_reward=-0.02000000886619091
+global_step=139264, episodic_return=0.10000002384185791, episodic_length=136, avg_reward=-0.02000001259148121
+global_step=140288, episodic_return=1.0999999046325684, episodic_length=137, avg_reward=0.01999998651444912
+global_step=141312, episodic_return=4.099999904632568, episodic_length=138, avg_reward=0.2199999839067459
+global_step=141312, episodic_return=-0.8999999761581421, episodic_length=138, avg_reward=0.17999997735023499
+global_step=142336, episodic_return=0.1000000387430191, episodic_length=139, avg_reward=0.2199999839067459
+global_step=142336, episodic_return=0.10000006854534149, episodic_length=139, avg_reward=0.2199999839067459
+global_step=142336, episodic_return=2.0999996662139893, episodic_length=139, avg_reward=0.2999999523162842
+global_step=142336, episodic_return=1.100000023841858, episodic_length=139, avg_reward=0.29999998211860657
+global_step=143360, episodic_return=1.0999999046325684, episodic_length=140, avg_reward=0.29999998211860657
+global_step=143360, episodic_return=1.0999997854232788, episodic_length=140, avg_reward=0.3399999737739563
+global_step=143360, episodic_return=0.10000006854534149, episodic_length=140, avg_reward=0.3400000035762787
+global_step=143360, episodic_return=0.10000002384185791, episodic_length=140, avg_reward=0.3400000035762787
+global_step=144384, episodic_return=1.1000001430511475, episodic_length=141, avg_reward=0.3799999952316284
+global_step=145408, episodic_return=0.09999996423721313, episodic_length=142, avg_reward=0.3400000035762787
+global_step=145408, episodic_return=2.0999999046325684, episodic_length=142, avg_reward=0.46000000834465027
+global_step=145408, episodic_return=0.10000006854534149, episodic_length=142, avg_reward=0.46000000834465027
+global_step=146432, episodic_return=1.0999997854232788, episodic_length=143, avg_reward=0.5399999618530273
+global_step=146432, episodic_return=0.10000006854534149, episodic_length=143, avg_reward=0.5
+global_step=147456, episodic_return=1.0999999046325684, episodic_length=144, avg_reward=0.5400000214576721
+global_step=148480, episodic_return=1.0999997854232788, episodic_length=145, avg_reward=0.6199999451637268
+global_step=149504, episodic_return=1.0999999046325684, episodic_length=146, avg_reward=0.6599999070167542
+global_step=150528, episodic_return=0.10000009834766388, episodic_length=147, avg_reward=0.6599999070167542
+global_step=150528, episodic_return=0.10000000894069672, episodic_length=147, avg_reward=0.6599999070167542
+global_step=150528, episodic_return=2.0999999046325684, episodic_length=147, avg_reward=0.7799999117851257
+global_step=151552, episodic_return=0.10000000149011612, episodic_length=148, avg_reward=0.8199999332427979
+global_step=153600, episodic_return=0.10000006854534149, episodic_length=150, avg_reward=0.8199999332427979
+global_step=153600, episodic_return=0.1000000387430191, episodic_length=150, avg_reward=0.7799999117851257
+global_step=154624, episodic_return=1.0999999046325684, episodic_length=151, avg_reward=0.6599999070167542
+global_step=154624, episodic_return=1.0999997854232788, episodic_length=151, avg_reward=0.7399999499320984
+global_step=154624, episodic_return=1.0999997854232788, episodic_length=151, avg_reward=0.7799999117851257
+global_step=155648, episodic_return=0.10000002384185791, episodic_length=152, avg_reward=0.7799999117851257
+global_step=155648, episodic_return=2.0999996662139893, episodic_length=152, avg_reward=0.7799999117851257
+global_step=156672, episodic_return=-0.8999999761581421, episodic_length=153, avg_reward=0.6999999284744263
+global_step=157696, episodic_return=0.10000006854534149, episodic_length=154, avg_reward=0.6599999070167542
+global_step=158720, episodic_return=1.0999997854232788, episodic_length=155, avg_reward=0.6599999070167542
+global_step=159744, episodic_return=2.0999996662139893, episodic_length=156, avg_reward=0.7399999499320984
+global_step=159744, episodic_return=1.0999997854232788, episodic_length=156, avg_reward=0.7799999117851257
+global_step=160768, episodic_return=-0.8999999761581421, episodic_length=157, avg_reward=0.6999999284744263
+global_step=160768, episodic_return=2.0999999046325684, episodic_length=157, avg_reward=0.7799999117851257
+global_step=161792, episodic_return=1.0999997854232788, episodic_length=158, avg_reward=0.7399999499320984
+global_step=161792, episodic_return=0.10000008344650269, episodic_length=158, avg_reward=0.7399999499320984
+global_step=163840, episodic_return=0.10000009089708328, episodic_length=160, avg_reward=0.6999999284744263
+global_step=163840, episodic_return=1.0999997854232788, episodic_length=160, avg_reward=0.7399999499320984
+global_step=164864, episodic_return=1.0999999046325684, episodic_length=161, avg_reward=0.7399999499320984
+global_step=164864, episodic_return=0.1000000387430191, episodic_length=161, avg_reward=0.6999999284744263
+global_step=165888, episodic_return=0.10000012814998627, episodic_length=162, avg_reward=0.6599999070167542
+global_step=166912, episodic_return=2.0999999046325684, episodic_length=163, avg_reward=0.7399999499320984
+global_step=167936, episodic_return=1.0999999046325684, episodic_length=164, avg_reward=0.7799999117851257
+global_step=168960, episodic_return=0.10000002384185791, episodic_length=111, avg_reward=0.6999999284744263
+global_step=169984, episodic_return=1.0999997854232788, episodic_length=166, avg_reward=0.7399999499320984
+global_step=169984, episodic_return=0.1000000536441803, episodic_length=166, avg_reward=0.7399999499320984
+global_step=171008, episodic_return=2.0999996662139893, episodic_length=167, avg_reward=0.8199999332427979
+global_step=171008, episodic_return=0.10000006854534149, episodic_length=167, avg_reward=0.7799999117851257
+global_step=171008, episodic_return=1.0999997854232788, episodic_length=167, avg_reward=0.7799999117851257
+global_step=172032, episodic_return=-0.8999999761581421, episodic_length=168, avg_reward=0.6999999284744263
+global_step=172032, episodic_return=0.09999999403953552, episodic_length=168, avg_reward=0.6999999284744263
+global_step=172032, episodic_return=2.0999996662139893, episodic_length=168, avg_reward=0.6999999284744263
+global_step=172032, episodic_return=1.0999997854232788, episodic_length=168, avg_reward=0.7799999117851257
+global_step=174080, episodic_return=0.1000000387430191, episodic_length=170, avg_reward=0.7799999117851257
+global_step=174080, episodic_return=1.0999997854232788, episodic_length=125, avg_reward=0.7799999117851257
+global_step=176128, episodic_return=1.0999999046325684, episodic_length=172, avg_reward=0.7399999499320984
+global_step=177152, episodic_return=2.0999999046325684, episodic_length=173, avg_reward=0.7799999117851257
+global_step=177152, episodic_return=1.0999997854232788, episodic_length=173, avg_reward=0.8599998950958252
+global_step=177152, episodic_return=0.10000006854534149, episodic_length=173, avg_reward=0.7799999117851257
+global_step=178176, episodic_return=0.10000006854534149, episodic_length=174, avg_reward=0.7399999499320984
+global_step=178176, episodic_return=0.10000006854534149, episodic_length=174, avg_reward=0.7399999499320984
+global_step=179200, episodic_return=0.10000006854534149, episodic_length=175, avg_reward=0.7399999499320984
+global_step=179200, episodic_return=2.0999996662139893, episodic_length=175, avg_reward=0.7799999117851257
+global_step=180224, episodic_return=0.10000006854534149, episodic_length=176, avg_reward=0.7399999499320984
+global_step=180224, episodic_return=1.0999999046325684, episodic_length=176, avg_reward=0.7799999117851257
+global_step=181248, episodic_return=1.0999999046325684, episodic_length=177, avg_reward=0.8199999332427979
+global_step=181248, episodic_return=1.0999999046325684, episodic_length=177, avg_reward=0.7799999117851257
+global_step=183296, episodic_return=2.0999996662139893, episodic_length=179, avg_reward=0.8199999332427979
+global_step=185344, episodic_return=1.0999997854232788, episodic_length=181, avg_reward=0.8599998950958252
+global_step=186368, episodic_return=1.0999999046325684, episodic_length=182, avg_reward=0.8599998950958252
+global_step=186368, episodic_return=2.0999999046325684, episodic_length=182, avg_reward=0.9399999380111694
+global_step=186368, episodic_return=2.1000001430511475, episodic_length=79, avg_reward=0.9399999380111694
+global_step=187392, episodic_return=0.10000006854534149, episodic_length=87, avg_reward=0.9399999380111694
+global_step=187392, episodic_return=1.0999999046325684, episodic_length=183, avg_reward=0.9399999380111694
+global_step=187392, episodic_return=2.0999996662139893, episodic_length=183, avg_reward=1.059999942779541
+global_step=188416, episodic_return=1.0999999046325684, episodic_length=184, avg_reward=1.0999999046325684
+global_step=188416, episodic_return=2.0999996662139893, episodic_length=184, avg_reward=1.0999999046325684
+global_step=188416, episodic_return=3.09999942779541, episodic_length=184, avg_reward=1.179999828338623
+global_step=188416, episodic_return=0.10000013560056686, episodic_length=184, avg_reward=1.1799999475479126
+global_step=189440, episodic_return=2.0999996662139893, episodic_length=185, avg_reward=1.21999990940094
+global_step=189440, episodic_return=0.10000006854534149, episodic_length=152, avg_reward=1.1799999475479126
+global_step=189440, episodic_return=0.10000000894069672, episodic_length=185, avg_reward=1.0999999046325684
+global_step=189440, episodic_return=0.1000000387430191, episodic_length=185, avg_reward=1.059999942779541
+global_step=189440, episodic_return=1.0999999046325684, episodic_length=185, avg_reward=1.0999999046325684
+global_step=189440, episodic_return=2.0999999046325684, episodic_length=185, avg_reward=1.1799999475479126
+global_step=189440, episodic_return=0.10000000894069672, episodic_length=185, avg_reward=1.1799999475479126
+global_step=189440, episodic_return=0.10000003129243851, episodic_length=185, avg_reward=1.1799999475479126
+global_step=190464, episodic_return=1.0999999046325684, episodic_length=186, avg_reward=1.1399998664855957
+global_step=190464, episodic_return=4.100000858306885, episodic_length=186, avg_reward=1.2999999523162842
+global_step=192512, episodic_return=1.100000023841858, episodic_length=188, avg_reward=1.2999998331069946
+global_step=192512, episodic_return=0.10000002384185791, episodic_length=188, avg_reward=1.2599998712539673
+global_step=192512, episodic_return=2.0999996662139893, episodic_length=188, avg_reward=1.2999998331069946
+global_step=193536, episodic_return=0.10000006854534149, episodic_length=116, avg_reward=1.2200000286102295
+global_step=193536, episodic_return=-0.8999999761581421, episodic_length=69, avg_reward=1.1399998664855957
+global_step=193536, episodic_return=1.0999997854232788, episodic_length=189, avg_reward=1.1399998664855957
+global_step=194560, episodic_return=0.10000006854534149, episodic_length=190, avg_reward=1.059999942779541
+global_step=194560, episodic_return=0.1000000610947609, episodic_length=190, avg_reward=0.9800000190734863
+global_step=194560, episodic_return=2.0999996662139893, episodic_length=190, avg_reward=1.059999942779541
+global_step=194560, episodic_return=0.10000000894069672, episodic_length=53, avg_reward=1.0199999809265137
+global_step=195584, episodic_return=0.1000000387430191, episodic_length=191, avg_reward=0.9399999380111694
+global_step=195584, episodic_return=2.0999999046325684, episodic_length=191, avg_reward=0.9800000190734863
+global_step=195584, episodic_return=0.1000000387430191, episodic_length=191, avg_reward=0.8999999761581421
+global_step=196608, episodic_return=0.10000002384185791, episodic_length=192, avg_reward=0.7799999713897705
+global_step=196608, episodic_return=1.0999999046325684, episodic_length=192, avg_reward=0.8200000524520874
+global_step=196608, episodic_return=2.0999999046325684, episodic_length=192, avg_reward=0.8200000524520874
+global_step=196608, episodic_return=3.0999999046325684, episodic_length=192, avg_reward=0.940000057220459
+global_step=197632, episodic_return=0.10000000149011612, episodic_length=193, avg_reward=0.940000057220459
+global_step=197632, episodic_return=3.0999999046325684, episodic_length=193, avg_reward=1.0600000619888306
+global_step=198656, episodic_return=1.0999997854232788, episodic_length=194, avg_reward=1.0600000619888306
+global_step=199680, episodic_return=-0.8999999165534973, episodic_length=195, avg_reward=0.9399999976158142
+global_step=199680, episodic_return=0.10000018775463104, episodic_length=195, avg_reward=0.940000057220459
+global_step=199680, episodic_return=0.10000002384185791, episodic_length=195, avg_reward=0.940000057220459
+global_step=199680, episodic_return=0.10000000894069672, episodic_length=195, avg_reward=0.9000000953674316
+global_step=199680, episodic_return=0.10000006854534149, episodic_length=195, avg_reward=0.7400000095367432
+global_step=200704, episodic_return=3.0999996662139893, episodic_length=196, avg_reward=0.8199999332427979
+global_step=200704, episodic_return=3.0999999046325684, episodic_length=196, avg_reward=0.9399999380111694
+global_step=200704, episodic_return=0.10000002384185791, episodic_length=196, avg_reward=0.8600000739097595
+global_step=201728, episodic_return=2.0999996662139893, episodic_length=197, avg_reward=0.940000057220459
+global_step=201728, episodic_return=1.0999999046325684, episodic_length=197, avg_reward=1.0199999809265137
+global_step=201728, episodic_return=0.10000009089708328, episodic_length=197, avg_reward=0.9800000190734863
+global_step=201728, episodic_return=0.10000006854534149, episodic_length=197, avg_reward=0.9800000786781311
+global_step=202752, episodic_return=0.10000009834766388, episodic_length=198, avg_reward=0.9800000786781311
+global_step=202752, episodic_return=0.10000006854534149, episodic_length=198, avg_reward=0.9000000953674316
+global_step=203776, episodic_return=2.0999999046325684, episodic_length=199, avg_reward=0.9800000786781311
+global_step=203776, episodic_return=0.1000000387430191, episodic_length=199, avg_reward=0.9799998998641968
+global_step=203776, episodic_return=0.10000000894069672, episodic_length=199, avg_reward=0.8999999165534973
+global_step=203776, episodic_return=1.0999997854232788, episodic_length=199, avg_reward=0.9399999380111694
+global_step=203776, episodic_return=-0.8999999761581421, episodic_length=199, avg_reward=0.8999999165534973
+global_step=204800, episodic_return=0.10000000894069672, episodic_length=200, avg_reward=0.8599998950958252
+global_step=204800, episodic_return=1.0999999046325684, episodic_length=200, avg_reward=0.8199999332427979
+global_step=205824, episodic_return=3.0999999046325684, episodic_length=201, avg_reward=0.8199999332427979
+global_step=205824, episodic_return=2.0999996662139893, episodic_length=201, avg_reward=0.8999999761581421
+global_step=205824, episodic_return=3.0999999046325684, episodic_length=201, avg_reward=0.8999999165534973
+global_step=205824, episodic_return=0.10000002384185791, episodic_length=201, avg_reward=0.8599998950958252
+global_step=206848, episodic_return=1.0999997854232788, episodic_length=202, avg_reward=0.9399999380111694
+global_step=206848, episodic_return=1.0999997854232788, episodic_length=202, avg_reward=0.9800000190734863
+global_step=207872, episodic_return=1.0999999046325684, episodic_length=203, avg_reward=1.0199999809265137
+global_step=207872, episodic_return=1.0999999046325684, episodic_length=203, avg_reward=1.059999942779541
+global_step=208896, episodic_return=2.0999996662139893, episodic_length=204, avg_reward=1.1399998664855957
+global_step=208896, episodic_return=0.1000000536441803, episodic_length=204, avg_reward=1.0199999809265137
+global_step=209920, episodic_return=0.10000006854534149, episodic_length=205, avg_reward=0.8999999165534973
+global_step=209920, episodic_return=0.1000000610947609, episodic_length=205, avg_reward=0.8999999165534973
+global_step=209920, episodic_return=0.10000003129243851, episodic_length=205, avg_reward=0.8199999928474426
+global_step=210944, episodic_return=0.1000000610947609, episodic_length=206, avg_reward=0.7799999117851257
+global_step=210944, episodic_return=2.0999999046325684, episodic_length=206, avg_reward=0.8599998950958252
+global_step=210944, episodic_return=1.0999997854232788, episodic_length=206, avg_reward=0.8999999165534973
+global_step=211968, episodic_return=0.10000006854534149, episodic_length=75, avg_reward=0.8999999165534973
+global_step=211968, episodic_return=0.10000006854534149, episodic_length=207, avg_reward=0.8999999165534973
+global_step=211968, episodic_return=0.10000012814998627, episodic_length=207, avg_reward=0.8199999332427979
+global_step=211968, episodic_return=3.0999996662139893, episodic_length=207, avg_reward=0.9399999976158142
+global_step=211968, episodic_return=0.10000003129243851, episodic_length=207, avg_reward=0.9399999380111694
+global_step=212992, episodic_return=1.100000023841858, episodic_length=208, avg_reward=0.9399999380111694
+global_step=212992, episodic_return=0.10000012814998627, episodic_length=208, avg_reward=0.9799998998641968
+global_step=212992, episodic_return=2.0999999046325684, episodic_length=208, avg_reward=1.059999942779541
+global_step=212992, episodic_return=2.0999996662139893, episodic_length=208, avg_reward=1.0999999046325684
+global_step=212992, episodic_return=0.10000000894069672, episodic_length=208, avg_reward=0.9799998998641968
+global_step=212992, episodic_return=3.1000001430511475, episodic_length=208, avg_reward=1.0199999809265137
+global_step=212992, episodic_return=2.0999999046325684, episodic_length=208, avg_reward=0.9799998998641968
+global_step=212992, episodic_return=0.10000008344650269, episodic_length=208, avg_reward=0.9799998998641968
+global_step=214016, episodic_return=1.0999997854232788, episodic_length=209, avg_reward=0.9799998998641968
+global_step=214016, episodic_return=0.09999999403953552, episodic_length=209, avg_reward=0.9399999976158142
+global_step=214016, episodic_return=1.0999997854232788, episodic_length=209, avg_reward=0.9399999380111694
+global_step=214016, episodic_return=-0.8999999761581421, episodic_length=209, avg_reward=0.8599998950958252
+global_step=214016, episodic_return=0.10000006854534149, episodic_length=209, avg_reward=0.7799999713897705
+global_step=214016, episodic_return=0.10000002384185791, episodic_length=209, avg_reward=0.7799999713897705
+global_step=215040, episodic_return=2.0999996662139893, episodic_length=210, avg_reward=0.8599998950958252
+global_step=215040, episodic_return=0.10000006854534149, episodic_length=210, avg_reward=0.8599998950958252
+global_step=215040, episodic_return=1.0999997854232788, episodic_length=210, avg_reward=0.8999999165534973
+global_step=215040, episodic_return=1.0999997854232788, episodic_length=210, avg_reward=0.9399999380111694
+global_step=215040, episodic_return=0.1000000387430191, episodic_length=210, avg_reward=0.8599998950958252
+global_step=216064, episodic_return=3.0999999046325684, episodic_length=211, avg_reward=0.9399999380111694
+global_step=216064, episodic_return=0.10000000894069672, episodic_length=211, avg_reward=0.9399999380111694
+global_step=216064, episodic_return=1.0999999046325684, episodic_length=211, avg_reward=0.9799998998641968
+global_step=216064, episodic_return=1.0999999046325684, episodic_length=211, avg_reward=1.0199999809265137
+global_step=216064, episodic_return=2.0999999046325684, episodic_length=211, avg_reward=0.9800000786781311
+global_step=216064, episodic_return=0.10000000894069672, episodic_length=211, avg_reward=0.9799998998641968
+global_step=216064, episodic_return=1.0999997854232788, episodic_length=211, avg_reward=0.9800000190734863
+global_step=216064, episodic_return=2.0999999046325684, episodic_length=211, avg_reward=1.059999942779541
+global_step=216064, episodic_return=1.0999999046325684, episodic_length=211, avg_reward=1.0199999809265137
+global_step=217088, episodic_return=1.0999999046325684, episodic_length=212, avg_reward=0.9799998998641968
+global_step=217088, episodic_return=0.10000000149011612, episodic_length=212, avg_reward=0.9799998998641968
+global_step=218112, episodic_return=0.10000006854534149, episodic_length=213, avg_reward=0.8599998950958252
+global_step=219136, episodic_return=0.09999996423721313, episodic_length=214, avg_reward=0.7799999117851257
+global_step=219136, episodic_return=0.10000002384185791, episodic_length=214, avg_reward=0.7799999117851257
+global_step=219136, episodic_return=0.10000000894069672, episodic_length=74, avg_reward=0.7399999499320984
+global_step=219136, episodic_return=0.10000018775463104, episodic_length=214, avg_reward=0.7399999499320984
+global_step=219136, episodic_return=0.10000012814998627, episodic_length=214, avg_reward=0.6999999284744263
+global_step=220160, episodic_return=0.10000003129243851, episodic_length=215, avg_reward=0.7399999499320984
+global_step=220160, episodic_return=0.10000003129243851, episodic_length=215, avg_reward=0.7399999499320984
+global_step=220160, episodic_return=1.0999997854232788, episodic_length=215, avg_reward=0.7799999117851257
+global_step=221184, episodic_return=1.100000023841858, episodic_length=216, avg_reward=0.7399999499320984
+global_step=221184, episodic_return=0.10000013560056686, episodic_length=216, avg_reward=0.7399999499320984
+global_step=221184, episodic_return=1.0999997854232788, episodic_length=216, avg_reward=0.7399999499320984
+global_step=222208, episodic_return=4.100000381469727, episodic_length=217, avg_reward=0.8599998950958252
+global_step=222208, episodic_return=-0.8999999761581421, episodic_length=102, avg_reward=0.8199999928474426
+global_step=222208, episodic_return=0.10000006854534149, episodic_length=217, avg_reward=0.699999988079071
+global_step=223232, episodic_return=2.0999999046325684, episodic_length=218, avg_reward=0.7800000905990601
+global_step=223232, episodic_return=1.0999997854232788, episodic_length=218, avg_reward=0.7799999713897705
+global_step=223232, episodic_return=3.0999999046325684, episodic_length=218, avg_reward=0.8600000143051147
+global_step=224256, episodic_return=0.10000012814998627, episodic_length=219, avg_reward=0.7800000905990601
+global_step=224256, episodic_return=2.0999996662139893, episodic_length=219, avg_reward=0.8600000739097595
+global_step=224256, episodic_return=0.10000001639127731, episodic_length=219, avg_reward=0.8200000524520874
+global_step=225280, episodic_return=2.0999996662139893, episodic_length=220, avg_reward=0.8199999928474426
+global_step=226304, episodic_return=1.0999997854232788, episodic_length=221, avg_reward=0.8200000524520874
+global_step=226304, episodic_return=2.0999996662139893, episodic_length=221, avg_reward=0.8600000739097595
+global_step=226304, episodic_return=3.0999996662139893, episodic_length=221, avg_reward=0.9800000190734863
+global_step=226304, episodic_return=2.0999996662139893, episodic_length=221, avg_reward=1.059999942779541
+global_step=227328, episodic_return=1.0999999046325684, episodic_length=222, avg_reward=1.0999999046325684
+global_step=227328, episodic_return=2.0999996662139893, episodic_length=222, avg_reward=1.1799999475479126
+global_step=228352, episodic_return=0.10000009089708328, episodic_length=223, avg_reward=1.1799999475479126
+global_step=228352, episodic_return=1.0999997854232788, episodic_length=223, avg_reward=1.21999990940094
+global_step=228352, episodic_return=4.100000381469727, episodic_length=223, avg_reward=1.3799998760223389
+global_step=228352, episodic_return=0.10000002384185791, episodic_length=223, avg_reward=1.3799996376037598
+global_step=228352, episodic_return=1.0999999046325684, episodic_length=223, avg_reward=1.4199998378753662
+global_step=228352, episodic_return=0.10000003129243851, episodic_length=223, avg_reward=1.3799996376037598
+global_step=228352, episodic_return=0.10000018775463104, episodic_length=223, avg_reward=1.339999794960022
+global_step=229376, episodic_return=1.0999999046325684, episodic_length=224, avg_reward=1.3799998760223389
+global_step=229376, episodic_return=1.0999999046325684, episodic_length=224, avg_reward=1.3799998760223389
+global_step=229376, episodic_return=0.10000003129243851, episodic_length=224, avg_reward=1.2199997901916504
+global_step=229376, episodic_return=-0.8999999761581421, episodic_length=161, avg_reward=1.21999990940094
+global_step=229376, episodic_return=1.0999997854232788, episodic_length=224, avg_reward=1.2599998712539673
+global_step=230400, episodic_return=1.1000001430511475, episodic_length=225, avg_reward=1.2199997901916504
+global_step=230400, episodic_return=0.10000015050172806, episodic_length=225, avg_reward=1.1799999475479126
+global_step=231424, episodic_return=1.0999999046325684, episodic_length=226, avg_reward=1.100000023841858
+global_step=231424, episodic_return=3.0999999046325684, episodic_length=226, avg_reward=1.2200000286102295
+global_step=231424, episodic_return=1.0999999046325684, episodic_length=175, avg_reward=1.1799999475479126
+global_step=231424, episodic_return=4.100000381469727, episodic_length=226, avg_reward=1.340000033378601
+global_step=231424, episodic_return=1.0999999046325684, episodic_length=226, avg_reward=1.2999999523162842
+global_step=232448, episodic_return=2.0999999046325684, episodic_length=227, avg_reward=1.340000033378601
+global_step=232448, episodic_return=1.0999999046325684, episodic_length=227, avg_reward=1.2999999523162842
+global_step=232448, episodic_return=0.10000002384185791, episodic_length=227, avg_reward=1.1799999475479126
+global_step=234496, episodic_return=1.0999997854232788, episodic_length=229, avg_reward=1.1400001049041748
+global_step=234496, episodic_return=-0.8999999761581421, episodic_length=229, avg_reward=1.059999942779541
+global_step=234496, episodic_return=3.0999999046325684, episodic_length=229, avg_reward=1.100000023841858
+global_step=234496, episodic_return=2.09999942779541, episodic_length=229, avg_reward=1.1799999475479126
+global_step=234496, episodic_return=1.0999997854232788, episodic_length=229, avg_reward=1.1799999475479126
+global_step=234496, episodic_return=0.1000000387430191, episodic_length=229, avg_reward=1.0199999809265137
+global_step=234496, episodic_return=2.0999996662139893, episodic_length=229, avg_reward=1.0999999046325684
+global_step=235520, episodic_return=0.10000003129243851, episodic_length=230, avg_reward=1.059999942779541
+global_step=235520, episodic_return=0.10000003129243851, episodic_length=230, avg_reward=1.059999942779541
+global_step=235520, episodic_return=2.0999999046325684, episodic_length=230, avg_reward=1.1399998664855957
+global_step=235520, episodic_return=0.10000007599592209, episodic_length=230, avg_reward=1.0999999046325684
+global_step=235520, episodic_return=-0.9000000953674316, episodic_length=230, avg_reward=1.0199999809265137
+global_step=235520, episodic_return=0.10000002384185791, episodic_length=230, avg_reward=1.0199999809265137
+global_step=235520, episodic_return=4.100000381469727, episodic_length=230, avg_reward=1.21999990940094
+global_step=236544, episodic_return=1.0999997854232788, episodic_length=231, avg_reward=1.2200000286102295
+global_step=236544, episodic_return=2.0999999046325684, episodic_length=231, avg_reward=1.2599998712539673
+global_step=236544, episodic_return=0.10000002384185791, episodic_length=231, avg_reward=1.2599998712539673
+global_step=236544, episodic_return=2.0999999046325684, episodic_length=231, avg_reward=1.2999998331069946
+global_step=236544, episodic_return=1.100000023841858, episodic_length=231, avg_reward=1.2200000286102295
+global_step=237568, episodic_return=0.10000003129243851, episodic_length=232, avg_reward=1.1799999475479126
+global_step=237568, episodic_return=3.0999999046325684, episodic_length=232, avg_reward=1.1399998664855957
+global_step=237568, episodic_return=0.10000012069940567, episodic_length=232, avg_reward=1.0999999046325684
+global_step=237568, episodic_return=0.10000003129243851, episodic_length=232, avg_reward=1.0199999809265137
+global_step=238592, episodic_return=0.10000003129243851, episodic_length=233, avg_reward=0.9799998998641968
+global_step=238592, episodic_return=1.0999999046325684, episodic_length=233, avg_reward=1.0199999809265137
+global_step=238592, episodic_return=3.0999999046325684, episodic_length=233, avg_reward=1.0999999046325684
+global_step=238592, episodic_return=0.10000003129243851, episodic_length=233, avg_reward=1.1399998664855957
+global_step=238592, episodic_return=0.10000003129243851, episodic_length=233, avg_reward=1.0199999809265137
+global_step=238592, episodic_return=3.0999999046325684, episodic_length=233, avg_reward=1.059999942779541
+global_step=239616, episodic_return=3.0999999046325684, episodic_length=234, avg_reward=1.1399998664855957
+global_step=239616, episodic_return=0.10000003129243851, episodic_length=234, avg_reward=1.1399999856948853
+global_step=239616, episodic_return=0.1000000610947609, episodic_length=234, avg_reward=1.059999942779541
+global_step=239616, episodic_return=0.10000003129243851, episodic_length=234, avg_reward=1.0600000619888306
+global_step=239616, episodic_return=0.10000009834766388, episodic_length=234, avg_reward=1.059999942779541
+global_step=239616, episodic_return=1.0999999046325684, episodic_length=234, avg_reward=1.0199999809265137
+global_step=240640, episodic_return=0.10000001639127731, episodic_length=235, avg_reward=1.0199999809265137
+global_step=240640, episodic_return=0.10000000894069672, episodic_length=235, avg_reward=1.059999942779541
+global_step=241664, episodic_return=0.10000000894069672, episodic_length=236, avg_reward=1.059999942779541
+global_step=241664, episodic_return=2.0999996662139893, episodic_length=236, avg_reward=0.9799998998641968
+global_step=241664, episodic_return=0.1000000387430191, episodic_length=236, avg_reward=0.9399999380111694
+global_step=241664, episodic_return=4.100000381469727, episodic_length=236, avg_reward=1.0199999809265137
+global_step=241664, episodic_return=3.1000001430511475, episodic_length=236, avg_reward=1.1399998664855957
+global_step=241664, episodic_return=1.100000023841858, episodic_length=236, avg_reward=1.100000023841858
+global_step=241664, episodic_return=0.10000000894069672, episodic_length=236, avg_reward=1.059999942779541
+global_step=242688, episodic_return=2.1000001430511475, episodic_length=237, avg_reward=1.1399999856948853
+global_step=242688, episodic_return=1.0999999046325684, episodic_length=237, avg_reward=1.0600000619888306
+global_step=242688, episodic_return=1.100000023841858, episodic_length=237, avg_reward=1.100000023841858
+global_step=242688, episodic_return=0.10000002384185791, episodic_length=237, avg_reward=1.100000023841858
+global_step=243712, episodic_return=1.0999999046325684, episodic_length=238, avg_reward=1.1400001049041748
+global_step=243712, episodic_return=1.0999997854232788, episodic_length=238, avg_reward=1.1400001049041748
+global_step=243712, episodic_return=0.10000000894069672, episodic_length=238, avg_reward=1.0200001001358032
+global_step=243712, episodic_return=1.100000023841858, episodic_length=238, avg_reward=1.0600000619888306
+global_step=243712, episodic_return=2.0999999046325684, episodic_length=238, avg_reward=1.1400001049041748
+global_step=243712, episodic_return=0.10000000894069672, episodic_length=238, avg_reward=1.0200001001358032
+global_step=243712, episodic_return=0.09999996423721313, episodic_length=238, avg_reward=0.9000000953674316
+global_step=243712, episodic_return=2.1000001430511475, episodic_length=238, avg_reward=0.9800000786781311
+global_step=243712, episodic_return=1.0999999046325684, episodic_length=238, avg_reward=1.0200001001358032
+global_step=243712, episodic_return=2.1000001430511475, episodic_length=238, avg_reward=1.100000023841858
+global_step=243712, episodic_return=0.10000001639127731, episodic_length=238, avg_reward=1.100000023841858
+global_step=244736, episodic_return=2.0999999046325684, episodic_length=239, avg_reward=1.1400001049041748
+global_step=244736, episodic_return=2.0999999046325684, episodic_length=239, avg_reward=1.2200000286102295
+global_step=244736, episodic_return=2.0999999046325684, episodic_length=239, avg_reward=1.2999999523162842
+global_step=244736, episodic_return=0.09999999403953552, episodic_length=239, avg_reward=1.2999999523162842
+global_step=244736, episodic_return=0.10000006854534149, episodic_length=239, avg_reward=1.2200000286102295
+global_step=244736, episodic_return=1.0999999046325684, episodic_length=190, avg_reward=1.2600001096725464
+global_step=245760, episodic_return=1.0999997854232788, episodic_length=240, avg_reward=1.1400001049041748
+global_step=245760, episodic_return=-0.8999999761581421, episodic_length=240, avg_reward=0.9799998998641968
+global_step=245760, episodic_return=0.10000003129243851, episodic_length=240, avg_reward=0.9399999976158142
+global_step=247808, episodic_return=2.0999996662139893, episodic_length=242, avg_reward=1.0199999809265137
+global_step=247808, episodic_return=1.1000001430511475, episodic_length=242, avg_reward=0.9800000190734863
+global_step=247808, episodic_return=0.10000003129243851, episodic_length=242, avg_reward=0.9399999380111694
+global_step=247808, episodic_return=0.10000003129243851, episodic_length=242, avg_reward=0.8999999761581421
+global_step=247808, episodic_return=3.1000001430511475, episodic_length=242, avg_reward=1.0199999809265137
+global_step=248832, episodic_return=1.1000001430511475, episodic_length=104, avg_reward=1.0199999809265137
+global_step=248832, episodic_return=2.1000001430511475, episodic_length=243, avg_reward=1.059999942779541
+global_step=248832, episodic_return=1.0999999046325684, episodic_length=243, avg_reward=1.100000023841858
+global_step=248832, episodic_return=0.10000008344650269, episodic_length=243, avg_reward=1.0600000619888306
+global_step=248832, episodic_return=2.0999996662139893, episodic_length=243, avg_reward=1.0600000619888306
+global_step=248832, episodic_return=-0.9000000357627869, episodic_length=243, avg_reward=1.0200001001358032
+global_step=248832, episodic_return=2.1000001430511475, episodic_length=243, avg_reward=1.100000023841858
+global_step=248832, episodic_return=1.0999997854232788, episodic_length=243, avg_reward=1.0600000619888306
+global_step=249856, episodic_return=2.0999999046325684, episodic_length=244, avg_reward=1.0999999046325684
+global_step=249856, episodic_return=0.1000000387430191, episodic_length=244, avg_reward=1.0199999809265137
+global_step=249856, episodic_return=0.10000003129243851, episodic_length=244, avg_reward=1.0199999809265137
+global_step=249856, episodic_return=2.0999999046325684, episodic_length=244, avg_reward=1.0199999809265137
+global_step=249856, episodic_return=0.09999998658895493, episodic_length=244, avg_reward=0.9399999380111694
+global_step=249856, episodic_return=3.0999999046325684, episodic_length=244, avg_reward=0.9800000190734863
+global_step=249856, episodic_return=0.09999994933605194, episodic_length=244, avg_reward=0.9799998998641968
+global_step=249856, episodic_return=0.10000003129243851, episodic_length=244, avg_reward=0.9800000190734863
+global_step=249856, episodic_return=1.0999997854232788, episodic_length=244, avg_reward=0.9799998998641968
+global_step=249856, episodic_return=1.0999997854232788, episodic_length=244, avg_reward=0.9800000190734863
+global_step=250880, episodic_return=0.10000006854534149, episodic_length=245, avg_reward=1.0199999809265137
+global_step=250880, episodic_return=1.0999997854232788, episodic_length=245, avg_reward=1.059999942779541
+global_step=250880, episodic_return=1.0999997854232788, episodic_length=245, avg_reward=1.0199999809265137
+global_step=250880, episodic_return=2.1000001430511475, episodic_length=245, avg_reward=1.059999942779541
+global_step=250880, episodic_return=2.0999999046325684, episodic_length=245, avg_reward=1.1399998664855957
+global_step=251904, episodic_return=0.10000003129243851, episodic_length=246, avg_reward=1.1399998664855957
+global_step=251904, episodic_return=2.0999999046325684, episodic_length=122, avg_reward=1.0999999046325684
+global_step=251904, episodic_return=0.10000002384185791, episodic_length=76, avg_reward=1.059999942779541
+global_step=251904, episodic_return=1.0999997854232788, episodic_length=246, avg_reward=1.0199999809265137
+global_step=252928, episodic_return=0.10000003129243851, episodic_length=247, avg_reward=0.9799998998641968
+global_step=252928, episodic_return=2.0999999046325684, episodic_length=247, avg_reward=1.059999942779541
+global_step=252928, episodic_return=1.0999997854232788, episodic_length=247, avg_reward=1.0199999809265137
+global_step=252928, episodic_return=2.0999996662139893, episodic_length=247, avg_reward=1.1399998664855957
+global_step=252928, episodic_return=2.09999942779541, episodic_length=247, avg_reward=1.1399998664855957
+global_step=252928, episodic_return=0.10000002384185791, episodic_length=247, avg_reward=1.0999999046325684
+global_step=252928, episodic_return=1.0999997854232788, episodic_length=247, avg_reward=1.0599998235702515
+global_step=252928, episodic_return=1.0999997854232788, episodic_length=247, avg_reward=1.0999999046325684
+global_step=253952, episodic_return=0.1000000610947609, episodic_length=248, avg_reward=1.0999999046325684
+global_step=253952, episodic_return=0.10000003129243851, episodic_length=248, avg_reward=1.0199998617172241
+global_step=253952, episodic_return=0.10000003129243851, episodic_length=248, avg_reward=1.0199998617172241
+global_step=254976, episodic_return=0.10000003129243851, episodic_length=249, avg_reward=0.8999999165534973
+global_step=254976, episodic_return=0.1000000536441803, episodic_length=188, avg_reward=0.8999999165534973
+global_step=254976, episodic_return=1.0999997854232788, episodic_length=249, avg_reward=0.9399999380111694
+global_step=254976, episodic_return=0.10000003129243851, episodic_length=249, avg_reward=0.8999999165534973
+global_step=254976, episodic_return=1.0999997854232788, episodic_length=249, avg_reward=0.8999999165534973
+global_step=254976, episodic_return=0.10000006854534149, episodic_length=249, avg_reward=0.8999999165534973
+global_step=254976, episodic_return=1.0999997854232788, episodic_length=249, avg_reward=0.8999999165534973
+global_step=254976, episodic_return=1.0999999046325684, episodic_length=249, avg_reward=0.8999999165534973
+global_step=254976, episodic_return=1.0999997854232788, episodic_length=249, avg_reward=0.8599998950958252
+global_step=256000, episodic_return=1.0999997854232788, episodic_length=250, avg_reward=0.8199999332427979
+global_step=256000, episodic_return=0.10000000894069672, episodic_length=250, avg_reward=0.8199999332427979
+global_step=256000, episodic_return=0.09999997168779373, episodic_length=250, avg_reward=0.7399999499320984
+global_step=257024, episodic_return=1.100000023841858, episodic_length=65, avg_reward=0.7799999117851257
+global_step=257024, episodic_return=3.0999999046325684, episodic_length=251, avg_reward=0.8599998950958252
+global_step=257024, episodic_return=2.0999999046325684, episodic_length=251, avg_reward=0.9399999380111694
+global_step=257024, episodic_return=1.0999997854232788, episodic_length=251, avg_reward=0.8999999165534973
+global_step=258048, episodic_return=1.100000023841858, episodic_length=252, avg_reward=0.8999999165534973
+global_step=258048, episodic_return=0.1000000387430191, episodic_length=252, avg_reward=0.8199999332427979
+global_step=258048, episodic_return=3.1000001430511475, episodic_length=252, avg_reward=0.8599998950958252
+global_step=259072, episodic_return=2.0999999046325684, episodic_length=253, avg_reward=0.9399999380111694
+global_step=259072, episodic_return=3.1000001430511475, episodic_length=253, avg_reward=1.0199999809265137
+global_step=259072, episodic_return=2.1000001430511475, episodic_length=253, avg_reward=1.059999942779541
+global_step=259072, episodic_return=2.0999999046325684, episodic_length=253, avg_reward=1.1399999856948853
+global_step=259072, episodic_return=2.1000001430511475, episodic_length=253, avg_reward=1.2200000286102295
+global_step=259072, episodic_return=0.10000007599592209, episodic_length=253, avg_reward=1.2200000286102295
+global_step=259072, episodic_return=1.100000023841858, episodic_length=253, avg_reward=1.2600001096725464
+global_step=259072, episodic_return=2.0999999046325684, episodic_length=253, avg_reward=1.340000033378601
+global_step=260096, episodic_return=1.0999997854232788, episodic_length=254, avg_reward=1.340000033378601
+global_step=260096, episodic_return=1.1000001430511475, episodic_length=254, avg_reward=1.3799999952316284
+global_step=260096, episodic_return=0.10000000894069672, episodic_length=43, avg_reward=1.340000033378601
+global_step=260096, episodic_return=2.1000001430511475, episodic_length=254, avg_reward=1.4199999570846558
+global_step=260096, episodic_return=1.0999997854232788, episodic_length=254, avg_reward=1.4199999570846558
+global_step=261120, episodic_return=1.0999999046325684, episodic_length=255, avg_reward=1.4199999570846558
+global_step=261120, episodic_return=2.0999999046325684, episodic_length=255, avg_reward=1.4600000381469727
+global_step=261120, episodic_return=0.1000000387430191, episodic_length=255, avg_reward=1.4199999570846558
+global_step=261120, episodic_return=1.100000023841858, episodic_length=146, avg_reward=1.4600000381469727
+global_step=261120, episodic_return=4.100000381469727, episodic_length=255, avg_reward=1.6200000047683716
+global_step=261120, episodic_return=1.0999999046325684, episodic_length=255, avg_reward=1.6200000047683716
+global_step=262144, episodic_return=1.100000023841858, episodic_length=256, avg_reward=1.5399999618530273
+global_step=262144, episodic_return=3.1000001430511475, episodic_length=256, avg_reward=1.5800000429153442
+global_step=262144, episodic_return=0.09999999403953552, episodic_length=256, avg_reward=1.5399999618530273
+SPS: 2627 | GoExplore: buffer=0, saves=0, resets=0
+global_step=263168, episodic_return=3.1000001430511475, episodic_length=257, avg_reward=1.6200000047683716
+global_step=263168, episodic_return=1.0999997854232788, episodic_length=257, avg_reward=1.659999966621399
+global_step=263168, episodic_return=1.0999999046325684, episodic_length=257, avg_reward=1.5800000429153442
+global_step=263168, episodic_return=0.10000000894069672, episodic_length=257, avg_reward=1.5
+global_step=263168, episodic_return=3.1000001430511475, episodic_length=257, avg_reward=1.5
+global_step=263168, episodic_return=2.1000001430511475, episodic_length=257, avg_reward=1.5
+global_step=264192, episodic_return=0.1000000387430191, episodic_length=258, avg_reward=1.4199999570846558
+global_step=264192, episodic_return=1.0999999046325684, episodic_length=258, avg_reward=1.3799999952316284
+global_step=264192, episodic_return=0.10000003129243851, episodic_length=200, avg_reward=1.3799999952316284
+global_step=264192, episodic_return=1.0999997854232788, episodic_length=258, avg_reward=1.3799999952316284
+global_step=265216, episodic_return=0.10000000894069672, episodic_length=148, avg_reward=1.2999999523162842
+global_step=265216, episodic_return=2.0999999046325684, episodic_length=259, avg_reward=1.340000033378601
+global_step=265216, episodic_return=0.10000000894069672, episodic_length=259, avg_reward=1.2999999523162842
+global_step=265216, episodic_return=0.10000013560056686, episodic_length=259, avg_reward=1.2999999523162842
+global_step=265216, episodic_return=6.100000858306885, episodic_length=259, avg_reward=1.4600000381469727
+global_step=265216, episodic_return=3.0999999046325684, episodic_length=164, avg_reward=1.5399999618530273
+global_step=265216, episodic_return=3.1000001430511475, episodic_length=259, avg_reward=1.6200000047683716
+global_step=265216, episodic_return=1.0999997854232788, episodic_length=259, avg_reward=1.5800000429153442
+global_step=266240, episodic_return=2.1000001430511475, episodic_length=260, avg_reward=1.659999966621399
+global_step=266240, episodic_return=0.10000007599592209, episodic_length=260, avg_reward=1.6200000047683716
+global_step=266240, episodic_return=0.1000000610947609, episodic_length=260, avg_reward=1.4600000381469727
+global_step=266240, episodic_return=3.0999996662139893, episodic_length=260, avg_reward=1.5399999618530273
+global_step=266240, episodic_return=1.0999999046325684, episodic_length=260, avg_reward=1.5399999618530273
+global_step=267264, episodic_return=0.09999998658895493, episodic_length=261, avg_reward=1.4199999570846558
+global_step=267264, episodic_return=0.09999997168779373, episodic_length=261, avg_reward=1.4199999570846558
+global_step=267264, episodic_return=0.09999997913837433, episodic_length=261, avg_reward=1.2999999523162842
+global_step=267264, episodic_return=1.0999997854232788, episodic_length=261, avg_reward=1.2999999523162842
+global_step=267264, episodic_return=1.0999997854232788, episodic_length=261, avg_reward=1.2999999523162842
+global_step=267264, episodic_return=2.1000001430511475, episodic_length=261, avg_reward=1.3799999952316284
+global_step=268288, episodic_return=0.10000001639127731, episodic_length=262, avg_reward=1.2599999904632568
+global_step=268288, episodic_return=3.1000001430511475, episodic_length=262, avg_reward=1.2999999523162842
+global_step=269312, episodic_return=0.10000001639127731, episodic_length=263, avg_reward=1.2999999523162842
+global_step=269312, episodic_return=0.1000000461935997, episodic_length=263, avg_reward=1.2599999904632568
+global_step=269312, episodic_return=1.0999999046325684, episodic_length=263, avg_reward=1.2999999523162842
+global_step=270336, episodic_return=0.10000012069940567, episodic_length=264, avg_reward=1.2599999904632568
+global_step=270336, episodic_return=0.09999997168779373, episodic_length=264, avg_reward=1.2599999904632568
+global_step=270336, episodic_return=0.09999994933605194, episodic_length=264, avg_reward=1.1800000667572021
+global_step=271360, episodic_return=1.0999997854232788, episodic_length=265, avg_reward=1.2200000286102295
+global_step=271360, episodic_return=1.0999999046325684, episodic_length=265, avg_reward=1.2599999904632568
+global_step=271360, episodic_return=2.0999999046325684, episodic_length=265, avg_reward=1.0999999046325684
+global_step=271360, episodic_return=1.0999999046325684, episodic_length=265, avg_reward=1.0199999809265137
+global_step=272384, episodic_return=3.1000001430511475, episodic_length=266, avg_reward=1.0199999809265137
+global_step=272384, episodic_return=1.0999997854232788, episodic_length=217, avg_reward=1.0199999809265137
+global_step=273408, episodic_return=3.0999999046325684, episodic_length=267, avg_reward=1.059999942779541
+global_step=273408, episodic_return=2.1000001430511475, episodic_length=267, avg_reward=1.1399998664855957
+global_step=273408, episodic_return=2.1000001430511475, episodic_length=267, avg_reward=1.2200000286102295
+global_step=273408, episodic_return=2.0999999046325684, episodic_length=267, avg_reward=1.1799999475479126
+global_step=273408, episodic_return=3.0999999046325684, episodic_length=267, avg_reward=1.2600001096725464
+global_step=273408, episodic_return=1.0999999046325684, episodic_length=267, avg_reward=1.2999999523162842
+global_step=273408, episodic_return=3.09999942779541, episodic_length=267, avg_reward=1.4199999570846558
+global_step=273408, episodic_return=0.10000000894069672, episodic_length=267, avg_reward=1.4199998378753662
+global_step=274432, episodic_return=0.09999994933605194, episodic_length=268, avg_reward=1.3799999952316284
+global_step=274432, episodic_return=2.1000001430511475, episodic_length=268, avg_reward=1.4199998378753662
+global_step=274432, episodic_return=2.1000001430511475, episodic_length=268, avg_reward=1.4199998378753662
+global_step=274432, episodic_return=1.0999997854232788, episodic_length=268, avg_reward=1.4599997997283936
+global_step=275456, episodic_return=2.1000001430511475, episodic_length=269, avg_reward=1.4199999570846558
+global_step=277504, episodic_return=2.0999999046325684, episodic_length=212, avg_reward=1.4999998807907104
+global_step=277504, episodic_return=0.10000013560056686, episodic_length=271, avg_reward=1.5
+global_step=277504, episodic_return=0.09999998658895493, episodic_length=271, avg_reward=1.4600000381469727
+global_step=277504, episodic_return=0.10000000894069672, episodic_length=271, avg_reward=1.4600000381469727
+global_step=277504, episodic_return=2.1000001430511475, episodic_length=271, avg_reward=1.5399999618530273
+global_step=277504, episodic_return=0.10000000894069672, episodic_length=271, avg_reward=1.5399999618530273
+global_step=277504, episodic_return=1.0999999046325684, episodic_length=271, avg_reward=1.5399999618530273
+global_step=278528, episodic_return=2.0999999046325684, episodic_length=168, avg_reward=1.5800000429153442
+global_step=278528, episodic_return=3.1000001430511475, episodic_length=272, avg_reward=1.6200000047683716
+global_step=278528, episodic_return=1.0999999046325684, episodic_length=272, avg_reward=1.6200000047683716
+global_step=278528, episodic_return=0.10000013560056686, episodic_length=272, avg_reward=1.4999998807907104
+global_step=279552, episodic_return=0.10000019520521164, episodic_length=273, avg_reward=1.4600000381469727
+global_step=279552, episodic_return=0.10000000149011612, episodic_length=273, avg_reward=1.340000033378601
+global_step=279552, episodic_return=2.0999999046325684, episodic_length=273, avg_reward=1.340000033378601
+global_step=279552, episodic_return=1.0999997854232788, episodic_length=273, avg_reward=1.2999999523162842
+global_step=279552, episodic_return=0.09999990463256836, episodic_length=273, avg_reward=1.2200000286102295
+global_step=279552, episodic_return=1.0999999046325684, episodic_length=184, avg_reward=1.1400001049041748
+global_step=280576, episodic_return=1.0999997854232788, episodic_length=274, avg_reward=1.1399998664855957
+global_step=280576, episodic_return=1.0999997854232788, episodic_length=274, avg_reward=1.059999942779541
+global_step=280576, episodic_return=0.09999997168779373, episodic_length=274, avg_reward=1.059999942779541
+global_step=280576, episodic_return=2.1000001430511475, episodic_length=274, avg_reward=1.1400001049041748
+global_step=281600, episodic_return=4.100000858306885, episodic_length=275, avg_reward=1.21999990940094
+global_step=281600, episodic_return=2.1000001430511475, episodic_length=275, avg_reward=1.2200000286102295
+global_step=282624, episodic_return=3.1000001430511475, episodic_length=276, avg_reward=1.2999999523162842
+global_step=282624, episodic_return=0.09999996423721313, episodic_length=276, avg_reward=1.2200000286102295
+global_step=282624, episodic_return=0.1000000461935997, episodic_length=276, avg_reward=1.1400001049041748
+global_step=282624, episodic_return=0.10000000149011612, episodic_length=276, avg_reward=1.1400001049041748
+global_step=282624, episodic_return=2.1000001430511475, episodic_length=276, avg_reward=1.2200000286102295
+Traceback (most recent call last):
+  File "/src/src/rl/ppo_lstm.py", line 212, in <module>
+    prev_milestone_status, n_saved = detect_and_save_milestones(
+  File "/src/src/rl/go_explore.py", line 159, in detect_and_save_milestones
+    single_state = extract_single_env_state(batched_env_state, idx)
+  File "/src/src/rl/go_explore.py", line 96, in extract_single_env_state
+    return jax.tree_map(lambda x: x[idx], batched_env_state)
+  File "/opt/conda/envs/skill/lib/python3.10/site-packages/jax/_src/deprecations.py", line 54, in getattr
+    raise AttributeError(message)
+AttributeError: jax.tree_map was removed in JAX v0.6.0: use jax.tree.map (jax v0.4.25 or newer) or jax.tree_util.tree_map (any JAX version).

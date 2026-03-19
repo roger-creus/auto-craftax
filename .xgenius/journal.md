@@ -3344,3 +3344,75 @@ NEXT SESSION PRIORITIES:
   4. Parse h040/h043/h044 1B results as they complete (~3-10h)
   5. If Go-Explore/PBRS help at 200M: submit 1B seeds immediately
   6. Consider RND (random network distillation) if Go-Explore/PBRS don't break the deeper floor barrier
+
+---
+**[2026-03-19 08:25 UTC]**
+
+=== SESSION: h032-1B-s2=31.5 + jax.tree_map bug fix + h053 pilot=26.98 ===
+
+Triggered by: h032-1B-s2 (8560259, rorqual) SUCCESS.
+
+NEW RESULTS:
+
+h032-1B-s2 (PPO-LSTM + struct obs + gamma=0.999 + entropy annealing 0.03→0.005, 64 steps):
+  avg_return=31.5, 84% dungeon, find_bow 84%, fire_bow 72%, ruby 4%, sapphire 20%. 0% deeper floors.
+  Wall 39494s (11h) on rorqual H100 3g.40gb.
+  Consistent with s3 (30.74). h032 partial: s2=31.5, s3=30.74, s1 still running on narval.
+  Partial mean = 31.12. Confirms: 64-step configs plateau around 30-31 at 1B.
+
+h053-pilot-s1v2 (PPO-GRU + h044 config + residual MLP):
+  avg_return=26.98, 76% dungeon, find_bow 56%, fire_bow 44%. 0% deeper floors.
+  WORSE than h044 (32.62). Residual MLP hurts performance significantly. CLOSED.
+
+JAX COMPATIBILITY BUG FOUND AND FIXED:
+  h051-pilot-s1v4 and h055-pilot-s1v3 both CRASHED at ~280K steps with:
+    jax.tree_map was removed in JAX v0.6.0
+  The Go-Explore code used jax.tree_map in extract_single_env_state() and
+  replace_env_states_batched(). The container has JAX v0.6.0+ which removed it.
+  FIX: replaced all jax.tree_map → jax.tree.map in go_explore.py (3 occurrences).
+  Committed, pushed, synced to all clusters.
+
+RESUBMITTED:
+  h051-pilot-s1v5 (Go-Explore, nibi, 10572479) — ~2-3h
+  h055-pilot-s1v4 (Go-Explore+PBRS, fir, 28385442) — ~2-3h
+  h054-pilot-s1v3 (PBRS only, rorqual) — still running (~30min in, PBRS doesn't use tree_map)
+
+RUNNING JOBS (15 total — 12 1B runs + 2 new pilots + 1 old pilot):
+  1B RUNS (12):
+    h031 GRU 64:  s1 (narval 12h — IMMINENT), s3 (rorqual 4.3h)
+    h032 LSTM+ent 64: s1 (narval 10.8h — should be close to completion)
+    h040 GRU+128+grad: s1 (narval 4.3h), s2 (narval 9h), s3 (fir 7.3h)
+    h043 LSTM+ent+128+grad: s1 (rorqual 9h), s2 (narval 9h), s3 (fir 8.8h)
+    h044 GRU+ent+128+grad: s1 (narval 7.8h), s2 (rorqual 7.8h), s3 (fir 3.9h)
+  PILOTS:
+    h054 PBRS (rorqual 17min — ~2.5h remaining)
+    h051 Go-Explore FIXED (nibi, just submitted — ~2-3h)
+    h055 Go-Explore+PBRS FIXED (fir, just submitted — ~2-3h)
+
+1B LEADERBOARD (completed):
+  h023 LSTM+128:      mean=38.10 (s1=37.51, s2=40.98, s3=35.82) — CURRENT BEST
+  h031 GRU 64:        s2=37.06 (partial, s1+s3 running)
+  h032 LSTM+ent 64:   s2=31.5, s3=30.74 (partial, disappointing)
+  h021 LSTM base:     mean=32.59 — CLOSED
+  PPO-LSTM baseline:  mean=33.88
+  PPO baseline:       mean=26.83
+
+CLOSED THIS SESSION:
+  h053 (residual MLP): 26.98 — CLOSED (WORSE than h044)
+
+ESTIMATED COMPLETION ORDER:
+  ~0-2h: h031-1B-s1 (narval), h032-1B-s1 (narval) — these are imminent
+  ~2-3h: h054 PBRS pilot, h051 Go-Explore pilot, h055 Go-Explore+PBRS pilot
+  ~3-5h: h043-1B (all 3 seeds), h040-1B-s2
+  ~5-8h: h040-1B-s1, h040-1B-s3, h044-1B (all 3 seeds)
+  ~7-9h: h031-1B-s3
+
+NEXT SESSION PRIORITIES:
+  1. MOST CRITICAL: Parse h051/h054/h055 fixed pilots — does Go-Explore/PBRS actually WORK?
+     Check for buffer>0, saves>0, resets>0 (Go-Explore) or non-zero PBRS bonus
+  2. Parse h031-1B-s1 (imminent) — complete GRU 1B picture
+  3. Parse h032-1B-s1 — complete h032 and close it
+  4. Parse h043 1B (LSTM ultimate config) — does it beat h023 (38.10)?
+  5. Parse h040 1B (GRU+128+grad) — GRU with 128 steps at scale
+  6. Parse h044 1B (BEST PILOT 32.62) — MOST ANTICIPATED result
+  7. If Go-Explore/PBRS works at 200M: immediately submit 1B seeds
