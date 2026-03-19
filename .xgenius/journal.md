@@ -3013,3 +3013,59 @@ NEXT SESSION PRIORITIES:
   5. If PBRS works: submit 1B seeds
   6. h044 1B results (~9-13h out) — most anticipated, best 200M pilot
   7. Continue monitoring all 1B runs for completion
+
+---
+**[2026-03-19 05:57 UTC]**
+
+=== SESSION: h023-1B-s2 result + nibi pilot rescue ===
+
+Triggered by: h023-1B-s2 (28287927, fir) SUCCESS.
+
+h023-1B-s2 (PPO-LSTM + struct obs + gamma=0.999 + 128 steps):
+  avg_return=40.98 (NEW BEST 1B RESULT!), avg_length=684, wall=36480s (10.1h) on fir H100
+  96% dungeon entry. find_bow 96%, fire_bow 92%, ruby 16%, sapphire 16%, diamond_sword 4%.
+  0% deeper floors (no gnomish mines, sewers, vault, etc.).
+  MASSIVE scaling from 200M pilot (26.82): +52.8% improvement at 1B.
+  Beats PPO-LSTM baseline (33.88 mean) by +20.9%.
+  Still waiting for s1 (rorqual, ~0-1h out) and s3 (narval, ~2-3h out).
+
+NIBI NODE OUTAGE: All 5 pilots (h051-h055) stuck PENDING 5+ hours on nibi (nodes g7,g26,g37 down).
+  Cancelled all 5 and resubmitted:
+    h051 Go-Explore → fir (28376380)
+    h052 obs norm → rorqual (8585250)
+    h053 residual MLP → rorqual (8585252)
+    h054 PBRS → fir (28376384)
+    h055 Go-Explore+PBRS → fir (28376385)
+  Code synced to fir+rorqual before submission.
+
+RESULTS SUMMARY (1B runs completed so far):
+  h021 (LSTM+struct+gamma=0.999): s1=30.22, s3=34.06, s2=running → mean~32.1 (partial)
+  h023 (LSTM+struct+gamma=0.999+128steps): s2=40.98 (!), s1+s3=running → POTENTIALLY BEST
+  PPO-LSTM baseline: mean=33.88
+  PPO baseline: mean=26.83
+
+KEY INSIGHT: 128 steps is transformative at 1B scale. h023-1B-s2 (40.98) vastly outperforms
+h021 1B average (~32.1 with same config minus 128 steps). The 200M pilot advantage (+20.7%)
+is amplified at 1B to potentially +27%+. But deeper floors remain 0% — confirms Go-Explore
+is critical for floor 2+ progression.
+
+ACTIVE JOBS (23 total — 18 1B runs + 5 new pilots):
+  1B RUNS (18 jobs, 7 hypotheses):
+    h021 x1: narval ~1-3h out
+    h023 x2: rorqual ~0-1h, narval ~2-3h
+    h031 x3: narval ~3-5h, rorqual ~1-2h + 8-9h
+    h032 x3: narval ~2-6h, rorqual ~2-5h, fir ~2-5h
+    h040 x3: narval ~4-10h, fir ~5-8h, narval ~8-10h
+    h043 x3: rorqual ~4-7h, narval ~4-7h, fir ~4-7h
+    h044 x3: narval ~5-10h, rorqual ~5-10h, fir ~9-12h
+  PILOTS (5 new, ~2-3h each):
+    h051 Go-Explore (fir), h052 obs norm (rorqual), h053 residual MLP (rorqual)
+    h054 PBRS (fir), h055 Go-Explore+PBRS (fir)
+
+NEXT SESSION PRIORITIES:
+  1. Parse h023 s1+s3 when complete — validate 40.98 is not outlier
+  2. Parse pilot results (h051-h055) — Go-Explore is most critical
+  3. Parse h031 1B (GRU) — does GRU maintain advantage at 1B?
+  4. Parse h032, h040, h043, h044 1B — which is best config overall?
+  5. If Go-Explore helps: submit 1B seeds immediately
+  6. If deeper floors remain 0% everywhere: need more radical approaches

@@ -1,0 +1,83 @@
+slurmstepd: error: couldn't chdir to `/home/rogercc/'/scratch/rogercc/auto-craftax'': No such file or directory: going to /tmp instead
+slurmstepd: error: couldn't chdir to `/home/rogercc/'/scratch/rogercc/auto-craftax'': No such file or directory: going to /tmp instead
+sending incremental file list
+auto-craftax.sif
+
+sent 19,797,219,392 bytes  received 35 bytes  269,349,924.18 bytes/sec
+total size is 19,808,600,064  speedup is 1.00
+WARNING: Environment variable PYTHONPATH already has value [/src], will not forward new value [/src:/cvmfs/soft.computecanada.ca/custom/python/site-packages] from parent process environment
+Failed to import warp: No module named 'warp'
+Failed to import mujoco_warp: No module named 'warp'
+/opt/conda/envs/skill/lib/python3.10/site-packages/tyro/_parsers.py:353: UserWarning: The field `target-kl` is annotated with type `<class 'float'>`, but the default value `None` has type `<class 'NoneType'>`. We'll try to handle this gracefully, but it may cause unexpected behavior.
+  warnings.warn(message)
+Running with num_envs=1024, num_steps=128, minibatch_size=16384, max_grad_norm=1.0
+using device cuda
+Processing Craftax textures. This will take a minute but will be cached for future use.
+Textures loaded and saved to cache.
+Go-Explore enabled: buffer_size=128, reset_prob=0.25
+-------------
+PPO_LSTM_Agent(
+  (shared_pre_lstm): Sequential(
+    (0): CraftaxObsEncoder(
+      (map_cnn): Sequential(
+        (0): Conv2d(83, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        (1): ReLU()
+        (2): Conv2d(32, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        (3): ReLU()
+        (4): AdaptiveAvgPool2d(output_size=(3, 4))
+      )
+      (map_proj): Sequential(
+        (0): Linear(in_features=768, out_features=512, bias=True)
+        (1): ReLU()
+      )
+      (stats_mlp): Sequential(
+        (0): Linear(in_features=51, out_features=256, bias=True)
+        (1): ReLU()
+        (2): Linear(in_features=256, out_features=256, bias=True)
+        (3): ReLU()
+      )
+      (combine): Sequential(
+        (0): Linear(in_features=768, out_features=512, bias=True)
+        (1): ReLU()
+      )
+    )
+    (1): MLP(
+      (net): Sequential(
+        (0): Linear(in_features=512, out_features=512, bias=True)
+        (1): Tanh()
+      )
+    )
+  )
+  (rnn): GRU(512, 512)
+  (shared_post_lstm): MLP(
+    (net): Sequential(
+      (0): Linear(in_features=512, out_features=512, bias=True)
+      (1): Tanh()
+      (2): Linear(in_features=512, out_features=512, bias=True)
+      (3): Tanh()
+    )
+  )
+  (critic_head): Linear(in_features=512, out_features=1, bias=True)
+  (actor_head): Linear(in_features=512, out_features=43, bias=True)
+)
+Adam (
+Parameter Group 0
+    amsgrad: False
+    betas: (0.9, 0.999)
+    capturable: False
+    decoupled_weight_decay: False
+    differentiable: False
+    eps: 1e-05
+    foreach: None
+    fused: None
+    lr: 0.0002
+    maximize: False
+    weight_decay: 0
+)
+Traceback (most recent call last):
+  File "/src/src/rl/ppo_lstm.py", line 193, in <module>
+    prev_milestone_status, n_saved = detect_and_save_milestones(
+  File "/src/src/rl/go_explore.py", line 148, in detect_and_save_milestones
+    newly_achieved = current & ~prev & ~next_done
+RuntimeError: Expected all tensors to be on the same device, but found at least two devices, cuda:0 and cpu!
+slurmstepd: error: run_script_as_user: couldn't change working dir to /home/rogercc/'/scratch/rogercc/auto-craftax': No such file or directory
