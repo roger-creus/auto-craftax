@@ -139,7 +139,8 @@ if __name__ == "__main__":
         print(f"Auxiliary kill prediction enabled: coef={args.aux_kill_coef}")
 
     if args.curriculum_kills:
-        print(f"Curriculum learning enabled: frac={args.curriculum_frac}, kills=[{args.curriculum_min_kills},{args.curriculum_max_kills}], end_frac={args.curriculum_end_frac}")
+        curriculum_floors = [int(f) for f in args.curriculum_target_floors.split(",")]
+        print(f"Curriculum learning enabled: frac={args.curriculum_frac}, kills=[{args.curriculum_min_kills},{args.curriculum_max_kills}], end_frac={args.curriculum_end_frac}, target_floors={curriculum_floors}")
 
     print("-------------")
     print(agent)
@@ -236,7 +237,8 @@ if __name__ == "__main__":
                         env_state = envs.env._state.env_state
                         mk = np.asarray(env_state.monsters_killed).copy()
                         for idx in curr_idx:
-                            mk[idx, 0] = np.random.randint(args.curriculum_min_kills, args.curriculum_max_kills + 1)
+                            for floor_idx in curriculum_floors:
+                                mk[idx, floor_idx] = np.random.randint(args.curriculum_min_kills, args.curriculum_max_kills + 1)
                         new_env_state = env_state.replace(monsters_killed=jnp.array(mk))
                         envs.env._state = envs.env._state.replace(env_state=new_env_state)
 
