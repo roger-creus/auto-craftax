@@ -4423,3 +4423,73 @@ NEXT SESSION PRIORITIES:
   7. If h069 shows improvement at 1B: this becomes new best config
   8. If h070/h071 pilots are promising: submit 1B scaling runs
   9. Consider RND (Random Network Distillation) for intrinsic exploration motivation
+
+---
+**[2026-03-19 22:58 UTC]**
+
+=== SESSION: h040-1B-s3 OOM + queue optimization ===
+
+Triggered by: h040-1B-s3 (28337300, fir) marked SUCCESS but actually OOM KILLED.
+
+h040-1B-s3 ANALYSIS:
+  Job ran 21.7h on fir H100 3g.40gb with 48G memory.
+  OOM killed at 99.5% (step 994574336/1B). No CSV saved.
+  Running avg_return from log: ~38.5 (last 100 values: 38.58).
+  This is lower than s1=40.14 and s2=41.46, possibly due to seed variance
+  or the late-stage OOM disrupting training.
+  RESUBMITTED: h040-1B-s3v2 on narval with 64G memory (job 58018762, just started).
+
+QUEUE OPTIMIZATION:
+  1. Cancelled h064 (rorqual) — floor 1,2 curriculum disproven by h066 (-9.1%).
+     Frees rorqual for h069-1B-s3 (our HIGHEST PRIORITY experiment).
+  2. Cancelled h065 (fir) — same reasoning as h064.
+     Frees fir for h070-pilot after h044-1B-s3 completes.
+  3. Cancelled h070 on nibi (was scheduled Mar 21!). Resubmitted on fir (28467084).
+  4. h069 status: s1 pending nibi, s2 running narval (53min), s3 pending rorqual.
+
+WEB SEARCH FINDINGS:
+  CRITICAL: The Craftax paper itself tested RND, ICM, and E3B on Craftax.
+  ALL FAILED to improve over PPO. E3B even significantly reduced reward.
+  Reason: Craftax reward structure is sufficiently dense — intrinsic rewards
+  act as distraction, not helpful guide. RND is a DEAD END for this project.
+  This eliminates our backup plan (RND exploration bonus).
+
+  DeepMind SOTA on Craftax-classic: 67.42% via model-based RL (DreamerV3+).
+  But that's different env (visual obs, 1M steps). Not directly comparable.
+
+OOM RISK WARNING:
+  h044-1B-s3 (fir 28364197, 18.4h elapsed, 48G memory) may also OOM like h040-1B-s3.
+  Same cluster, same memory allocation. Monitor closely.
+
+RUNNING JOBS (5):
+  h040-1B-s3v2 (narval 58018762, 64G, just started) — RESUBMISSION
+  h044-1B-s3 (fir 28364197, 18.4h, AT RISK of OOM)
+  h057-1B-s2 (narval 57994663, 7.5h — ~5h left)
+  h069-1B-s2 (narval 58009758, 53min — ~11h left)
+  h071-pilot-s1 (narval 58010085, 50min — ~1.5h left)
+
+PENDING JOBS (3):
+  h069-1B-s3 (rorqual 8616355, should start now h064 cancelled)
+  h069-1B-s1 (nibi 10601608, 7h pending — slow queue)
+  h070-pilot-s1v3 (fir 28467084, behind h044-1B-s3)
+
+1B LEADERBOARD (unchanged, h040-1B-s3 not finalized):
+  h040 GRU+128+grad:      s1=40.14 s2=41.46 mean=40.80 (n=2, s3 resubmitted)
+  h044 GRU+ent+128+grad:  s1=35.5 s2=40.9 mean=38.2 (n=2, s3 running)
+  h023 LSTM+128:           mean=38.10 (n=3, COMPLETE)
+
+REMAINING RESEARCH DIRECTIONS (with RND eliminated):
+  1. Floor 0 curriculum (h069) — HIGHEST PRIORITY, projected ~44 at 1B
+  2. More aggressive floor 0 (h070, kills=3-5) — pilot pending
+  3. Floor 0 + ent anneal (h071) — pilot running
+  4. If curriculum scales: we may hit >44 (>30% over baseline 33.88)
+  5. If curriculum fails at scale: consider model-based RL, larger networks,
+     or accept h040 as our best result
+
+NEXT SESSION PRIORITIES:
+  1. Parse h071 pilot (~1.5h left) — floor 0 curriculum + ent annealing
+  2. Parse h044-1B-s3 (if it finishes, ~4-6h) — finalize h044 3-seed mean
+  3. Parse h057-1B-s2 (~5h left) — obs augment 1B
+  4. Monitor h040-1B-s3v2 (~12h left) — resubmission
+  5. Parse h070 pilot (after h044 finishes on fir)
+  6. Monitor h069 1B runs — THE EXPERIMENT THAT MATTERS MOST
