@@ -2452,3 +2452,64 @@ NEXT SESSION PRIORITIES:
      - Fewer minibatches (4 instead of 8) for larger batch updates
      - Lower vf_coef (0.25 instead of 0.5)
      - But DO NOT implement RND/ICM — confirmed to hurt on Craftax
+
+---
+**[2026-03-19 01:20 UTC]**
+
+=== SESSION: h045 pilot result — GRU+ent+grad at 64 steps is a dead end ===
+
+Triggered by: h045-pilot-s1 (28336497, fir) SUCCESS.
+
+h045-pilot-s1 (PPO-GRU + struct obs + gamma=0.999 + ent anneal 0.03→0.005 + max_grad_norm=1.0, 64 steps):
+  avg_return=27.74, avg_length=945.16, wall=6947s (1.93h)
+  60% dungeon entry. find_bow 56%, fire_bow 52%, collect_diamond 4%.
+  
+  VERDICT: CLOSED. WORSE than h031 vanilla GRU (28.54, 64% dungeon).
+  
+  GRU 64-STEP HP TWEAK SUMMARY (definitive — all combos tested):
+    h031 GRU vanilla:           28.54, 64% dungeon ← BEST AT 64 STEPS
+    h045 GRU+ent+grad:          27.74, 60% dungeon (-2.8%)
+    h042 GRU+ent:               25.62, 52% dungeon (-10.2%)
+    h039 GRU+grad:              24.54, 40% dungeon (-14.0%)
+  
+  CONCLUSION: GRU at 64 steps does NOT benefit from ANY HP tweaks. 
+  All individual tweaks hurt, and combining them (h045) only partially recovers.
+  At 64 steps, GRU already has optimal exploration/exploitation balance.
+  
+  CONTRAST with 128 steps (where HP tweaks are CRITICAL):
+    h044 GRU+ent+128+grad:      32.62, 84% dungeon ← BEST OVERALL
+    h040 GRU+128+grad:          30.86, 76% dungeon
+    h037 GRU+128:               26.98, 56% dungeon
+  
+  The 128-step rollout enables enough trajectory diversity for ent annealing 
+  and larger gradients to be useful. At 64 steps, the default balance works best.
+
+Also updated h025 status to CLOSED (incorporated) — its grad_norm=1.0 finding 
+is now included in h043 and h044 which are running at 1B.
+
+CURRENT STATE (27 active jobs):
+  1B RUNS (21 jobs, 7 hypotheses):
+    h021 x3 (LSTM base): 7-8.7h elapsed, ~50-65% done, first results in ~3-5h
+    h023 x3 (LSTM+128s): 5.5-6h elapsed, ~40-50% done
+    h031 x3 (GRU base): 2 running 4.5-5h + 1 pending nibi
+    h032 x3 (LSTM+ent): 3.6-4.3h elapsed, ~30-35% done
+    h040 x3 (GRU+128+grad): 0.1-1.9h elapsed + 1 pending nibi
+    h043 x3 (LSTM ent+128+grad): 1.6-1.9h elapsed, ~15% done
+    h044 x3 (GRU ent+128+grad): 0.7h elapsed + 1 pending nibi
+  PILOTS (6 remaining):
+    h033 (LSTM+256s, nibi): 2.6h elapsed
+    h036 (LSTM+8epochs, nibi): 2.2h elapsed
+    h041 (LSTM+ent+grad 64s, nibi): 1.8h elapsed
+    h046 (LSTM ent 0.05→0.003, narval): 1h elapsed
+    h047 (LSTM clip=0.1, rorqual): 1h elapsed
+    h048 (GRU ent 0.05→0.003, fir): 0.7h elapsed
+
+NEXT SESSION PRIORITIES:
+  1. Nibi pilots (h033, h036, h041) should complete first (~1-2h)
+  2. Other pilots (h046, h047, h048) ~2-3h out
+  3. First 1B results (h021, h031) expected in ~3-5h
+  4. When pilots complete and results are in, consider new directions:
+     - Observation normalization (untapped — code has none)
+     - Cosine LR schedule
+     - Different num_minibatches (4 instead of 8)
+     - Value function architecture changes
