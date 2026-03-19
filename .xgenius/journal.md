@@ -2549,3 +2549,72 @@ OVERALL PICTURE — 64-step combinatorial search COMPLETE:
   
 WAITING for 1B runs and remaining pilots. No new submissions needed — 26 active jobs cover all key directions.
 1B runs should complete in ~12-18h from submission (~Mar 19 12:00-18:00 UTC).
+
+---
+**[2026-03-19 02:03 UTC]**
+
+=== SESSION: h033 and h036 pilots — both dead ends, 2 new pilots submitted ===
+
+Triggered by: h033-pilot-s1b (10544730, nibi) SUCCESS + h036-pilot-s1 (10544746, nibi) SUCCESS.
+
+h033-pilot-s1b (PPO-LSTM + struct obs + gamma=0.999 + num_steps=256, num_envs=512):
+  avg_return=24.54, avg_length=628, wall=11557s (3.21h)
+  52% dungeon entry. find_bow 44%, fire_bow 36%.
+  VERDICT: CLOSED. WORSE than h023 (26.82, 60% dungeon with 128 steps).
+  256 steps halves gradient updates — not worth the extra LSTM context.
+  128 steps confirmed optimal for LSTM (same conclusion as GRU h037).
+
+h036-pilot-s1 (PPO-LSTM + struct obs + gamma=0.999 + num_steps=128 + update_epochs=8):
+  avg_return=19.14, avg_length=1488, wall=10130s (2.81h)
+  0% dungeon entry! Zero progression — purely survival-focused.
+  VERDICT: CLOSED. Doubling PPO epochs (4→8) is catastrophic.
+  Same pattern as PopArt/low-entropy/gae=0.95: over-optimization → conservative agent → survival without progression.
+  4 update epochs is optimal.
+
+CODE CHANGE: Added --lr-schedule flag (linear|cosine) to ppo_lstm.py.
+
+NEW PILOTS SUBMITTED (both to nibi, just freed 2 slots):
+  h049: h044 config + cosine LR schedule → nibi (10555140)
+  h050: h044 config + 4 minibatches (vs 8) → nibi (10555141)
+
+UPDATED LEADERBOARD (200M pilots):
+  h044 GRU (ent+128s+grad=1.0):         32.62, 84% dungeon — BEST
+  h040 GRU (128s+grad=1.0):              30.86, 76% dungeon
+  h043 LSTM (ent+128s+grad=1.0):         30.7, 80% dungeon
+  h032 LSTM (ent anneal):                29.74, 80% dungeon
+  h025 LSTM (grad=1.0):                  28.58, 60% dungeon
+  h031 GRU (64 steps):                   28.54, 64% dungeon
+  h023 LSTM (128 steps):                 26.82, 60% dungeon
+  h033 LSTM (256 steps):                 24.54, 52% dungeon — CLOSED
+  h021 LSTM (baseline):                  22.22, 40% dungeon
+  h036 LSTM (8 PPO epochs):              19.14, 0% dungeon — CLOSED
+
+ACTIVE JOBS (27 total):
+  1B RUNS (21 jobs, 7 hypotheses — ~30-70% done):
+    h021 x3 (LSTM base): 8-9.5h elapsed
+    h023 x3 (LSTM+128s): 6-7h elapsed
+    h031 x3 (GRU base): 5-6h elapsed + 1 pending nibi
+    h032 x3 (LSTM+ent): 4-5h elapsed
+    h040 x3 (GRU+128+grad): 0.8-2.6h elapsed + 1 pending nibi
+    h043 x3 (LSTM+ent+128+grad): 2-2.6h elapsed
+    h044 x3 (GRU+ent+128+grad): 1.3-1.4h elapsed + 1 pending nibi
+  PILOTS (6 jobs):
+    h046 (LSTM+aggressive ent, narval): 1.7h in
+    h047 (LSTM+clip=0.1, rorqual): 1.8h in
+    h048 (GRU+aggressive ent, fir): 1.4h in
+    h049 (GRU+cosine LR, nibi): just submitted
+    h050 (GRU+4 minibatches, nibi): just submitted
+
+CONFIRMED FINDINGS (complete search):
+  - Rollout length: 128 optimal for both LSTM and GRU. 64 works for GRU-only. 256 too long.
+  - PPO epochs: 4 optimal. 8 causes over-optimization.
+  - All capacity increases fail (h004/h014/h015/h035).
+  - gae_lambda=0.8 optimal (0.9 and 0.95 both hurt in ALL configs tested).
+  - Intrinsic motivation (RND/ICM) confirmed to hurt on Craftax.
+
+NEXT SESSION PRIORITIES:
+  1. Parse h046, h047, h048 pilots (~1-2h remaining)
+  2. Parse h049, h050 pilots (~3-4h out)
+  3. First 1B results: h021 expected in ~4-6h
+  4. h023/h031/h032 1B results: 6-12h out
+  5. h040/h043/h044 1B results: 12-20h out
