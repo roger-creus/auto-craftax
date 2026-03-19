@@ -3795,3 +3795,69 @@ NEXT SESSION PRIORITIES:
   5. If any pilot shows floor 2 entry → submit 1B seeds immediately
   6. If none help → try escalating kill bonus or auxiliary kill prediction head
   7. Close h031 and h040 when all 3 seeds done
+
+---
+**[2026-03-19 14:25 UTC]**
+
+=== SESSION: h056 CATASTROPHIC (2.26) + h059 aux prediction + h060 obs augment submitted ===
+
+Triggered by: h056-pilot-s1v2 (8589584, rorqual) SUCCESS.
+
+RESULTS PARSED:
+
+h056-pilot-s1v2 (PPO-GRU + h044 config + kill bonus 0.5/kill + 5.0/floor):
+  avg_return=2.26, 0% EVERYTHING. WORST RESULT EVER.
+  Kill bonus completely destroys learning. Agent gets 0% skeleton, zombie, bow, dungeon.
+  Only: collect_wood 64%, wake_up 96%. Kill bonus (0.5/kill) dominates reward signal
+  and corrupts value function. Agent can't learn basic survival.
+  Wall 7413s (2.1h). CLOSED.
+
+KEY FINDING: ANY form of direct intrinsic reward for combat is CATASTROPHIC in Craftax.
+h054 (PBRS, ~-3%), h055 (Go-Explore+PBRS, -47%), h056 (kill bonus, -93% vs h044).
+Reward shaping approaches are fundamentally broken. The reward signal is too noisy
+and competes with the sparse but critical game reward.
+
+NEW HYPOTHESES IMPLEMENTED AND SUBMITTED:
+
+h059 — Auxiliary kill-count prediction head (nibi 10586414):
+  Add small auxiliary MLP (hidden→64→ReLU→1→Sigmoid) that predicts kill_count/8.0
+  from GRU hidden state. MSE loss with coefficient 0.1. NO reward change.
+  Forces the hidden state to encode combat progress without corrupting the value function.
+  h044 base config + --aux-kill-pred flag.
+  Rationale: UNREAL-style auxiliary tasks improve representations in deep RL.
+
+h060 — Obs augment on h040 config (rorqual 8591657):
+  Same obs augment as h057 (kill count in obs) but on h040 config (NO ent anneal).
+  h040 has best single seed (41.46) vs h044 (40.9). Testing if obs augment helps both.
+  h040 config + --obs-augment flag.
+
+RUNNING JOBS (10 total):
+  1B RUNS (4):
+    h040-1B-s3 (fir 13h+ — IMMINENT, should finish within 1-2h)
+    h040-1B-s1 (narval 10h — ~2-3h left)
+    h044-1B-s3 (fir 10h — ~2-4h left)
+    h031-1B-s3 (rorqual 10h — ~2h left)
+  PILOTS (6):
+    h057 obs augment (narval ~1.5h — ~1-2h left)
+    h058 obs+kill bonus (fir ~1.5h — ~1h left, WARNING: may be catastrophic like h056)
+    h059 aux kill pred (nibi, just submitted — ~2-3h)
+    h060 obs augment on h040 (rorqual, just submitted — ~2-3h)
+
+1B LEADERBOARD (completed seeds):
+  h040 GRU+128+grad:      s2=41.46 (PARTIAL n=1, s1+s3 running)
+  h044 GRU+ent+128+grad:  s1=35.5, s2=40.9 (PARTIAL n=2, mean=38.2, s3 running)
+  h023 LSTM+128:          mean=38.10 (COMPLETE n=3) — BEST COMPLETE
+  h043 LSTM+ent+128+grad: mean=36.98 (COMPLETE n=3) — CLOSED
+  h031 GRU 64:            s1=33.54, s2=37.06 (PARTIAL n=2, s3 running)
+  PPO-LSTM baseline:      mean=33.88
+
+NEXT SESSION PRIORITIES:
+  1. Parse h040-1B-s3 (IMMINENT) — second data point for h040
+  2. Parse h040-1B-s1 — finalize h040 (all 3 seeds will be complete)
+  3. Parse h044-1B-s3 — finalize h044 (all 3 seeds will be complete)
+  4. Parse h031-1B-s3 — finalize h031 (all 3 seeds will be complete)
+  5. Parse h057/h058 pilots — obs augment ± kill bonus for floor progression
+  6. Parse h059/h060 pilots — aux prediction / obs augment on h040
+  7. Determine 1B champion: h040 vs h044 vs h023
+  8. If ANY pilot shows floor 2 entry: submit 1B seeds immediately
+  9. If none help floor 2: try combined (obs augment + aux pred), or curriculum learning
