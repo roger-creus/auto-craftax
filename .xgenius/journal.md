@@ -2714,3 +2714,70 @@ NEXT SESSION PRIORITIES:
   3. First 1B results (h021) expected in ~4-6h
   4. If aggressive ent fails for LSTM too (h046), entropy annealing search is fully complete
   5. All clusters saturated — no new submissions needed until slots free up
+
+---
+**[2026-03-19 03:05 UTC]**
+
+=== SESSION: h046 pilot result + obs normalization implementation ===
+
+Triggered by: h046-pilot-s1 (57971521, narval) SUCCESS.
+
+h046-pilot-s1 (PPO-LSTM + aggressive entropy 0.05→0.003 + 128 steps + grad=1.0):
+  avg_return=26.06, avg_length=659.36, wall=9061s (2.52h) on narval A100
+  64% dungeon entry, find_bow 60%, fire_bow 44%, collect_diamond 8%
+  
+  VERDICT: CLOSED. WORSE than h043 (30.7, 80% dungeon with 0.03→0.005).
+  Aggressive entropy hurts LSTM too, though less catastrophically than GRU (h048: 19.06).
+  
+ENTROPY ANNEALING SEARCH COMPLETE:
+  LSTM: 0.03→0.005 optimal (h043: 30.7). 0.05→0.003 worse (h046: 26.06). Constant 0.01 baseline.
+  GRU:  0.03→0.005 optimal (h044: 32.62). 0.05→0.003 catastrophic (h048: 19.06).
+  Both architectures confirm 0.03→0.005 is the sweet spot.
+
+IMPLEMENTED: Observation normalization (--obs-norm flag)
+  Added RunningMeanStd class to src/utils/utils.py
+  Added --obs-norm and --obs-clip flags to PPO_Args
+  Applied to ppo_lstm.py training loop
+  Ready to test when slots free up
+  
+WEB SEARCH FINDINGS:
+  1. Intrinsic motivation (RND/ICM/E3B) DOES NOT HELP on Craftax — paper tested it, all underperform standard PPO
+  2. Even at 10B steps, PPO-RNN shows only marginal improvement into deeper floors
+  3. SCALAR (2026 paper) uses LLM-guided symbolic planning — gets 88.2% diamond, 9.1% gnomish mines. Different paradigm.
+  4. HP tuning is approaching diminishing returns. Need qualitative improvements for deeper floors.
+
+PENDING NIBI ISSUE:
+  h031-1B-s3 and h040-1B-s1 pending 8-11h with 'ReqNodeNotAvail' (nodes g7,g26,g37 down)
+  h044-1B-s3 pending 7h with 'Priority' — should start when h049/h050 pilots finish
+  May need to resubmit to other clusters if stuck much longer
+
+UPDATED LEADERBOARD (200M pilots):
+  h044 GRU (ent+128s+grad=1.0):         32.62, 84% dungeon — BEST
+  h040 GRU (128s+grad=1.0):              30.86, 76% dungeon
+  h043 LSTM (ent+128s+grad=1.0):         30.7, 80% dungeon
+  h032 LSTM (ent anneal):                29.74, 80% dungeon
+  h031 GRU (64 steps):                   28.54, 64% dungeon
+  h025 LSTM (grad=1.0):                  28.58, 60% dungeon
+  h046 LSTM (aggressive ent 0.05→0.003): 26.06, 64% dungeon — CLOSED (aggressive ent hurts)
+  h023 LSTM (128 steps):                 26.82, 60% dungeon
+
+ACTIVE JOBS (23 total — 20 running, 3 pending):
+  1B RUNS (21 jobs, 7 hypotheses):
+    h021 x3 (LSTM base): ~10-12h elapsed, should complete soon
+    h023 x3 (LSTM+128s): ~8h elapsed
+    h031 x3 (GRU base): 2 running + 1 pending nibi (ReqNodeNotAvail)
+    h032 x3 (LSTM+ent): ~6h elapsed
+    h040 x3 (GRU+128+grad): 1 running + 1 started 2h ago + 1 pending nibi
+    h043 x3 (LSTM+ent+128+grad): ~4h elapsed
+    h044 x3 (GRU+ent+128+grad): 2 running + 1 pending nibi — CURRENT BEST 32.62 at 200M
+  PILOTS (2 remaining):
+    h049 (GRU+cosine LR, nibi): 53min in — ~2-3h out
+    h050 (GRU+4 minibatches, nibi): 53min in — ~2-3h out
+
+NEXT SESSION PRIORITIES:
+  1. First 1B results (h021) should be available — parse and analyze
+  2. h049/h050 pilot results — if either helps, submit 1B seeds
+  3. Check nibi pending jobs — resubmit to other clusters if still stuck
+  4. If slots free up, submit obs normalization pilot (h051): h044 config + --obs-norm
+  5. Consider GELU activation pilot (h052): h044 config + --activation-fn gelu
+  6. Consider trying Craftax-specific improvements like floor-based reward bonuses

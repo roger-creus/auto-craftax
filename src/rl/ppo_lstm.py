@@ -13,7 +13,7 @@ from src.env.env import make_craftax_env
 from src.utils.logger import write_row_csv, make_training_csv_craftax_classic, make_training_csv_craftax, make_ppo_losses_csv, save_results_csv
 from src.models.models import PPO_LSTM_Agent
 from src.utils.args import PPO_Args
-from src.utils.utils import get_optimizer_class, get_activation_fn, get_mlp_class
+from src.utils.utils import get_optimizer_class, get_activation_fn, get_mlp_class, RunningMeanStd
 
 if __name__ == "__main__":
     import os
@@ -67,6 +67,12 @@ if __name__ == "__main__":
     )
     assert isinstance(envs.single_action_space, gym.spaces.Discrete), "only discrete action space is supported"
 
+    # observation normalization
+    obs_rms = None
+    if args.obs_norm:
+        obs_rms = RunningMeanStd(envs.single_observation_space.shape, device)
+        print(f"Observation normalization enabled (clip={args.obs_clip})")
+
     agent = PPO_LSTM_Agent(
         obs_dim=np.array(envs.single_observation_space.shape).prod(),
         n_actions=envs.single_action_space.n,
@@ -105,6 +111,9 @@ if __name__ == "__main__":
     global_step = 0
     next_obs, _ = envs.reset(seed=args.seed)
     next_obs = torch.Tensor(next_obs).to(device)
+    if obs_rms is not None:
+        obs_rms.update(next_obs)
+        next_obs = obs_rms.normalize(next_obs, args.obs_clip)
     next_done = torch.zeros(args.num_envs).to(device)
     start_time = time.time()
 
@@ -148,6 +157,9 @@ if __name__ == "__main__":
 
             # execute the game and log data.
             next_obs, reward, terminations, truncations, infos = envs.step(action)
+            if obs_rms is not None:
+                obs_rms.update(next_obs)
+                next_obs = obs_rms.normalize(next_obs, args.obs_clip)
             next_done = torch.logical_or(terminations, truncations)
             rewards[step] = reward.view(-1)
 

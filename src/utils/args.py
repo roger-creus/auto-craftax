@@ -77,6 +77,10 @@ class PPO_Args:
     """if toggled, use PopArt adaptive value normalization"""
     use_gru: bool = False
     """if toggled, use GRU instead of LSTM in recurrent agent"""
+    obs_norm: bool = False
+    """if toggled, normalize observations using running mean/std"""
+    obs_clip: float = 10.0
+    """clip range for normalized observations"""
     ent_coef_end: float = -1.0
     """final entropy coefficient (-1 = no annealing, use ent_coef throughout)"""
     lr_schedule: str = "linear"
