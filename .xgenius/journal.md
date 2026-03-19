@@ -2388,3 +2388,67 @@ NEXT SESSION PRIORITIES:
   5. h023, h031, h032 1B results: 6-12h out
   6. h040, h043, h044 1B results: 10-18h out
   7. If h044 1B confirms as best, consider further GRU optimizations
+
+---
+**[2026-03-19 00:48 UTC]**
+
+=== SESSION: h035 pilot result — hidden_size=768 is a dead end ===
+
+Triggered by: h035-pilot-s1 (10544745, nibi) SUCCESS.
+
+h035-pilot-s1 (PPO-LSTM + struct obs + gamma=0.999 + num_steps=128 + hidden_size=768):
+  avg_return=18.3, avg_length=1106.0, wall=6935s (1.93h)
+  Only 4% dungeon entry! skeleton 80%, zombie 84%, collect_iron 56%.
+  Agent is survival-focused (long episodes, avg_length=1106) with zero progression.
+  VERDICT: CLOSED. Larger hidden (768 vs 512) dramatically hurts.
+  WORSE than h023 (26.82 with 512 hidden at 128 steps, 60% dungeon).
+  Consistent pattern: all "more capacity" attempts fail (h004, h014, h015, h035). 512 hidden is optimal.
+
+WEB SEARCH FINDINGS (important for future sessions):
+  - Craftax paper confirms RND/ICM/E3B HURT performance on Craftax — intrinsic exploration distracts from dense rewards. DO NOT implement intrinsic motivation.
+  - PPO-RNN baseline at 1B gets ~15.3% normalized return in the original paper. Our h044 (32.62 at 200M) is dramatically better.
+  - GTrXL published at 18.3% — matches our GTrXL results (~19). Our PPO-LSTM/GRU track is far superior.
+  - SCALAR (LLM-guided skills) gets 88.2% diamond collection but uses LLM guidance — not comparable to pure RL.
+  - Key takeaway: focus on PPO-RNN HP optimization (what we're doing), NOT intrinsic motivation.
+
+UPDATED LEADERBOARD (200M pilots):
+  h044 GRU (ent+128s+grad=1.0):         32.62, 84% dungeon — BEST
+  h040 GRU (128s+grad=1.0):              30.86, 76% dungeon
+  h043 LSTM (ent+128s+grad=1.0):         30.7, 80% dungeon
+  h032 LSTM (ent anneal):                29.74, 80% dungeon
+  h025 LSTM (grad=1.0):                  28.58, 60% dungeon
+  h031 GRU (64 steps):                   28.54, 64% dungeon
+  h023 LSTM (128 steps):                 26.82, 60% dungeon
+  h021 LSTM (baseline):                  22.22, 40% dungeon
+  h035 LSTM (768 hidden):                18.3, 4% dungeon — DEAD
+
+ACTIVE JOBS (28 total — 24 running, 4 pending):
+  PILOTS (~1-2h remaining):
+    h033 (LSTM+256s, nibi): 2h elapsed
+    h036 (LSTM+8epochs, nibi): 1.6h elapsed
+    h041 (LSTM+ent+grad=1.0 64s, nibi): 1.25h elapsed
+    h045 (GRU+ent+grad 64s, fir): 1.4h elapsed
+    h046 (LSTM ent 0.05→0.003, narval): 0.4h elapsed
+    h047 (LSTM clip=0.1, rorqual): 0.5h elapsed
+    h048 (GRU ent 0.05→0.003, fir): 0.1h elapsed
+  1B RUNS (18 jobs, 6-18h remaining):
+    h021 x3: rorqual 8h, narval 7h, fir 7h — ~50% done, first results ~4-6h
+    h023 x3: rorqual 5h, narval 5.5h, fir 5h — ~40% done
+    h031 x3: narval 4h, rorqual 4h, nibi pending — ~30% done
+    h032 x3: narval 3h, rorqual 3.5h, fir 3.5h — ~25% done
+    h040 x3: narval 1.3h, nibi pending, fir pending — ~10% done
+    h043 x3: rorqual 1.3h, narval 1.3h, fir 1h — ~10% done
+    h044 x3: narval 0.1h, rorqual 0.1h, nibi pending — just started
+
+CLUSTER CAPACITY: All pilot slots will transition to pending 1B jobs when pilots complete. No capacity for new pilots. Next opportunity for new submissions will be when 1B jobs complete (~6-18h).
+
+NEXT SESSION PRIORITIES:
+  1. Parse pilot results: h033, h036, h041, h045, h046, h047, h048
+  2. First 1B results expected: h021 (earliest, 4-6h out)
+  3. h023/h031/h032 1B results: 6-12h out
+  4. h040/h043/h044 1B results: 10-18h out
+  5. When capacity opens, consider testing:
+     - Cosine LR schedule (instead of linear decay)
+     - Fewer minibatches (4 instead of 8) for larger batch updates
+     - Lower vf_coef (0.25 instead of 0.5)
+     - But DO NOT implement RND/ICM — confirmed to hurt on Craftax
