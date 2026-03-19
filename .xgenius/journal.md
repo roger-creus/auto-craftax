@@ -3164,3 +3164,64 @@ KEY QUESTIONS FOR NEXT SESSION:
   4. Will h044 1B (best pilot 32.62) surpass h023 1B (mean ~39.25)?
   5. Any deeper floor entry from Go-Explore or PBRS?
 
+
+---
+**[2026-03-19 07:42 UTC]**
+
+=== SESSION: h023-1B-s3 complete — ALL h023 seeds done + h031-1B-s2 recovered ===
+
+Triggered by: h023-1B-s3 (57959723, narval A100) SUCCESS.
+
+h023-1B-s3 (PPO-LSTM + struct obs + gamma=0.999 + 128 steps):
+  avg_return=35.82, avg_length=552.92, wall=44196s (12.3h) on narval A100
+  88% dungeon entry. find_bow 80%, fire_bow 76%, ruby 16%, sapphire 12%.
+  0% deeper floors.
+
+h023 COMPLETE — ALL 3 SEEDS:
+  s1=37.51 (rorqual H100, 11.8h)
+  s2=40.98 (fir H100, 10.1h) — BEST
+  s3=35.82 (narval A100, 12.3h)
+  mean=38.10±2.62. 88-96% dungeon. 0% deeper floors.
+  +12.5% over PPO-LSTM baseline (33.88). CLOSED.
+
+RECOVERED h031-1B-s2 (disappeared but actually completed on rorqual):
+  avg_return=37.06, avg_length=608.64, wall=38262s (10.6h)
+  92% dungeon. find_bow 92%, fire_bow 88%. 0% deeper floors.
+  GRU at 64 steps (37.06) nearly matches LSTM+128 steps (38.10 mean)!
+  h031 partial: s2=37.06. s1 running (narval 11h), s3 running (rorqual 3.5h).
+
+1B LEADERBOARD (completed):
+  h023 LSTM+128 steps:  mean=38.10 (s1=37.51, s2=40.98, s3=35.82) — BEST
+  h031 GRU 64 steps:    s2=37.06 (partial, very competitive!)
+  h021 LSTM base:       mean=32.59 — CLOSED
+  PPO-LSTM baseline:    mean=33.88
+  PPO baseline:         mean=26.83
+
+RUNNING JOBS (19 total):
+  PILOTS (5, should complete in ~30-60 min):
+    h051 Go-Explore (fir 1.7h), h052 obs-norm (rorqual 1.6h), h053 residual MLP (rorqual 1.6h)
+    h054 PBRS (fir 1.7h), h055 Go-Explore+PBRS (fir 1.6h)
+  1B RUNS (14):
+    h031 x2: narval 11h (imminent), rorqual 3.5h
+    h032 x3: rorqual 10.6h, narval 10h, fir 10.6h (all close to completion)
+    h040 x3: narval 8.2h, narval 3.5h, fir 6.5h
+    h043 x3: rorqual 8.2h, narval 8.2h, fir 8h
+    h044 x3: rorqual 7h, narval 7h, fir 3h
+
+KEY INSIGHT: GRU at 64 steps (37.06) matching LSTM at 128 steps (38.10). This means:
+  - h044 (GRU+ent+128+grad=1.0, pilot=32.62) should be INCREDIBLE at 1B
+  - h040 (GRU+128+grad=1.0, pilot=30.86) also very promising
+  - The GRU scaling from 200M→1B is massive: h031 pilot 28.54 → 1B 37.06 (+29.8%)
+
+NEXT COMPLETIONS (estimated):
+  ~30min: h051-h055 pilots (MOST CRITICAL — floor progression?)
+  ~1-2h: h031-1B-s1, h032-1B-s2/s3
+  ~3-5h: h032-1B-s1, h043 1B x3
+  ~5-10h: h040 x3, h044 x3 (MOST ANTICIPATED)
+
+PRIORITIES:
+  1. Parse pilot results (h051-h055) — Go-Explore and PBRS for floor progression
+  2. Parse h031-1B-s1 when complete — validate GRU 1B performance
+  3. Parse h032 1B — entropy annealing at scale
+  4. If any pilot shows deeper floor entry: IMMEDIATELY submit 1B seeds
+  5. Continue monitoring h040/h043/h044 for best final configs
