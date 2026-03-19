@@ -2275,3 +2275,54 @@ NEXT SESSION PRIORITIES:
   2. First 1B results expected: h021-s1 (rorqual ~3h), h021-s3 (fir ~4h)
   3. h023/h031/h032 1B results: 6-12h out
   4. h040/h043 1B results: 10-14h out
+
+---
+**[2026-03-19 00:12 UTC]**
+
+=== SESSION: h038 result + new pilots h046/h047 ===
+
+h038 RESULT — DISAPPOINTING: LSTM+128steps+grad_norm=1.0 (no entropy annealing) avg_return=24.26, 48% dungeon.
+- WORSE than h023 (LSTM+128steps: 26.82, 60% dungeon)
+- WORSE than h025 (LSTM+grad=1.0: 28.58, 60% dungeon)
+- Negative interaction: combining 128 steps + grad_norm=1.0 without entropy annealing makes agent survival-focused (avg_length=885 vs h043's 331)
+
+KEY INSIGHT: h043 (same config + ent annealing 0.03→0.005) gets 30.7 with 80% dungeon. Entropy annealing is the CRUCIAL ingredient enabling 128+grad=1.0 for LSTM. Without it, these changes hurt individually good improvements.
+
+Pattern: ent annealing drives exploration of dungeon → grad=1.0 amplifies that learning → 128 steps gives context for it. Without the exploration driver (ent annealing), grad=1.0 + 128 steps defaults to conservative survival.
+
+CURRENT BEST 200M leaderboard:
+1. h040: GRU+128+grad=1.0 = 30.86, 76% dungeon
+2. h043: LSTM+ent+128+grad=1.0 = 30.7, 80% dungeon
+3. h032: LSTM+ent = 29.74, 80% dungeon
+4. h031: GRU = 28.54, 64% dungeon
+5. h025: LSTM+grad=1.0 = 28.58, 60% dungeon
+6. h038: LSTM+128+grad=1.0 (no ent) = 24.26, 48% dungeon ← NEW
+
+NEW PILOTS SUBMITTED:
+- h046: LSTM+ent(0.05→0.003)+128+grad=1.0 on narval (57971521) — more aggressive entropy range
+- h047: LSTM+ent(0.03→0.005)+128+grad=1.0+clip_coef=0.1 on rorqual (8567199) — tighter PPO clipping
+
+RUNNING 1B JOBS (6 hypotheses, 18 jobs):
+- h021 x3: 6-7.5h elapsed (~50% done on H100, ~40% on A100)
+- h023 x3: 4-5h elapsed (~35% done)
+- h031 x3: 3-4h elapsed + 1 pending (~25% done)
+- h032 x3: 2.5-3h elapsed (~20% done)
+- h040 x3: just started, 2 pending
+- h043 x3: just started (~0.5h)
+
+RUNNING PILOTS (7 jobs):
+- h033 (LSTM+256steps, nibi) — ~1.5h in, ~1h remaining
+- h035 (LSTM+128+hidden=768, nibi) — ~1.5h in
+- h036 (LSTM+128+epochs=8, nibi) — ~1h in
+- h041 (LSTM+ent+grad=1.0 64steps, nibi) — ~0.7h in
+- h044 (GRU ultimate, narval) — ~2.5h in, should complete soon
+- h045 (GRU+ent+grad=1.0 64steps, fir) — ~0.8h in
+- h046 (LSTM ent 0.05→0.003, narval) — just submitted
+- h047 (LSTM clip=0.1, rorqual) — just submitted
+
+NEXT STEPS:
+- Wait for pilots h041, h044, h045 — these determine if GRU benefits from entropy annealing
+- If h044 > h040 (30.86), GRU+ent+128+grad=1.0 is new champion
+- h046/h047 test if we can push past 30.7 with LSTM tweaks
+- 1B results for h021/h023/h031/h032/h040/h043 expected in 6-18h
+- Total active jobs: 26 (23 running + 3 pending)
