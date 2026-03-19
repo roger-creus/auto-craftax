@@ -2513,3 +2513,39 @@ NEXT SESSION PRIORITIES:
      - Cosine LR schedule
      - Different num_minibatches (4 instead of 8)
      - Value function architecture changes
+
+---
+**[2026-03-19 01:30 UTC]**
+
+=== SESSION: Process h041 pilot results ===
+
+h041 RESULT — CLOSED: PPO-LSTM + ent anneal (0.03→0.005) + max_grad_norm=1.0 at 64 steps
+  avg_return=25.46, 60% dungeon, wall=6877s (1.91h) on nibi
+  WORSE than entropy alone (h032: 29.74, 80% dungeon) and grad alone (h025: 28.58, 60%)
+  KEY INSIGHT: ent+grad combo has NEGATIVE interaction at 64 steps for LSTM
+  Only works at 128 steps (h043: 30.7). 128 steps is the essential enabler for stacking.
+  Completes 64-step LSTM combinatorial search — no combo beats ent alone (h032) at 64 steps.
+
+ACTIVE EXPERIMENTS (26 total):
+  1B runs (21 jobs, 7 hypotheses):
+    h021 (LSTM base): 3 running (rorqual/narval/fir)
+    h023 (LSTM+128): 3 running (rorqual/narval/fir)
+    h031 (GRU base): 2 running + 1 pending nibi
+    h032 (LSTM+ent): 3 running (rorqual/narval/fir)
+    h040 (GRU+128+grad): 2 running + 1 pending nibi
+    h043 (LSTM+ent+128+grad): 3 running (rorqual/narval/fir)
+    h044 (GRU+ent+128+grad): 2 running + 1 pending nibi (CURRENT BEST: 32.62 at 200M)
+  Pilots (5 jobs):
+    h033 (LSTM+256steps): running nibi
+    h036 (LSTM+8epochs): running nibi
+    h046 (LSTM+aggressive ent 0.05→0.003): running narval
+    h047 (LSTM+ent+clip=0.1): running rorqual
+    h048 (GRU+aggressive ent 0.05→0.003): running fir
+
+OVERALL PICTURE — 64-step combinatorial search COMPLETE:
+  GRU 64-step: vanilla GRU (h031: 28.54) is best. No HP tweaks help at 64 steps (h039, h042, h045 all worse).
+  LSTM 64-step: ent anneal (h032: 29.74) is best at 64 steps. grad alone or ent+grad (h041: 25.46) worse.
+  128-step combos: h044 GRU+ent+128+grad=1.0 (32.62) > h043 LSTM+ent+128+grad=1.0 (30.7) > h040 GRU+128+grad (30.86)
+  
+WAITING for 1B runs and remaining pilots. No new submissions needed — 26 active jobs cover all key directions.
+1B runs should complete in ~12-18h from submission (~Mar 19 12:00-18:00 UTC).
