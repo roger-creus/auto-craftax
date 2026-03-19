@@ -6,6 +6,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import tyro
+import jax.numpy as jnp
 
 from collections import deque
 
@@ -137,6 +138,9 @@ if __name__ == "__main__":
         agent.aux_head = agent.aux_head.to(device)
         print(f"Auxiliary kill prediction enabled: coef={args.aux_kill_coef}")
 
+    if args.curriculum_kills:
+        print(f"Curriculum learning enabled: frac={args.curriculum_frac}, kills=[{args.curriculum_min_kills},{args.curriculum_max_kills}], end_frac={args.curriculum_end_frac}")
+
     print("-------------")
     print(agent)
 
@@ -214,11 +218,32 @@ if __name__ == "__main__":
             next_obs, reward, terminations, truncations, infos = envs.step(action)
             # Keep raw obs reference for Go-Explore before normalization
             raw_next_obs = next_obs
+            next_done = torch.logical_or(terminations, truncations)
+
+            # Curriculum: pre-fill monsters_killed for a fraction of reset envs
+            if args.curriculum_kills:
+                done_mask = next_done.cpu().numpy().astype(bool)
+                if done_mask.any():
+                    progress = global_step / args.total_timesteps
+                    if progress < args.curriculum_end_frac:
+                        curr_frac = args.curriculum_frac * (1.0 - progress / args.curriculum_end_frac)
+                    else:
+                        curr_frac = 0.0
+                    if curr_frac > 0:
+                        done_idx = np.where(done_mask)[0]
+                        n_curr = max(1, int(len(done_idx) * curr_frac))
+                        curr_idx = np.random.choice(done_idx, size=min(n_curr, len(done_idx)), replace=False)
+                        env_state = envs.env._state.env_state
+                        mk = np.asarray(env_state.monsters_killed).copy()
+                        for idx in curr_idx:
+                            mk[idx, 0] = np.random.randint(args.curriculum_min_kills, args.curriculum_max_kills + 1)
+                        new_env_state = env_state.replace(monsters_killed=jnp.array(mk))
+                        envs.env._state = envs.env._state.replace(env_state=new_env_state)
+
             if obs_rms is not None:
                 obs_rms.update(next_obs)
                 next_obs = obs_rms.normalize(next_obs, args.obs_clip)
             next_obs = augment_obs(next_obs)
-            next_done = torch.logical_or(terminations, truncations)
             # Get achievements from JAX state (not from infos which are zeroed for non-done envs)
             achievements = None
             if prev_phi is not None or frontier_buffer is not None:

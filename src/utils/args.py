@@ -109,6 +109,16 @@ class PPO_Args:
     """if toggled, add auxiliary head predicting kill count from hidden state (no reward change)"""
     aux_kill_coef: float = 0.1
     """loss coefficient for auxiliary kill count prediction"""
+    curriculum_kills: bool = False
+    """if toggled, pre-fill monsters_killed for a fraction of reset envs to ease floor transitions"""
+    curriculum_frac: float = 0.3
+    """fraction of reset envs to pre-fill kills for"""
+    curriculum_min_kills: int = 5
+    """minimum pre-filled kill count (out of 8 needed)"""
+    curriculum_max_kills: int = 7
+    """maximum pre-filled kill count (out of 8 needed)"""
+    curriculum_end_frac: float = 0.5
+    """fraction of training after which curriculum stops (anneals to 0)"""
 
     # BC
     bc_dataset_path: str = ""
