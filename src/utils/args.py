@@ -87,6 +87,12 @@ class PPO_Args:
     """learning rate schedule: 'linear' (default) or 'cosine'"""
     optimizer: str = "adam"
     """the optimizer to use"""
+    go_explore: bool = False
+    """if toggled, use Go-Explore frontier checkpointing"""
+    frontier_buffer_size: int = 128
+    """max number of frontier states to store"""
+    frontier_reset_prob: float = 0.25
+    """probability of resetting a done env to a frontier state instead of fresh start"""
     mlp_class: str = "mlp"
     """the MLP class to use"""
     

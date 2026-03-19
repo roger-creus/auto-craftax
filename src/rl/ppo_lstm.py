@@ -14,6 +14,7 @@ from src.utils.logger import write_row_csv, make_training_csv_craftax_classic, m
 from src.models.models import PPO_LSTM_Agent
 from src.utils.args import PPO_Args
 from src.utils.utils import get_optimizer_class, get_activation_fn, get_mlp_class, RunningMeanStd
+from src.rl.go_explore import FrontierBuffer, detect_and_save_milestones, apply_frontier_resets
 
 if __name__ == "__main__":
     import os
@@ -72,6 +73,15 @@ if __name__ == "__main__":
     if args.obs_norm:
         obs_rms = RunningMeanStd(envs.single_observation_space.shape, device)
         print(f"Observation normalization enabled (clip={args.obs_clip})")
+
+    # Go-Explore frontier checkpointing
+    frontier_buffer = None
+    prev_milestone_status = {}
+    frontier_total_saves = 0
+    frontier_total_resets = 0
+    if args.go_explore:
+        frontier_buffer = FrontierBuffer(max_size=args.frontier_buffer_size)
+        print(f"Go-Explore enabled: buffer_size={args.frontier_buffer_size}, reset_prob={args.frontier_reset_prob}")
 
     agent = PPO_LSTM_Agent(
         obs_dim=np.array(envs.single_observation_space.shape).prod(),
@@ -157,6 +167,8 @@ if __name__ == "__main__":
 
             # execute the game and log data.
             next_obs, reward, terminations, truncations, infos = envs.step(action)
+            # Keep raw obs reference for Go-Explore before normalization
+            raw_next_obs = next_obs
             if obs_rms is not None:
                 obs_rms.update(next_obs)
                 next_obs = obs_rms.normalize(next_obs, args.obs_clip)
@@ -174,6 +186,26 @@ if __name__ == "__main__":
                             avg_achievements[k] = deque(maxlen=25)
                         avg_achievements[k].append(v)
                     print(f"global_step={global_step}, episodic_return={infos['r'][idx]}, episodic_length={infos['l'][idx]}, avg_reward={np.mean(avg_ep_reward)}")
+
+            # Go-Explore: detect milestones and apply frontier resets
+            if frontier_buffer is not None:
+                # Detect and save new milestone states
+                prev_milestone_status, n_saved = detect_and_save_milestones(
+                    frontier_buffer, infos, prev_milestone_status,
+                    next_done, envs.env._state.env_state, raw_next_obs, args.num_envs
+                )
+                frontier_total_saves += n_saved
+
+                # Apply frontier resets to done envs
+                if done_indices.numel() > 0 and len(frontier_buffer) >= 8:
+                    done_list = done_indices.tolist()
+                    if isinstance(done_list, int):
+                        done_list = [done_list]
+                    next_obs, n_resets = apply_frontier_resets(
+                        envs, frontier_buffer, done_list, next_obs, raw_next_obs,
+                        args.frontier_reset_prob, obs_rms, args.obs_clip, device
+                    )
+                    frontier_total_resets += n_resets
 
         # bootstrap value if not done
         with torch.no_grad():
@@ -281,7 +313,10 @@ if __name__ == "__main__":
         explained_var = np.nan if var_y == 0 else 1 - np.var(y_true - y_pred) / var_y
 
         sps = int(global_step / (time.time() - start_time))
-        print(f"SPS: {sps}")
+        if frontier_buffer is not None:
+            print(f"SPS: {sps} | GoExplore: buffer={len(frontier_buffer)}, saves={frontier_total_saves}, resets={frontier_total_resets}")
+        else:
+            print(f"SPS: {sps}")
 
         if iteration in args.log_iterations:
             # log training data to csv
