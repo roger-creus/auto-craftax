@@ -3416,3 +3416,52 @@ NEXT SESSION PRIORITIES:
   5. Parse h040 1B (GRU+128+grad) — GRU with 128 steps at scale
   6. Parse h044 1B (BEST PILOT 32.62) — MOST ANTICIPATED result
   7. If Go-Explore/PBRS works at 200M: immediately submit 1B seeds
+
+---
+**[2026-03-19 08:52 UTC]**
+
+=== SESSION: h031-1B-s1 result + h051 resubmit ===
+
+Triggered by: h031-1B-s1 (57961766, narval) SUCCESS.
+
+h031-1B-s1 (PPO-GRU + struct obs + gamma=0.999, 64 steps):
+  avg_return=33.54, 72% dungeon, find_bow 72%, fire_bow 48%, diamond 8%, ruby 12%.
+  Wall 43895s (12.2h) on narval A100.
+  Weaker than s2 (37.06, 92% dungeon). High seed variance.
+  h031 partial: s1=33.54, s2=37.06, mean=35.30. s3 running (rorqual ~5h in).
+  Below h023 LSTM+128 (38.10 mean) — GRU at 64 steps doesn't match 128-step LSTM at 1B.
+
+ACTIONS:
+  1. Added h031-1B-s1 to results/experiments.csv
+  2. Cancelled h051-pilot-s1v5 on nibi (stuck pending until March 21)
+  3. Resubmitted as h051-pilot-s1v6 on narval (57985985)
+  4. Updated hypotheses.csv
+
+RUNNING JOBS (14 total — 11 1B runs + 3 pilots):
+  1B RUNS:
+    h031 GRU 64:           s3 (rorqual ~5h)
+    h032 LSTM+ent 64:      s1 (narval ~11.2h — should complete very soon)
+    h040 GRU+128+grad:     s1 (narval ~4.7h), s2 (narval ~9.4h), s3 (fir ~7.7h)
+    h043 LSTM+ent+128+grad: s1 (rorqual ~9.4h), s2 (narval ~9.4h), s3 (fir ~9.2h)
+    h044 GRU+ent+128+grad: s1 (narval ~8.2h), s2 (rorqual ~8.2h), s3 (fir ~4.3h)
+  PILOTS:
+    h054 PBRS (rorqual ~44min) — fixed, ~2h remaining
+    h055 Go-Explore+PBRS (fir ~22min) — fixed, ~2.5h remaining
+    h051 Go-Explore (narval, just submitted) — ~2-3h after start
+
+1B LEADERBOARD (completed seeds):
+  h023 LSTM+128:      mean=38.10 (s1=37.51, s2=40.98, s3=35.82) — CURRENT BEST
+  h031 GRU 64:        s1=33.54, s2=37.06 (partial mean=35.30)
+  h032 LSTM+ent 64:   s2=31.5, s3=30.74 (partial mean=31.12, disappointing)
+  h021 LSTM:          mean=32.59 — CLOSED
+  PPO-LSTM baseline:  mean=33.88
+
+KEY FINDING: h031 GRU at 64 steps (partial mean 35.30) is below h023 LSTM+128 (38.10).
+128-step configs continue to be the most promising track. h040/h043/h044 are MOST ANTICIPATED.
+
+NEXT SESSION PRIORITIES:
+  1. Parse h032-1B-s1 (imminent) — close h032
+  2. Parse h054/h055 pilots — does PBRS/Go-Explore work now?
+  3. Parse h051 pilot — Go-Explore alone with fix
+  4. Parse h040/h043/h044 1B — most anticipated results
+  5. Parse h031-1B-s3 — finalize h031
