@@ -100,8 +100,25 @@ if __name__ == "__main__":
         prev_player_level = torch.zeros(args.num_envs, device=device, dtype=torch.float32)
         print(f"Kill bonus enabled: kill_scale={args.kill_bonus_scale}, floor_scale={args.floor_bonus_scale}")
 
+    # Observation augmentation: append kill count on current floor (normalized 0-1)
+    extra_stats_dim = 0
+    if args.obs_augment:
+        extra_stats_dim = 1  # kill count on current floor / 8.0
+        print(f"Observation augmentation enabled: +{extra_stats_dim} features (kill count)")
+
+    def augment_obs(obs_tensor):
+        """Append kill count on current floor (normalized 0-1) to observation."""
+        if not args.obs_augment:
+            return obs_tensor
+        env_state = envs.env._state.env_state
+        pl_np = np.asarray(env_state.player_level).astype(int)
+        mk = np.asarray(env_state.monsters_killed)  # (num_envs, num_floors)
+        kills = mk[np.arange(args.num_envs), pl_np].clip(max=8).astype(np.float32) / 8.0
+        kills_t = torch.as_tensor(kills, device=device).unsqueeze(-1)  # (num_envs, 1)
+        return torch.cat([obs_tensor, kills_t], dim=-1)
+
     agent = PPO_LSTM_Agent(
-        obs_dim=np.array(envs.single_observation_space.shape).prod(),
+        obs_dim=np.array(envs.single_observation_space.shape).prod() + extra_stats_dim,
         n_actions=envs.single_action_space.n,
         num_layers=args.num_layers,
         hidden_size=args.hidden_size,
@@ -111,6 +128,7 @@ if __name__ == "__main__":
         use_structured_obs=args.use_structured_obs,
         use_popart=args.use_popart,
         use_gru=args.use_gru,
+        extra_stats_dim=extra_stats_dim,
     ).to(device)
     print("-------------")
     print(agent)
@@ -122,7 +140,8 @@ if __name__ == "__main__":
     print(optimizer)
 
     # storage setup
-    obs = torch.zeros((args.num_steps, args.num_envs) + envs.single_observation_space.shape).to(device)
+    obs_shape = (envs.single_observation_space.shape[0] + extra_stats_dim,)
+    obs = torch.zeros((args.num_steps, args.num_envs) + obs_shape).to(device)
     actions = torch.zeros((args.num_steps, args.num_envs) + envs.single_action_space.shape).to(device)
     logprobs = torch.zeros((args.num_steps, args.num_envs)).to(device)
     rewards = torch.zeros((args.num_steps, args.num_envs)).to(device)
@@ -141,6 +160,7 @@ if __name__ == "__main__":
     if obs_rms is not None:
         obs_rms.update(next_obs)
         next_obs = obs_rms.normalize(next_obs, args.obs_clip)
+    next_obs = augment_obs(next_obs)
     next_done = torch.zeros(args.num_envs).to(device)
     start_time = time.time()
 
@@ -189,6 +209,7 @@ if __name__ == "__main__":
             if obs_rms is not None:
                 obs_rms.update(next_obs)
                 next_obs = obs_rms.normalize(next_obs, args.obs_clip)
+            next_obs = augment_obs(next_obs)
             next_done = torch.logical_or(terminations, truncations)
             # Get achievements from JAX state (not from infos which are zeroed for non-done envs)
             achievements = None

@@ -22,8 +22,10 @@ class CraftaxObsEncoder(nn.Module):
     MAP_DIM = MAP_H * MAP_W * MAP_C  # 8217
     STATS_DIM = 51
 
-    def __init__(self, hidden_size):
+    def __init__(self, hidden_size, extra_stats_dim=0):
         super().__init__()
+        self.extra_stats_dim = extra_stats_dim
+        actual_stats_dim = self.STATS_DIM + extra_stats_dim
         # Spatial map encoder: 2-layer CNN + adaptive pool
         self.map_cnn = nn.Sequential(
             nn.Conv2d(self.MAP_C, 32, 3, padding=1),
@@ -41,7 +43,7 @@ class CraftaxObsEncoder(nn.Module):
         # Player stats encoder: 2-layer MLP
         stats_hidden = max(hidden_size // 2, 64)
         self.stats_mlp = nn.Sequential(
-            layer_init(nn.Linear(self.STATS_DIM, stats_hidden)),
+            layer_init(nn.Linear(actual_stats_dim, stats_hidden)),
             nn.ReLU(),
             layer_init(nn.Linear(stats_hidden, stats_hidden)),
             nn.ReLU(),
@@ -119,6 +121,7 @@ class PPO_LSTM_Agent(nn.Module):
         use_structured_obs: bool = False,
         use_popart: bool = False,
         use_gru: bool = False,
+        extra_stats_dim: int = 0,
     ):
         super().__init__()
 
@@ -129,7 +132,7 @@ class PPO_LSTM_Agent(nn.Module):
         if use_structured_obs:
             pre_layers = max(num_layers // 2 - 1, 1)
             self.shared_pre_lstm = nn.Sequential(
-                CraftaxObsEncoder(hidden_size),
+                CraftaxObsEncoder(hidden_size, extra_stats_dim=extra_stats_dim),
                 mlp_class(hidden_size, hidden_size, pre_layers, activation_fn, use_ln=use_ln),
             )
         else:

@@ -103,7 +103,9 @@ class PPO_Args:
     """reward per monster killed on current floor"""
     floor_bonus_scale: float = 5.0
     """reward per floor descended"""
-    
+    obs_augment: bool = False
+    """if toggled, augment observation with kill count on current floor (normalized 0-1)"""
+
     # BC
     bc_dataset_path: str = ""
     bc_batch_size: int = 32
