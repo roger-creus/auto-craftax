@@ -134,6 +134,7 @@ if __name__ == "__main__":
     # Auxiliary kill-count prediction head
     if args.aux_kill_pred:
         agent.init_aux_head(args.hidden_size, n_targets=1)
+        agent.aux_head = agent.aux_head.to(device)
         print(f"Auxiliary kill prediction enabled: coef={args.aux_kill_coef}")
 
     print("-------------")
