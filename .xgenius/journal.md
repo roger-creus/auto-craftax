@@ -3225,3 +3225,71 @@ PRIORITIES:
   3. Parse h032 1B — entropy annealing at scale
   4. If any pilot shows deeper floor entry: IMMEDIATELY submit 1B seeds
   5. Continue monitoring h040/h043/h044 for best final configs
+
+---
+**[2026-03-19 08:06 UTC]**
+
+=== SESSION: CRITICAL BUG FIX — Go-Explore & PBRS were completely non-functional ===
+
+Triggered by: h051-pilot-s1v3 (28376380, fir) SUCCESS.
+
+h051-pilot-s1v3 RESULT (Go-Explore pilot):
+  avg_return=29.9, avg_length=580, wall=7000s (1.94h) on fir H100
+  76% dungeon, find_bow 68%, fire_bow 56%, 0% deeper floors
+  GoExplore: buffer=0, saves=0, resets=0 — COMPLETELY NON-FUNCTIONAL!
+  Effectively ran as h044 config without Go-Explore. WORSE than h044 (32.62).
+
+CRITICAL BUG FOUND AND FIXED — Go-Explore AND PBRS broken:
+  Root cause: Craftax log_achievements_to_info() does:
+    achievements = state.achievements * done * 100.0
+  This means infos['Achievements/...'] is ALWAYS 0.0 for non-done envs.
+  Both Go-Explore (milestone detection) and PBRS (potential computation)
+  read from infos, so they are completely non-functional:
+  - Go-Explore: never detects milestones → buffer stays empty → no resets
+  - PBRS: potential always 0 → bonus always 0 → no reward shaping
+  
+  FIX: Read achievements directly from JAX env state (env_state.achievements)
+  which has true per-step boolean values. Added get_achievements_from_state()
+  in go_explore.py, updated pbrs.py to use compute_potential_from_state(),
+  updated ppo_lstm.py to extract achievements from JAX state and pass to both.
+
+ACTIONS TAKEN:
+  1. Fixed go_explore.py — reads from JAX state achievements, uses Achievement enum indices
+  2. Fixed pbrs.py — same approach, compute_potential_from_state() uses achievement indices
+  3. Fixed ppo_lstm.py — extracts achievements tensor, passes to both modules
+  4. Committed and pushed fix
+  5. Synced code to all 4 clusters
+  6. Cancelled broken h054 (28376384, fir) and h055 (28376385, fir) pilots
+  7. Resubmitted with fixed code:
+     h051-pilot-s1v4 (28384499, fir) — Go-Explore only
+     h054-pilot-s1v3 (8586825, rorqual) — PBRS only
+     h055-pilot-s1v3 (57984997, narval) — Go-Explore + PBRS
+
+RUNNING JOBS STATUS (18 1B runs + 2 old pilots + 3 new fixed pilots):
+  1B RUNS (all healthy, unchanged):
+    h031: s1 (narval 11.5h), s3 (rorqual 4h) — s1 IMMINENT
+    h032: s1 (narval 10.3h), s2 (rorqual 11h), s3 (fir 11h) — ALL CLOSE
+    h040: s1 (narval 4h), s2 (narval 8.5h), s3 (fir 7h)
+    h043: s1 (rorqual 8.5h), s2 (narval 8.5h), s3 (fir 8.3h)
+    h044: s1 (narval 7.3h), s2 (rorqual 7.3h), s3 (fir 3.4h)
+  OLD PILOTS (unaffected — no Go-Explore/PBRS):
+    h052 obs-norm (rorqual 2h), h053 residual-MLP (rorqual 2h)
+  NEW FIXED PILOTS (~2-3h each):
+    h051 Go-Explore (fir), h054 PBRS (rorqual), h055 Go-Explore+PBRS (narval)
+
+1B LEADERBOARD (completed):
+  h023 LSTM+128:  mean=38.10 (s1=37.51, s2=40.98, s3=35.82) — BEST
+  h031 GRU 64:    s2=37.06 (partial, s1+s3 running)
+  h021 LSTM base: mean=32.59 — CLOSED
+  PPO-LSTM baseline: mean=33.88
+  PPO baseline:      mean=26.83
+
+NEXT SESSION PRIORITIES:
+  1. MOST CRITICAL: Parse fixed h051/h054/h055 pilots — does Go-Explore/PBRS actually
+     work now? Check for buffer>0, saves>0, resets>0 in logs
+  2. Parse h031 1B (s1 imminent, s3 ~6h out) — GRU at 1B
+  3. Parse h032 1B (all 3 seeds close) — entropy annealing at scale
+  4. Parse h052/h053 pilots — obs norm and residual MLP
+  5. h040/h043/h044 1B results — most anticipated
+  6. If Go-Explore works: may need to also submit fixed Go-Explore 1B seeds
+  7. If PBRS works: submit 1B seeds

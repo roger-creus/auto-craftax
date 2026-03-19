@@ -37,3 +37,12 @@ Both jobs resubmitted: h020→nibi (10532814), h021→rorqual (8541287).
 
 ## 2026-03-17 00:08 — slurmstepd chdir warning (cosmetic, not fixed)
 `slurmstepd: error: couldn't chdir to '/home/rogercc/'/scratch/rogercc/auto-craftax''` still appears as a warning even after removing `-H`. This is a SLURM startup warning, not a fatal error — the actual training runs fine. The quotes around the path are likely from how xgenius expands template variables. Not blocking.
+
+## 2026-03-19 08:15 — Go-Explore and PBRS completely non-functional due to Craftax achievement info bug
+**Root cause:** Craftax's `log_achievements_to_info()` in `common.py` does `achievements = state.achievements * done * 100.0`, which means `infos['Achievements/...']` is always 0.0 for non-done environments. Both Go-Explore (milestone detection) and PBRS (potential computation) read from infos, so:
+- Go-Explore: buffer=0, saves=0, resets=0 throughout entire training (h051 pilot was a no-op)
+- PBRS: bonus always 0, no reward shaping effect (h054, h055 pilots were no-ops)
+
+**Fix:** Read achievements directly from JAX env state (`env_state.achievements`) which has the true per-step boolean values. Added `get_achievements_from_state()` helper. Cancelled broken h054/h055 pilots, resubmitted h051/h054/h055 with fix.
+
+**Impact:** All previous h051 pilot results were invalid (Go-Explore not working). h054/h055 were also invalid. This is the first time these mechanisms will actually function.
