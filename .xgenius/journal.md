@@ -2672,3 +2672,45 @@ CONFIRMED HP SEARCH RESULTS:
   - update_epochs: 4 optimal (8 causes over-optimization)
   - gae_lambda: 0.8 optimal (0.9 and 0.95 both hurt)
   - hidden_size: 512 optimal (768 hurts)
+
+---
+**[2026-03-19 02:35 UTC]**
+
+=== SESSION: h048 pilot result — aggressive entropy catastrophically hurts GRU ===
+
+Triggered by: h048-pilot-s1 (28343690, fir) SUCCESS.
+
+h048-pilot-s1 (PPO-GRU + struct obs + gamma=0.999 + ent anneal 0.05→0.003 + 128 steps + grad=1.0):
+  avg_return=19.06, avg_length=2323.92, wall=6574s (1.83h) on fir
+  0% dungeon entry! Agent purely survival-focused — extremely long episodes but no progression.
+  
+  VERDICT: CLOSED. CATASTROPHICALLY worse than h044 (32.62, 84% dungeon with 0.03→0.005).
+  Wider entropy range (0.05→0.003) causes massive instability for GRU at 128 steps.
+  Agent explores too randomly early (0.05 is very high) and then converges too tightly (0.003 is very low).
+  The 0.03→0.005 range in h044 is the sweet spot — not too much initial exploration, not too tight final policy.
+  
+  ENTROPY ANNEALING CONCLUSIONS (complete search):
+    LSTM: 0.03→0.005 works (h032: 29.74, h043: 30.7). 0.05→0.003 testing in h046.
+    GRU: 0.03→0.005 works (h044: 32.62). 0.05→0.003 FAILS (h048: 19.06).
+    Both: constant 0.01 is the baseline default. Annealing from 0.03 is optimal.
+
+ACTIVE JOBS (24 total — 21 1B + 3 pilots):
+  1B RUNS (21 jobs, 7 hypotheses):
+    h021 x3 (LSTM base): 8.5-10h elapsed, ~60-75% done
+    h023 x3 (LSTM+128s): 7h elapsed, ~50-55% done
+    h031 x3 (GRU base): 2 running 6h + 1 pending nibi
+    h032 x3 (LSTM+ent): 5h elapsed, ~35-40% done
+    h040 x3 (GRU+128+grad): 1-3h elapsed + 1 pending nibi
+    h043 x3 (LSTM+ent+128+grad): 3h elapsed, ~20-25% done
+    h044 x3 (GRU+ent+128+grad): 2h elapsed + 1 pending nibi — CURRENT BEST 32.62 at 200M
+  PILOTS (3 remaining):
+    h046 (LSTM aggressive ent 0.05→0.003, narval): 2.3h in — expect soon
+    h049 (GRU+cosine LR, nibi): 22min in — 2-3h out
+    h050 (GRU+4 minibatches, nibi): 22min in — 2-3h out
+
+NEXT SESSION PRIORITIES:
+  1. h046 should complete soon (~30min-1h) — will confirm if aggressive ent also hurts LSTM
+  2. h049/h050 pilots ~2-3h out
+  3. First 1B results (h021) expected in ~4-6h
+  4. If aggressive ent fails for LSTM too (h046), entropy annealing search is fully complete
+  5. All clusters saturated — no new submissions needed until slots free up
