@@ -3465,3 +3465,44 @@ NEXT SESSION PRIORITIES:
   3. Parse h051 pilot — Go-Explore alone with fix
   4. Parse h040/h043/h044 1B — most anticipated results
   5. Parse h031-1B-s3 — finalize h031
+
+---
+**[2026-03-19 09:58 UTC]**
+
+=== SESSION: h043-1B-s3 = 40.38 — POTENTIAL NEW BEST ===
+
+Triggered by: h043-1B-s3 (28337233, fir) SUCCESS.
+
+h043-1B-s3 (PPO-LSTM + struct obs + gamma=0.999 + ent anneal 0.03→0.005 + 128 steps + grad=1.0):
+  avg_return=40.38, 100% dungeon, avg_length=585.72, wall=36680s (10.2h) on fir H100 3g.40gb.
+  find_bow 100%, fire_bow 96%, collect_diamond 16%, ruby 24%, sapphire 20%.
+  make_diamond_sword 8%, make_diamond_pickaxe 4%. 0% deeper floors.
+  EXCELLENT — beats h023 single-seed best (s2=40.98) nearly, and beats h023 mean (38.10) by +6%.
+  If s1+s2 are similar, h043 will be the NEW 1B CHAMPION.
+
+RUNNING JOBS (13 total — 10 1B runs + 3 pilots):
+  1B RUNS:
+    h031 GRU 64:           s3 (rorqual ~5.9h)
+    h032 LSTM+ent 64:      s1 (narval ~12.3h — should be imminent/complete soon)
+    h040 GRU+128+grad:     s1 (narval ~5.8h), s2 (narval ~10.5h), s3 (fir ~8.8h)
+    h043 LSTM+ent+128+grad: s1 (rorqual ~10.5h — should complete ~same as s3), s2 (narval ~10.5h)
+    h044 GRU+ent+128+grad: s1 (narval ~9.3h), s2 (rorqual ~9.3h), s3 (fir ~5.4h)
+  PILOTS (fixed Go-Explore/PBRS):
+    h054 PBRS (rorqual ~1.8h in, ~1h remaining)
+    h051 Go-Explore (narval ~1h in, ~2h remaining)
+    h055 Go-Explore+PBRS (fir ~1.5h in, ~1.5h remaining)
+
+1B LEADERBOARD (completed seeds):
+  h043 LSTM+ent+128+grad: s3=40.38 (partial — s1+s2 running)
+  h023 LSTM+128:          mean=38.10 (s1=37.51, s2=40.98, s3=35.82) — CURRENT BEST COMPLETE
+  h031 GRU 64:            s1=33.54, s2=37.06 (partial mean=35.30)
+  h032 LSTM+ent 64:       s2=31.5, s3=30.74 (partial mean=31.12, disappointing)
+  PPO-LSTM baseline:      mean=33.88
+
+NEXT SESSION PRIORITIES:
+  1. Parse h043-1B-s1/s2 when complete — will h043 be new best?
+  2. Parse h032-1B-s1 (imminent) — close h032
+  3. Parse h054/h051/h055 pilots — Go-Explore/PBRS with bug fixes
+  4. Parse h040 1B (3 seeds) — GRU+128+grad at scale
+  5. Parse h044 1B (3 seeds) — BEST PILOT (32.62), MOST ANTICIPATED
+  6. Parse h031-1B-s3 — finalize h031
