@@ -2948,3 +2948,68 @@ NEXT SESSION PRIORITIES:
   3. More 1B results: h023, h031 expected 2-5h out
   4. If Go-Explore shows promise, consider combining with obs normalization
   5. If 1B results plateau at floor 1, Go-Explore becomes even more critical
+
+---
+**[2026-03-19 04:38 UTC]**
+
+=== SESSION: h051 pilot crash fix + h021 1B results + new qualitative hypotheses ===
+
+Triggered by: h051-pilot-s1 (10563416, nibi) SUCCESS (but actually crashed after 271s).
+
+h051 PILOT CRASH: Go-Explore device mismatch bug.
+  prev_milestone_status dict initialized bool tensors on CPU (torch.zeros default)
+  while infos tensors from env step are on CUDA. Fixed: pass device=current.device.
+  Resubmitted as h051-pilot-s1v2 (10563823, nibi).
+
+h021 1B RESULTS (PPO-LSTM + struct obs + gamma=0.999, base improved config):
+  s1: avg_return=30.22, 60% dungeon, wall=39869s (11.1h) on rorqual H100
+  s3: avg_return=34.06, 84% dungeon, wall=38291s (10.6h) on fir H100
+  s2: still running on narval (10.5h elapsed, ~5h remaining)
+  KEY FINDING: 0% deeper floor entry across BOTH seeds. Even at 1B, standard PPO-LSTM
+  tops out at dungeon (floor 1). Confirms Go-Explore is critical for deeper floors.
+  Compare: PPO baseline 1B mean=26.83, PPO-LSTM baseline=33.88. h021 at s1=30.22 s3=34.06.
+  h021 with struct obs is comparable to PPO-LSTM baseline (no struct obs), not a big lift.
+
+NEW HYPOTHESES SUBMITTED (all pilots on nibi, 200M steps):
+  h052-pilot-s1 (10563882): h044 config + --obs-norm (observation normalization)
+  h053-pilot-s1 (10563883): h044 config + --mlp-class residual_mlp (residual connections)
+  h054-pilot-s1 (10563913): h044 config + --pbrs (potential-based reward shaping)
+  h055-pilot-s1 (10563915): h044 config + --go-explore --pbrs (Go-Explore + PBRS combined)
+
+IMPLEMENTED: Potential-Based Reward Shaping (PBRS) — src/rl/pbrs.py
+  F(s,s') = gamma*phi(s') - phi(s) where phi(s) = sum of achievement milestone values
+  Provably preserves optimal policy (Ng et al. 1999) unlike raw bonuses (h002 failed).
+  Potential values: floor entries 8-62, equipment 1-5. Provides dense gradient signal
+  when milestones are achieved, zero-sum over episode otherwise.
+  Enabled via --pbrs flag.
+
+ACTIVE JOBS (24 total — 19 running + 5 pilots):
+  1B RUNS (19 jobs, 7 hypotheses):
+    h021 x1 (s2 narval ~5h out)
+    h023 x3 (~1.5-4h out) — first improved 1B results!
+    h031 x3 (~1.5-9.5h out)
+    h032 x3 (~2.5-6h out)
+    h040 x3 (~6-11.5h out)
+    h043 x3 (~6-9.5h out)
+    h044 x3 (~9-13h out)
+  PILOTS (5 on nibi):
+    h051 Go-Explore (resubmit)
+    h052 obs norm
+    h053 residual MLP
+    h054 PBRS
+    h055 Go-Explore + PBRS
+
+ESTIMATED NEXT COMPLETIONS:
+  h023-1B s1/s2: ~1.5h (first improved config at 1B!)
+  h031-1B s2: ~1.7h
+  h021-1B s2: ~5h
+  Nibi pilots: ~2-3h each
+
+NEXT SESSION PRIORITIES:
+  1. Parse h023 1B results — KEY: does LSTM+128 steps push past dungeon at 1B?
+  2. Parse h031 1B results — KEY: does GRU at 1B match the 200M pilot advantage?
+  3. Parse nibi pilot results (h051-h055) — any qualitative improvements?
+  4. If Go-Explore works: submit 1B seeds immediately
+  5. If PBRS works: submit 1B seeds
+  6. h044 1B results (~9-13h out) — most anticipated, best 200M pilot
+  7. Continue monitoring all 1B runs for completion
