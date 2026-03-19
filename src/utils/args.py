@@ -105,6 +105,10 @@ class PPO_Args:
     """reward per floor descended"""
     obs_augment: bool = False
     """if toggled, augment observation with kill count on current floor (normalized 0-1)"""
+    aux_kill_pred: bool = False
+    """if toggled, add auxiliary head predicting kill count from hidden state (no reward change)"""
+    aux_kill_coef: float = 0.1
+    """loss coefficient for auxiliary kill count prediction"""
 
     # BC
     bc_dataset_path: str = ""

@@ -130,6 +130,12 @@ if __name__ == "__main__":
         use_gru=args.use_gru,
         extra_stats_dim=extra_stats_dim,
     ).to(device)
+
+    # Auxiliary kill-count prediction head
+    if args.aux_kill_pred:
+        agent.init_aux_head(args.hidden_size, n_targets=1)
+        print(f"Auxiliary kill prediction enabled: coef={args.aux_kill_coef}")
+
     print("-------------")
     print(agent)
 
@@ -147,6 +153,7 @@ if __name__ == "__main__":
     rewards = torch.zeros((args.num_steps, args.num_envs)).to(device)
     dones = torch.zeros((args.num_steps, args.num_envs)).to(device)
     values = torch.zeros((args.num_steps, args.num_envs)).to(device)
+    aux_targets = torch.zeros((args.num_steps, args.num_envs)).to(device) if args.aux_kill_pred else None
 
     next_lstm_state = (
         torch.zeros(agent.rnn.num_layers, args.num_envs, agent.rnn.hidden_size).to(device),
@@ -197,7 +204,7 @@ if __name__ == "__main__":
 
             # action logic
             with torch.no_grad():
-                action, logprob, _, value, next_lstm_state = agent.get_action_and_value(next_obs, next_lstm_state, next_done, denormalize=True)
+                action, logprob, _, value, next_lstm_state, _ = agent.get_action_and_value(next_obs, next_lstm_state, next_done, denormalize=True)
                 values[step] = value.flatten()
             actions[step] = action
             logprobs[step] = logprob
@@ -252,6 +259,14 @@ if __name__ == "__main__":
                 prev_player_level = player_level * (~next_done).float()
 
             rewards[step] = reward.view(-1)
+
+            # Auxiliary kill prediction targets
+            if aux_targets is not None:
+                env_state_aux = envs.env._state.env_state
+                pl_aux = np.asarray(env_state_aux.player_level).astype(int)
+                mk_aux = np.asarray(env_state_aux.monsters_killed)
+                kills_aux = mk_aux[np.arange(args.num_envs), pl_aux].clip(max=8).astype(np.float32) / 8.0
+                aux_targets[step] = torch.as_tensor(kills_aux, device=device)
 
             done_indices = torch.nonzero(next_done, as_tuple=False).squeeze(-1)
             if done_indices.numel() > 0:
@@ -314,6 +329,7 @@ if __name__ == "__main__":
         b_advantages = advantages.reshape(-1)
         b_returns = returns.reshape(-1)
         b_values = values.reshape(-1)
+        b_aux_targets = aux_targets.reshape(-1) if aux_targets is not None else None
 
         # optimizing the policy and value network
         assert args.num_envs % args.num_minibatches == 0
@@ -333,7 +349,7 @@ if __name__ == "__main__":
                 mbenvinds = envinds[start:end]
                 mb_inds = flatinds[:, mbenvinds].ravel()  # be really careful about the index
 
-                _, newlogprob, entropy, newvalue, _ = agent.get_action_and_value(
+                _, newlogprob, entropy, newvalue, _, aux_pred = agent.get_action_and_value(
                     b_obs[mb_inds],
                     (initial_lstm_state[0][:, mbenvinds], initial_lstm_state[1][:, mbenvinds]),
                     b_dones[mb_inds],
@@ -377,6 +393,11 @@ if __name__ == "__main__":
 
                 entropy_loss = entropy.mean()
                 loss = pg_loss - ent_coef_now * entropy_loss + v_loss * args.vf_coef
+
+                # Auxiliary kill prediction loss
+                if aux_pred is not None and b_aux_targets is not None:
+                    aux_loss = ((aux_pred.squeeze(-1) - b_aux_targets[mb_inds]) ** 2).mean()
+                    loss = loss + args.aux_kill_coef * aux_loss
 
                 optimizer.zero_grad()
                 loss.backward()

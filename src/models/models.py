@@ -157,6 +157,18 @@ class PPO_LSTM_Agent(nn.Module):
             self.critic_head = layer_init(nn.Linear(hidden_size, 1), std=1.0)
         self.actor_head = layer_init(nn.Linear(hidden_size, n_actions), std=0.01)
 
+        # Auxiliary prediction head (e.g., predict kill count on current floor)
+        self.aux_head = None
+
+    def init_aux_head(self, hidden_size, n_targets=1):
+        """Initialize auxiliary prediction head for kill count / combat state prediction."""
+        self.aux_head = nn.Sequential(
+            nn.Linear(hidden_size, 64),
+            nn.ReLU(),
+            nn.Linear(64, n_targets),
+            nn.Sigmoid(),
+        )
+
     def get_states(self, x, lstm_state, done):
         hidden = self.shared_pre_lstm(x)
 
@@ -204,7 +216,8 @@ class PPO_LSTM_Agent(nn.Module):
         value = self.critic_head(hidden)
         if denormalize and self.use_popart:
             value = self.critic_head.denormalize(value)
-        return action, probs.log_prob(action), probs.entropy(), value, lstm_state
+        aux_pred = self.aux_head(hidden) if self.aux_head is not None else None
+        return action, probs.log_prob(action), probs.entropy(), value, lstm_state, aux_pred
     
     def sample_action(self, x, lstm_state, done):
         hidden, lstm_state = self.get_states(x, lstm_state, done)
