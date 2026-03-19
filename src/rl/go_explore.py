@@ -140,7 +140,7 @@ def detect_and_save_milestones(frontier_buffer, infos, prev_milestone_status,
 
         current = infos[milestone].bool()
         if milestone not in prev_milestone_status:
-            prev_milestone_status[milestone] = torch.zeros(num_envs, dtype=torch.bool)
+            prev_milestone_status[milestone] = torch.zeros(num_envs, dtype=torch.bool, device=current.device)
 
         prev = prev_milestone_status[milestone]
         # Detect transition: False -> True, only for non-done envs
