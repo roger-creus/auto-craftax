@@ -4669,3 +4669,69 @@ PRIORITY: Wait for h069/h070 1B results first. If curriculum scales,
 we hit the 30% target. If not, try VC-PPO lambda decoupling or
 self-imitation learning as next approaches.
 
+
+---
+**[2026-03-20 05:26 UTC]**
+
+
+=== SESSION: h057-1B-s2 parsed + curriculum pilots h072/h073 submitted ===
+
+Triggered by: h057-1B-s2 (narval 57994663) SUCCESS.
+
+h057-1B-s2 RESULT (obs augment at 1B):
+  avg_return=35.38, 88% dungeon, orc_soldier 68%, orc_mage 44%, diamond 24%.
+  Wall 49490s (13.7h). BELOW h040 (40.80) and h044 (39.0).
+  Obs augment pilot showed +1.6% but REVERSED at 1B (-9.2% vs h044).
+  h057 CLOSED: Kill count in obs does not help at scale.
+
+QUEUE OPTIMIZATION:
+  Rorqual h069-1B-s3 and h070-1B-s2 pending 12-15h (Priority queue).
+  Submitted backups on nibi:
+  - h069-1B-s3v2 (nibi 10629948)
+  - h070-1B-s2v2 (nibi 10629950)
+  Whichever cluster runs first, cancel the other.
+
+NEW PILOTS SUBMITTED:
+  h072: kills=1-3 (even less help — agent needs 5-7 kills on own)
+    Pilot on fir (28508617), behind h070-1B-s1
+    Trend: less pre-filling = better (h040 30.86 < h069 33.58 < h070 34.58)
+    If trend continues: pilot ~35-36, 1B projection ~47+
+  h073: kills=3-5 frac=0.5 (50% envs get curriculum vs 30%)
+    Pilot on narval (58030754), behind current 1B jobs
+    Testing if more curriculum exposure helps
+
+RUNNING JOBS (5 running on narval/fir, 4 pending on rorqual/nibi):
+  h040-1B-s3v2 (narval 58018762, 6.4h — ~6-8h left)
+  h069-1B-s2 (narval 58009758, 7.3h — ~5-6h left)
+  h069-1B-s1v3 (narval 58022237, 43min — ~12h left)
+  h070-1B-s1 (fir 28478436, 4h — ~14-16h left)
+  h070-1B-s3 (narval 58022596, 43min — ~12h left)
+  h069-1B-s3 (rorqual 8616355, PENDING 15h) + backup nibi 10629948
+  h070-1B-s2 (rorqual 8632579, PENDING 12h) + backup nibi 10629950
+  h072-pilot-s1 (fir 28508617, behind h070-1B-s1)
+  h073-pilot-s1 (narval 58030754, behind 1B jobs)
+
+1B LEADERBOARD:
+  h040 GRU+128+grad:        s1=40.14 s2=41.46 mean=40.80 (n=2, s3v2 running)
+  h044 GRU+ent+128+grad:    s1=35.5 s2=40.9 s3~40.7 mean=39.0 (n=3, COMPLETE)
+  h057 GRU+ent+obs-aug:     s2=35.38 (n=1, CLOSED — below h040/h044)
+  h023 LSTM+128:             mean=38.10 (n=3, COMPLETE)
+  Baseline PPO-LSTM:         mean=33.88 (n=3, COMPLETE)
+  h069 1B (projected):      ~44.3 (+30.8% over baseline) — RUNNING (2 running, 1 pending)
+  h070 1B (projected):      ~45.6 (+34.6% over baseline) — RUNNING (2 running, 1 pending)
+
+KEY INSIGHT — Obs augmentation is harmful at scale:
+  h057 (obs augment + ent anneal): pilot +1.6%, 1B -9.2% vs h044
+  h060 (obs augment, no ent anneal): pilot -11.4% vs h040
+  Conclusion: Adding kill count to observation HURTS at 1B regardless of config.
+  The agent likely learns to over-rely on the explicit signal instead of
+  building robust combat behaviors from environment feedback.
+
+NEXT SESSION PRIORITIES:
+  1. Parse h069-1B-s2 (~5-6h) — first curriculum 1B result! CRITICAL.
+  2. Parse h040-1B-s3v2 (~6-8h) — finalize h040 3-seed mean
+  3. When first seed of h069/h070 arrives: decide if curriculum scales
+  4. Parse h072/h073 pilots when ready — further curriculum optimization
+  5. If curriculum works at 1B: we hit >30% target!
+  6. If not: try VC-PPO (decoupled actor/critic lambda) or self-imitation learning
+
