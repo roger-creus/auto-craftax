@@ -5421,3 +5421,20 @@ NEXT SESSION PRIORITIES:
   5. If any RND combination beats h085: submit 1B immediately
   6. If rorqual/nibi stay stuck: resubmit on narval when slots open
 
+
+---
+**[2026-03-20 16:06 UTC]**
+
+
+WEB SEARCH FINDINGS (Craftax SOTA):
+1. Original Craftax paper confirms RND/ICM/E3B HURT at default coefs. Our mild RND (0.01) is NOVEL.
+2. SPEAR (arxiv 2509.22601): Self-imitation + progressive exploration. +16-20% on sparse rewards.
+   Replay buffer of high-return episodes + BC auxiliary loss. Plug-in for PPO. 10-25% extra compute.
+   SHOULD IMPLEMENT IN NEXT SESSION — most promising unexplored direction.
+3. DeepMind MFRL: Impala CNN + GRU gets 55.49% on Craftax-Classic. Architecture matters.
+4. SCALAR (arxiv 2603.09036): LLM-guided skills. 9.1% gnomish mines entry. But hybrid method.
+5. SOL (arxiv 2509.00338): Hierarchical RL at scale (30B frames NetHack). Complex but powerful.
+6. Craftax-Full best model-free: PPO-RNN ~15.3 return. Even 10B steps barely improves.
+   This suggests we may be hitting the ceiling for pure PPO improvements.
+   SPEAR or hierarchical approaches may be needed for the breakthrough.
+
