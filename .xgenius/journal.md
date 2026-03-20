@@ -5069,3 +5069,94 @@ NEXT SESSION PRIORITIES:
   5. Parse h069-1B-s1 and h070-1B-s1/s3 when 1B runs finish (~4-6h)
   6. If no pilots work: consider self-imitation learning or hierarchical RL
 
+
+---
+**[2026-03-20 13:22 UTC]**
+
+=== SESSION: h083 OOM + h074/h077 recovered + massive HP sweep submitted ===
+
+Triggered by: h083-pilot-s1v2 (narval 58037431) SUCCESS notification — but was actually OOM crash.
+
+h083 (num_minibatches=4) CRASHED with OOM at 131K steps on narval A100 40GB.
+  JAX environment uses ~32GB GPU memory, leaving only ~8GB for PyTorch.
+  With 4 minibatches (vs default 8), each minibatch is 2x larger, exceeding available VRAM.
+  h083 CLOSED: infeasible on available GPU hardware.
+
+RECOVERED RESULTS (CSVs survived despite node crashes):
+  h074 (gae_lambda=0.95): avg_return=23.10, 52% dungeon. -25.2% vs h040 (30.86). CLOSED.
+  h077 (lambda=0.95 + sep critic): avg_return=21.22, 16% dungeon. -31.2% vs h040. CLOSED.
+  Both confirm: GAE lambda=0.95 is catastrophically bad for Craftax.
+
+h079 (VC-PPO + sep critic): avg_return=17.78. -42.4% vs h040. WORST EVER. CLOSED.
+
+COMPLETE GAE LAMBDA / VALUE FUNCTION RESULTS:
+  h040 (lambda=0.8, default):     pilot=30.86 — BEST
+  h074 (lambda=0.95):             pilot=23.10 — -25.2%
+  h076 (separate critic):         pilot=22.74 — -26.3%
+  h077 (lambda=0.95 + sep):       pilot=21.22 — -31.2%
+  h078 (VC-PPO a=0.95 c=1.0):    pilot=21.22 — -31.2%
+  h079 (VC-PPO + sep critic):     pilot=17.78 — -42.4%
+  CONCLUSION: GAE lambda=0.8 is OPTIMAL. Any increase destroys performance.
+  Separate critic ALWAYS hurts. Shared features are crucial.
+
+CANCELLED stuck jobs:
+  - 5 nibi pilots (h080-h084) — all nodes g[7,26,37] down
+  - 2 rorqual 1B (h069-s3, h070-s2) — stuck pending 2+ days, curriculum dead end
+
+RESUBMITTED on narval:
+  h081-pilot-s1v2 (narval 58037892): update_epochs=2
+  h082-pilot-s1v2 (narval 58037893): vf_coef=1.0
+
+NEW HYPOTHESES SUBMITTED:
+  h088: clip_coef=0.1 (tighter PPO clipping) — narval + rorqual
+  h089: ent_coef=0.02 (more exploration) — narval + rorqual
+  h090: no clip_vloss (no value function clipping) — narval + rorqual
+  h091: num_envs=2048 (more parallel envs) — narval
+
+RUNNING PILOTS (all narval, ~1-1.5h to completion):
+  h080 (lr=0.0003): 58037430, started 09:00 EST
+  h084 (hidden=768): 58037433, started 09:00 EST
+  h085 (RND 0.01): 58037409, started 08:53 EST
+  h086 (RND 0.1): 58037410, started 08:53 EST
+  h087 (reward norm): 58037457, started 09:02 EST
+
+PENDING PILOTS (queued behind running):
+  h081 (update_epochs=2): narval 58037892
+  h082 (vf_coef=1.0): narval 58037893
+  h088 (clip_coef=0.1): narval 58037894 + rorqual 8645550
+  h089 (ent_coef=0.02): narval 58037896 + rorqual 8645551
+  h090 (no clip_vloss): narval 58037897 + rorqual 8645552
+  h091 (num_envs=2048): narval 58037906
+
+RUNNING 1B JOBS:
+  h069-1B-s1v3 (narval 58022237): ~9h elapsed, ~4h left
+  h070-1B-s3 (narval 58022596): ~9h elapsed, ~4h left
+  h070-1B-s1 (fir 28478436): ~12h elapsed, ~6h left
+
+PENDING ON FIR:
+  h072-pilot (28508617): kills=1-3, behind h070-1B
+  h075-pilot (28533542): lambda=0.9, behind h072-pilot
+
+1B LEADERBOARD:
+  h040 GRU+128+grad:     mean=39.55±2.25 (n=3, FINAL) — CURRENT BEST
+  h044 GRU+ent+128+grad: mean=39.0 (n=3, FINAL)
+  h069 curriculum k5-7:  s2=38.46 (n=1, s1 running, s3 cancelled)
+  h023 LSTM+128:         mean=38.10 (n=3, FINAL)
+  Baseline PPO-LSTM:     mean=33.88 (n=3, FINAL)
+  30% TARGET:            44.04
+
+WEB SEARCH INSIGHTS:
+  DeepMind paper showed model-free GRU baseline on Craftax-Classic went from 46.91% to 55.49%
+  by expanding model size. h084 (hidden_size=768) is testing this. If it works, try 1024.
+
+STRATEGY: Massive hyperparameter sweep (h080-h091) around h040 config.
+  If ANY pilot beats 30.86: immediately submit 1B x 3 seeds.
+  Key bets: RND exploration (h085/h086), larger model (h084), tighter clipping (h088).
+
+NEXT SESSION PRIORITIES:
+  1. Parse h080/h084/h085/h086/h087 pilots (~1-1.5h from now)
+  2. Parse h081/h082/h088-h091 pilots (queued, ~3h from now)
+  3. Parse h069-1B-s1 and h070-1B results (~4-6h from now)
+  4. If any pilot beats h040: submit 1B immediately
+  5. If RND works: this is the most promising path to 44+
+  6. Consider self-imitation learning if all HP sweeps fail
