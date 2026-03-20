@@ -1,0 +1,229 @@
+slurmstepd: error: couldn't chdir to `/home/rogercc/'/scratch/rogercc/auto-craftax'': No such file or directory: going to /tmp instead
+slurmstepd: error: couldn't chdir to `/home/rogercc/'/scratch/rogercc/auto-craftax'': No such file or directory: going to /tmp instead
+sending incremental file list
+auto-craftax.sif
+
+sent 19,797,219,387 bytes  received 35 bytes  289,010,502.51 bytes/sec
+total size is 19,808,600,064  speedup is 1.00
+WARNING: Environment variable PYTHONPATH already has value [/src], will not forward new value [/src:/cvmfs/soft.computecanada.ca/custom/python/site-packages] from parent process environment
+Failed to import warp: No module named 'warp'
+Failed to import mujoco_warp: No module named 'warp'
+/opt/conda/envs/skill/lib/python3.10/site-packages/tyro/_parsers.py:353: UserWarning: The field `target-kl` is annotated with type `<class 'float'>`, but the default value `None` has type `<class 'NoneType'>`. We'll try to handle this gracefully, but it may cause unexpected behavior.
+  warnings.warn(message)
+Running with num_envs=1024, num_steps=128, minibatch_size=16384, max_grad_norm=1.0
+using device cuda
+Processing Craftax textures. This will take a minute but will be cached for future use.
+Textures loaded and saved to cache.
+RND exploration enabled: coef=0.01, output_dim=64, hidden_dim=256
+SIL enabled: coef=0.5, vf_coef=0.01, buffer=131072, percentile=75.0, warmup=0.1
+-------------
+PPO_LSTM_Agent(
+  (shared_pre_lstm): Sequential(
+    (0): CraftaxObsEncoder(
+      (map_cnn): Sequential(
+        (0): Conv2d(83, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        (1): ReLU()
+        (2): Conv2d(32, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        (3): ReLU()
+        (4): AdaptiveAvgPool2d(output_size=(3, 4))
+      )
+      (map_proj): Sequential(
+        (0): Linear(in_features=768, out_features=512, bias=True)
+        (1): ReLU()
+      )
+      (stats_mlp): Sequential(
+        (0): Linear(in_features=51, out_features=256, bias=True)
+        (1): ReLU()
+        (2): Linear(in_features=256, out_features=256, bias=True)
+        (3): ReLU()
+      )
+      (combine): Sequential(
+        (0): Linear(in_features=768, out_features=512, bias=True)
+        (1): ReLU()
+      )
+    )
+    (1): MLP(
+      (net): Sequential(
+        (0): Linear(in_features=512, out_features=512, bias=True)
+        (1): Tanh()
+      )
+    )
+  )
+  (rnn): GRU(512, 512)
+  (shared_post_lstm): MLP(
+    (net): Sequential(
+      (0): Linear(in_features=512, out_features=512, bias=True)
+      (1): Tanh()
+      (2): Linear(in_features=512, out_features=512, bias=True)
+      (3): Tanh()
+    )
+  )
+  (critic_head): Linear(in_features=512, out_features=1, bias=True)
+  (actor_head): Linear(in_features=512, out_features=43, bias=True)
+)
+Adam (
+Parameter Group 0
+    amsgrad: False
+    betas: (0.9, 0.999)
+    capturable: False
+    decoupled_weight_decay: False
+    differentiable: False
+    eps: 1e-05
+    foreach: None
+    fused: None
+    lr: 0.0002
+    maximize: False
+    weight_decay: 0
+)
+global_step=33792, episodic_return=0.10000000894069672, episodic_length=33, avg_reward=0.10000000894069672
+global_step=36864, episodic_return=0.10000002384185791, episodic_length=36, avg_reward=0.10000001639127731
+global_step=39936, episodic_return=-0.8999999761581421, episodic_length=39, avg_reward=-0.2333333045244217
+global_step=43008, episodic_return=0.10000002384185791, episodic_length=42, avg_reward=-0.1499999761581421
+global_step=45056, episodic_return=-0.8999999761581421, episodic_length=44, avg_reward=-0.29999998211860657
+global_step=46080, episodic_return=0.10000000894069672, episodic_length=45, avg_reward=-0.2333333045244217
+global_step=50176, episodic_return=0.10000000894069672, episodic_length=49, avg_reward=-0.1857142597436905
+global_step=50176, episodic_return=-0.8999999761581421, episodic_length=49, avg_reward=-0.2749999761581421
+global_step=50176, episodic_return=0.10000000894069672, episodic_length=49, avg_reward=-0.23333331942558289
+global_step=51200, episodic_return=-0.9000000357627869, episodic_length=50, avg_reward=-0.30000001192092896
+global_step=52224, episodic_return=0.10000000894069672, episodic_length=51, avg_reward=-0.26363638043403625
+global_step=53248, episodic_return=0.09999996423721313, episodic_length=52, avg_reward=-0.23333334922790527
+global_step=55296, episodic_return=0.10000000149011612, episodic_length=54, avg_reward=-0.20769232511520386
+global_step=55296, episodic_return=0.09999996423721313, episodic_length=54, avg_reward=-0.18571431934833527
+global_step=57344, episodic_return=1.0999997854232788, episodic_length=56, avg_reward=-0.1000000387430191
+global_step=58368, episodic_return=-0.8999999761581421, episodic_length=57, avg_reward=-0.15000000596046448
+global_step=58368, episodic_return=0.10000000894069672, episodic_length=57, avg_reward=-0.1352941244840622
+global_step=59392, episodic_return=0.10000001639127731, episodic_length=58, avg_reward=-0.12222223728895187
+global_step=60416, episodic_return=-0.8999999761581421, episodic_length=59, avg_reward=-0.16315791010856628
+global_step=62464, episodic_return=0.09999997913837433, episodic_length=61, avg_reward=-0.15000002086162567
+global_step=62464, episodic_return=0.09999996423721313, episodic_length=61, avg_reward=-0.13809525966644287
+global_step=63488, episodic_return=2.0999999046325684, episodic_length=62, avg_reward=-0.036363665014505386
+global_step=63488, episodic_return=-0.8999999761581421, episodic_length=62, avg_reward=-0.07391307502985
+global_step=64512, episodic_return=0.10000000894069672, episodic_length=63, avg_reward=-0.06666667014360428
+global_step=69632, episodic_return=2.0999999046325684, episodic_length=68, avg_reward=0.019999990239739418
+global_step=69632, episodic_return=-0.8999999761581421, episodic_length=68, avg_reward=-0.020000005140900612
+global_step=69632, episodic_return=-0.8999999761581421, episodic_length=68, avg_reward=-0.06000000983476639
+global_step=69632, episodic_return=-0.8999999761581421, episodic_length=68, avg_reward=-0.060000013560056686
+global_step=70656, episodic_return=-0.8999999761581421, episodic_length=69, avg_reward=-0.10000001639127731
+global_step=72704, episodic_return=-0.8999999761581421, episodic_length=71, avg_reward=-0.10000001639127731
+global_step=73728, episodic_return=0.10000002384185791, episodic_length=72, avg_reward=-0.10000001639127731
+global_step=74752, episodic_return=-0.9000000357627869, episodic_length=73, avg_reward=-0.14000003039836884
+global_step=74752, episodic_return=-0.8999999761581421, episodic_length=73, avg_reward=-0.14000001549720764
+global_step=77824, episodic_return=-0.8999999761581421, episodic_length=76, avg_reward=-0.18000003695487976
+global_step=78848, episodic_return=1.0999999046325684, episodic_length=77, avg_reward=-0.10000003129243851
+global_step=79872, episodic_return=0.10000006854534149, episodic_length=78, avg_reward=-0.10000001639127731
+global_step=79872, episodic_return=1.0999997854232788, episodic_length=78, avg_reward=-0.06000002473592758
+global_step=79872, episodic_return=1.100000023841858, episodic_length=78, avg_reward=-0.020000029355287552
+global_step=81920, episodic_return=0.10000006854534149, episodic_length=80, avg_reward=-0.020000021904706955
+global_step=83968, episodic_return=1.1000001430511475, episodic_length=82, avg_reward=-0.019999999552965164
+global_step=86016, episodic_return=0.09999994933605194, episodic_length=84, avg_reward=0.01999998837709427
+global_step=87040, episodic_return=0.09999996423721313, episodic_length=85, avg_reward=0.019999992102384567
+global_step=87040, episodic_return=1.0999997854232788, episodic_length=85, avg_reward=0.059999980032444
+global_step=88064, episodic_return=0.1000000610947609, episodic_length=86, avg_reward=0.09999999403953552
+global_step=88064, episodic_return=0.10000006854534149, episodic_length=86, avg_reward=0.09999999403953552
+global_step=89088, episodic_return=0.10000000894069672, episodic_length=87, avg_reward=0.09999999403953552
+global_step=89088, episodic_return=0.10000001639127731, episodic_length=87, avg_reward=0.019999995827674866
+global_step=90112, episodic_return=1.0999997854232788, episodic_length=88, avg_reward=0.09999997913837433
+global_step=91136, episodic_return=1.1000001430511475, episodic_length=89, avg_reward=0.13999998569488525
+global_step=91136, episodic_return=-0.8999999761581421, episodic_length=89, avg_reward=0.020000005140900612
+global_step=91136, episodic_return=1.0999999046325684, episodic_length=89, avg_reward=0.10000000149011612
+global_step=92160, episodic_return=0.10000000894069672, episodic_length=90, avg_reward=0.14000000059604645
+global_step=93184, episodic_return=0.10000001639127731, episodic_length=91, avg_reward=0.18000000715255737
+global_step=94208, episodic_return=0.10000006854534149, episodic_length=92, avg_reward=0.2199999839067459
+global_step=95232, episodic_return=0.10000002384185791, episodic_length=93, avg_reward=0.25999999046325684
+global_step=97280, episodic_return=0.10000006854534149, episodic_length=95, avg_reward=0.25999999046325684
+global_step=97280, episodic_return=0.1000000387430191, episodic_length=95, avg_reward=0.29999998211860657
+global_step=98304, episodic_return=1.0999997854232788, episodic_length=96, avg_reward=0.37999996542930603
+global_step=98304, episodic_return=0.10000000894069672, episodic_length=96, avg_reward=0.41999998688697815
+global_step=98304, episodic_return=0.1000000387430191, episodic_length=96, avg_reward=0.3799999952316284
+global_step=98304, episodic_return=0.1000000387430191, episodic_length=96, avg_reward=0.3799999952316284
+global_step=99328, episodic_return=0.1000000387430191, episodic_length=97, avg_reward=0.3400000035762787
+global_step=100352, episodic_return=-0.8999999761581421, episodic_length=98, avg_reward=0.25999999046325684
+global_step=100352, episodic_return=0.1000000387430191, episodic_length=98, avg_reward=0.25999999046325684
+global_step=100352, episodic_return=0.10000000894069672, episodic_length=44, avg_reward=0.2199999988079071
+global_step=102400, episodic_return=1.0999997854232788, episodic_length=100, avg_reward=0.25999999046325684
+global_step=103424, episodic_return=0.10000006854534149, episodic_length=101, avg_reward=0.25999999046325684
+global_step=103424, episodic_return=-0.8999999165534973, episodic_length=101, avg_reward=0.17999997735023499
+global_step=104448, episodic_return=1.0999999046325684, episodic_length=102, avg_reward=0.2199999988079071
+global_step=104448, episodic_return=0.1000000461935997, episodic_length=102, avg_reward=0.2199999839067459
+global_step=105472, episodic_return=0.10000006854534149, episodic_length=103, avg_reward=0.2199999988079071
+global_step=106496, episodic_return=0.10000006854534149, episodic_length=104, avg_reward=0.2199999839067459
+global_step=108544, episodic_return=0.10000002384185791, episodic_length=106, avg_reward=0.18000002205371857
+global_step=108544, episodic_return=0.10000000894069672, episodic_length=106, avg_reward=0.14000000059604645
+global_step=108544, episodic_return=0.10000006854534149, episodic_length=106, avg_reward=0.18000000715255737
+global_step=109568, episodic_return=0.10000000894069672, episodic_length=107, avg_reward=0.14000000059604645
+global_step=110592, episodic_return=0.10000003129243851, episodic_length=108, avg_reward=0.14000001549720764
+global_step=110592, episodic_return=0.09999997168779373, episodic_length=108, avg_reward=0.14000001549720764
+global_step=110592, episodic_return=0.10000000894069672, episodic_length=108, avg_reward=0.14000000059604645
+global_step=111616, episodic_return=0.10000006854534149, episodic_length=109, avg_reward=0.14000001549720764
+global_step=111616, episodic_return=0.10000006854534149, episodic_length=109, avg_reward=0.14000001549720764
+global_step=111616, episodic_return=1.0999999046325684, episodic_length=109, avg_reward=0.18000000715255737
+global_step=113664, episodic_return=0.10000002384185791, episodic_length=111, avg_reward=0.14000001549720764
+global_step=113664, episodic_return=0.10000000894069672, episodic_length=54, avg_reward=0.14000001549720764
+global_step=113664, episodic_return=0.10000006854534149, episodic_length=111, avg_reward=0.14000003039836884
+global_step=113664, episodic_return=-0.8999999761581421, episodic_length=111, avg_reward=0.10000001639127731
+global_step=113664, episodic_return=-0.9000000357627869, episodic_length=111, avg_reward=0.060000017285346985
+global_step=115712, episodic_return=0.10000000149011612, episodic_length=113, avg_reward=0.10000001639127731
+global_step=115712, episodic_return=0.1000000536441803, episodic_length=113, avg_reward=0.10000003129243851
+global_step=115712, episodic_return=1.0999997854232788, episodic_length=113, avg_reward=0.14000001549720764
+global_step=117760, episodic_return=0.10000000894069672, episodic_length=115, avg_reward=0.10000000894069672
+global_step=117760, episodic_return=0.09999997913837433, episodic_length=115, avg_reward=0.10000001639127731
+global_step=118784, episodic_return=-0.8999999761581421, episodic_length=116, avg_reward=0.10000001639127731
+global_step=118784, episodic_return=0.1000000536441803, episodic_length=116, avg_reward=0.060000017285346985
+global_step=118784, episodic_return=-0.8999999761581421, episodic_length=116, avg_reward=0.020000014454126358
+global_step=119808, episodic_return=-0.9000000357627869, episodic_length=117, avg_reward=-0.01999998837709427
+global_step=119808, episodic_return=1.0999999046325684, episodic_length=117, avg_reward=0.019999999552965164
+global_step=119808, episodic_return=-0.9000000357627869, episodic_length=117, avg_reward=-0.019999997690320015
+global_step=119808, episodic_return=0.10000006854534149, episodic_length=117, avg_reward=-0.019999992102384567
+global_step=120832, episodic_return=0.10000003129243851, episodic_length=118, avg_reward=-0.020000005140900612
+global_step=120832, episodic_return=0.10000006854534149, episodic_length=118, avg_reward=-0.019999992102384567
+global_step=122880, episodic_return=-0.9000000357627869, episodic_length=78, avg_reward=-0.05999999865889549
+global_step=122880, episodic_return=0.1000000387430191, episodic_length=120, avg_reward=-0.059999994933605194
+global_step=122880, episodic_return=-0.8999999761581421, episodic_length=120, avg_reward=-0.10000000149011612
+global_step=123904, episodic_return=0.09999999403953552, episodic_length=121, avg_reward=-0.10000000894069672
+global_step=123904, episodic_return=0.1000000461935997, episodic_length=121, avg_reward=-0.10000000149011612
+global_step=126976, episodic_return=1.0999997854232788, episodic_length=124, avg_reward=-0.10000000149011612
+global_step=126976, episodic_return=1.0999997854232788, episodic_length=124, avg_reward=-0.06000002473592758
+global_step=128000, episodic_return=0.1000000387430191, episodic_length=125, avg_reward=-0.06000003218650818
+global_step=129024, episodic_return=0.10000000894069672, episodic_length=40, avg_reward=-0.06000002473592758
+global_step=129024, episodic_return=0.10000002384185791, episodic_length=126, avg_reward=-0.020000018179416656
+global_step=129024, episodic_return=0.10000000894069672, episodic_length=126, avg_reward=0.01999998837709427
+global_step=130048, episodic_return=1.0999999046325684, episodic_length=127, avg_reward=0.059999980032444
+global_step=130048, episodic_return=-0.8999999761581421, episodic_length=59, avg_reward=0.019999980926513672
+global_step=131072, episodic_return=0.10000000894069672, episodic_length=128, avg_reward=-0.020000014454126358
+global_step=131072, episodic_return=-0.8999999761581421, episodic_length=128, avg_reward=-0.06000000983476639
+global_step=131072, episodic_return=1.0999999046325684, episodic_length=128, avg_reward=-0.020000018179416656
+Traceback (most recent call last):
+  File "/src/src/rl/ppo_lstm.py", line 544, in <module>
+    _, newlogprob, entropy, newvalue, _, aux_pred = agent.get_action_and_value(
+  File "/src/src/models/models.py", line 218, in get_action_and_value
+    actor_hidden, critic_hidden, lstm_state = self.get_states(x, lstm_state, done)
+  File "/src/src/models/models.py", line 179, in get_states
+    hidden = self.shared_pre_lstm(x)
+  File "/opt/conda/envs/skill/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/opt/conda/envs/skill/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/opt/conda/envs/skill/lib/python3.10/site-packages/torch/nn/modules/container.py", line 253, in forward
+    input = module(input)
+  File "/opt/conda/envs/skill/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/opt/conda/envs/skill/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/src/src/models/models.py", line 67, in forward
+    map_feat = self.map_cnn(map_2d).flatten(1)
+  File "/opt/conda/envs/skill/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/opt/conda/envs/skill/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/opt/conda/envs/skill/lib/python3.10/site-packages/torch/nn/modules/container.py", line 253, in forward
+    input = module(input)
+  File "/opt/conda/envs/skill/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1776, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/opt/conda/envs/skill/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1787, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/opt/conda/envs/skill/lib/python3.10/site-packages/torch/nn/modules/conv.py", line 553, in forward
+    return self._conv_forward(input, self.weight, self.bias)
+  File "/opt/conda/envs/skill/lib/python3.10/site-packages/torch/nn/modules/conv.py", line 548, in _conv_forward
+    return F.conv2d(
+torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 396.00 MiB. GPU 0 has a total capacity of 39.50 GiB of which 220.12 MiB is free. Including non-PyTorch memory, this process has 39.25 GiB memory in use. Of the allocated memory 8.85 GiB is allocated by PyTorch, and 325.68 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)
+slurmstepd: error: run_script_as_user: couldn't change working dir to /home/rogercc/'/scratch/rogercc/auto-craftax': No such file or directory

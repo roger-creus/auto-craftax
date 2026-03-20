@@ -15,14 +15,19 @@ import numpy as np
 
 
 class SILBuffer:
-    """Fixed-size buffer storing high-return (obs, action, return) transitions."""
+    """Fixed-size buffer storing high-return (obs, action, return) transitions.
+
+    Buffer lives on CPU to avoid GPU OOM (JAX/Craftax uses most GPU memory).
+    Mini-batches are moved to GPU only when sampled.
+    """
 
     def __init__(self, capacity, obs_dim, device):
         self.capacity = capacity
-        self.device = device
-        self.obs = torch.zeros(capacity, obs_dim, device=device)
-        self.actions = torch.zeros(capacity, dtype=torch.long, device=device)
-        self.returns = torch.zeros(capacity, device=device)
+        self.device = device  # target device for samples (GPU)
+        # Store on CPU to save GPU memory
+        self.obs = torch.zeros(capacity, obs_dim, device='cpu')
+        self.actions = torch.zeros(capacity, dtype=torch.long, device='cpu')
+        self.returns = torch.zeros(capacity, device='cpu')
         self.size = 0
         self.ptr = 0  # circular pointer
 
@@ -39,9 +44,9 @@ class SILBuffer:
         if not mask.any():
             return 0
 
-        good_obs = obs_batch[mask]
-        good_act = act_batch[mask]
-        good_ret = ret_batch[mask]
+        good_obs = obs_batch[mask].cpu()
+        good_act = act_batch[mask].cpu()
+        good_ret = ret_batch[mask].cpu()
         n = good_obs.shape[0]
 
         if n == 0:
@@ -58,7 +63,7 @@ class SILBuffer:
             # If we filled up and still have more, write circularly
             if n_add < n:
                 remaining = n - n_add
-                idx = torch.arange(remaining, device=self.device) % self.capacity
+                idx = torch.arange(remaining) % self.capacity
                 self.obs[idx] = good_obs[n_add:]
                 self.actions[idx] = good_act[n_add:]
                 self.returns[idx] = good_ret[n_add:]
@@ -74,9 +79,13 @@ class SILBuffer:
         return n
 
     def sample(self, batch_size):
-        """Sample a random batch of transitions."""
-        indices = torch.randint(0, self.size, (min(batch_size, self.size),), device=self.device)
-        return self.obs[indices], self.actions[indices], self.returns[indices]
+        """Sample a random batch and move to target device (GPU)."""
+        indices = torch.randint(0, self.size, (min(batch_size, self.size),))
+        return (
+            self.obs[indices].to(self.device),
+            self.actions[indices].to(self.device),
+            self.returns[indices].to(self.device),
+        )
 
     def __len__(self):
         return self.size
