@@ -5337,3 +5337,87 @@ NEXT SESSION PRIORITIES:
   5. Parse h085-1B results (~18-24h from now)
   6. If nothing hits 44: try model-based RL (DreamerV3/world model) as paradigm shift
 
+
+---
+**[2026-03-20 16:05 UTC]**
+
+
+=== SESSION: h082/h089/h090 results + new hypotheses h092-h100 submitted ===
+
+Triggered by: h082-pilot-s1v2 (narval 58037893) SUCCESS.
+
+HP SWEEP RESULTS PARSED THIS SESSION:
+  h082 (vf_coef=1.0):    avg_return=29.82, -3.4% vs h040. CLOSED — default 0.5 is fine.
+  h089 (ent_coef=0.02):  avg_return=25.54, -17.2% vs h040. CLOSED — higher entropy destroys learning.
+  h090 (no clip_vloss):  avg_return=29.34, -4.9% vs h040. CLOSED — removing value clip marginally worse.
+
+COMPLETE HP SWEEP RESULTS (h080-h091):
+  h085 (RND 0.01):       32.46 (+5.2%) — PROMISING, 1B submitted
+  h082 (vf_coef=1.0):    29.82 (-3.4%) — closed
+  h090 (no clip_vloss):  29.34 (-4.9%) — closed
+  h084 (hidden=768):     28.66 (-7.1%) — open (may scale at 1B)
+  h089 (ent_coef=0.02):  25.54 (-17.2%) — closed
+  h080 (lr=0.0003):      23.46 (-24.0%) — closed
+  h086 (RND 0.1):        21.98 (-28.8%) — closed
+  h087 (reward norm):    18.94 (-38.6%) — closed
+  h081 (update_epochs=2):18.50 (-40.0%) — closed
+  h088 (clip_coef=0.1):  STILL RUNNING (narval, ~2.5h elapsed, should finish soon)
+  h083 (num_minibatches=4): OOM — closed
+  h091 (num_envs=2048):  OOM — closed
+
+CONCLUSION: Default h040 config is NEAR-OPTIMAL. Only RND 0.01 improves (h085 +5.2%).
+All other HP changes hurt. The base config is well-tuned.
+
+NEW FEATURES IMPLEMENTED:
+  1. RND coefficient annealing: --rnd-coef-end flag, linearly anneals from rnd_coef to rnd_coef_end
+  2. Dungeon-only RND: --rnd-dungeon-only flag, only applies RND bonus when floor > 0
+
+NEW HYPOTHESES SUBMITTED:
+  h092 (RLE 0.01): rorqual 8651739 — PENDING (Priority)
+  h093 (RLE 0.1):  nibi 10648144 — PENDING (nodes down)
+  h094 (curriculum+RND 0.01): rorqual 8651741 — PENDING (Priority)
+  h095 (ent anneal+RND 0.01): nibi 10648150 — PENDING (nodes down)
+  h096 (RND 0.005): rorqual 8651748 — PENDING (Priority)
+  h097 (RND 0.01+hidden=768): nibi 10648166 — PENDING (nodes down)
+  h098 (RND anneal 0.05→0.005): rorqual 8651961 — PENDING (Priority)
+  h099 (RND 0.01+clip=0.1): nibi 10648242 — PENDING (nodes down)
+  h100 (dungeon-only RND 0.01): rorqual 8652117 — PENDING (Priority)
+
+Also still pending on narval from last session:
+  h092-h096 (narval) — behind running 1B jobs
+  h085-1B-s1/s3 (narval) — behind running 1B jobs
+
+CLUSTER STATUS:
+  narval: busy (5 running: h069-1B, h070-1B-s3, h088, + 7 pending)
+  fir: busy (2 running: h070-1B-s1, h085-1B-s2)
+  rorqual: 5 pending (Priority — should start soon)
+  nibi: 4 pending (nodes g[7,26,37] down — may be delayed)
+
+1B LEADERBOARD:
+  h040 GRU+128+grad:     mean=39.55±2.25 (n=3, FINAL) — CURRENT BEST
+  h044 GRU+ent+128+grad: mean=39.0 (n=3, FINAL)
+  h069 curriculum k5-7:  s2=38.46 (n=1, s1 running narval)
+  h023 LSTM+128:         mean=38.10 (n=3, FINAL)
+  Baseline PPO-LSTM:     mean=33.88 (n=3, FINAL)
+  30% TARGET:            44.04
+
+RUNNING 1B JOBS:
+  h069-1B-s1v3: narval ~11h elapsed
+  h070-1B-s3:   narval ~11h elapsed
+  h070-1B-s1:   fir ~14.5h elapsed
+  h085-1B-s2:   fir ~30min elapsed (just started)
+
+STRATEGY: Focus on RND combinations since h085 (mild RND) is the ONLY improvement found.
+  Key bets: h094 (curriculum+RND), h097 (RND+hidden=768), h098 (RND anneal), h100 (dungeon-only RND).
+  If any pilot beats h085 (32.46): submit 1B × 3 seeds immediately.
+  If h085-1B scales like h040 (pilot→1B = +28%): could reach ~41.6.
+  To hit 44.04, we likely need a combination of improvements.
+
+NEXT SESSION PRIORITIES:
+  1. Parse h088 pilot (clip_coef=0.1) — should complete very soon
+  2. Parse h092-h100 pilots as they come in (rorqual/nibi pending)
+  3. Parse h069/h070 1B results (~6-12h from now)
+  4. Parse h085-1B results (~18-24h from now)
+  5. If any RND combination beats h085: submit 1B immediately
+  6. If rorqual/nibi stay stuck: resubmit on narval when slots open
+

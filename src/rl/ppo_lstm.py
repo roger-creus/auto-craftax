@@ -182,7 +182,8 @@ if __name__ == "__main__":
         rnd_optimizer = torch.optim.Adam(rnd_predictor.parameters(), lr=args.rnd_lr)
         # Running stats for normalizing intrinsic rewards
         rnd_reward_rms = RunningMeanStd((1,), device)
-        print(f"RND exploration enabled: coef={args.rnd_coef}, output_dim={args.rnd_output_dim}, hidden_dim={args.rnd_hidden_dim}")
+        rnd_anneal_str = f" -> {args.rnd_coef_end}" if args.rnd_coef_end >= 0 else ""
+        print(f"RND exploration enabled: coef={args.rnd_coef}{rnd_anneal_str}, output_dim={args.rnd_output_dim}, hidden_dim={args.rnd_hidden_dim}")
 
     # RLE (Random Latent Exploration) — simpler than RND, conditions policy on random z
     rle_phi = None
@@ -273,6 +274,13 @@ if __name__ == "__main__":
             ent_coef_now = args.ent_coef + (args.ent_coef_end - args.ent_coef) * ent_frac
         else:
             ent_coef_now = args.ent_coef
+
+        # RND coefficient annealing
+        if args.rnd and args.rnd_coef_end >= 0:
+            rnd_frac = (iteration - 1.0) / args.num_iterations
+            rnd_coef_now = args.rnd_coef + (args.rnd_coef_end - args.rnd_coef) * rnd_frac
+        else:
+            rnd_coef_now = args.rnd_coef
 
         for step in range(0, args.num_steps):
             global_step += args.num_envs
@@ -367,7 +375,12 @@ if __name__ == "__main__":
                     # Normalize by running stats
                     rnd_reward_rms.update(rnd_error.unsqueeze(-1))
                     rnd_intrinsic = rnd_error / (rnd_reward_rms.var.squeeze().sqrt() + 1e-8)
-                    reward = reward.view(-1) + args.rnd_coef * rnd_intrinsic
+                    # Optionally mask: only apply RND in dungeon (floor > 0)
+                    if args.rnd_dungeon_only:
+                        env_state_rnd = envs.env._state.env_state
+                        in_dungeon = torch.as_tensor(np.asarray(env_state_rnd.player_level), device=device).float() > 0
+                        rnd_intrinsic = rnd_intrinsic * in_dungeon.float()
+                    reward = reward.view(-1) + rnd_coef_now * rnd_intrinsic
 
             # RLE intrinsic reward: r_i = φ(s) · z, normalized by running std
             if rle_phi is not None:

@@ -137,6 +137,10 @@ class PPO_Args:
     """hidden dimension of RND target/predictor networks"""
     rnd_lr: float = 0.0001
     """learning rate for RND predictor network"""
+    rnd_coef_end: float = -1.0
+    """if >= 0, anneal RND coefficient from rnd_coef to rnd_coef_end over training"""
+    rnd_dungeon_only: bool = False
+    """if toggled, only apply RND intrinsic reward when agent is in the dungeon (floor > 0)"""
     rle: bool = False
     """if toggled, use RLE (Random Latent Exploration) intrinsic bonus — policy conditioned on random z"""
     rle_coef: float = 0.01
