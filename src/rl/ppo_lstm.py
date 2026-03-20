@@ -17,6 +17,7 @@ from src.utils.args import PPO_Args
 from src.utils.utils import get_optimizer_class, get_activation_fn, get_mlp_class, RunningMeanStd
 from src.rl.go_explore import FrontierBuffer, detect_and_save_milestones, apply_frontier_resets, get_achievements_from_state
 from src.rl.pbrs import compute_potential_from_state, compute_pbrs_bonus
+from src.rl.sil import SILBuffer, compute_sil_loss
 
 if __name__ == "__main__":
     import os
@@ -209,6 +210,14 @@ if __name__ == "__main__":
         # Running stats for normalizing intrinsic rewards
         rle_reward_rms = RunningMeanStd((1,), device)
         print(f"RLE exploration enabled: coef={args.rle_coef}, dim={args.rle_dim}, hidden_dim={args.rle_hidden_dim}")
+
+    # Self-Imitation Learning (SIL) buffer
+    sil_buffer = None
+    sil_return_history = deque(maxlen=10000)  # track recent returns for percentile threshold
+    if args.sil:
+        obs_dim_sil = np.array(envs.single_observation_space.shape).prod() + extra_stats_dim
+        sil_buffer = SILBuffer(args.sil_buffer_size, obs_dim_sil, device)
+        print(f"SIL enabled: coef={args.sil_coef}, vf_coef={args.sil_vf_coef}, buffer={args.sil_buffer_size}, percentile={args.sil_percentile}, warmup={args.sil_warmup_frac}")
 
     if args.curriculum_kills:
         curriculum_floors = [int(f) for f in args.curriculum_target_floors.split(",")]
@@ -500,6 +509,20 @@ if __name__ == "__main__":
         b_values = values.reshape(-1)
         b_aux_targets = aux_targets.reshape(-1) if aux_targets is not None else None
 
+        # SIL: populate buffer with high-return transitions
+        if sil_buffer is not None:
+            progress = global_step / args.total_timesteps
+            if progress >= args.sil_warmup_frac:
+                # Update return history for percentile computation
+                sil_return_history.extend(b_returns.cpu().numpy().tolist())
+                if len(sil_return_history) > 100:
+                    threshold = float(np.percentile(list(sil_return_history), args.sil_percentile))
+                else:
+                    threshold = float(b_returns.median().item())
+                n_added = sil_buffer.add_batch(
+                    b_obs.detach(), b_actions.long().detach(), b_returns.detach(), threshold
+                )
+
         # optimizing the policy and value network
         assert args.num_envs % args.num_minibatches == 0
         envsperbatch = args.num_envs // args.num_minibatches
@@ -587,6 +610,29 @@ if __name__ == "__main__":
             if args.target_kl is not None and approx_kl > args.target_kl:
                 break
 
+        # SIL update: learn from high-return transitions in replay buffer
+        sil_pg_loss_val = 0.0
+        sil_vf_loss_val = 0.0
+        sil_n_pos = 0
+        if sil_buffer is not None and len(sil_buffer) >= args.sil_batch_size:
+            progress = global_step / args.total_timesteps
+            if progress >= args.sil_warmup_frac:
+                # Progressive SIL: ramp up coefficient after warmup
+                sil_progress = (progress - args.sil_warmup_frac) / (1.0 - args.sil_warmup_frac)
+                sil_coef_now = args.sil_coef * min(1.0, sil_progress * 2.0)  # reach full coef at midpoint
+
+                sil_pg, sil_vf, sil_n_pos = compute_sil_loss(
+                    agent, sil_buffer, args.sil_batch_size, device
+                )
+                if sil_n_pos > 0:
+                    sil_loss = sil_coef_now * sil_pg + args.sil_vf_coef * sil_vf
+                    optimizer.zero_grad()
+                    sil_loss.backward()
+                    nn.utils.clip_grad_norm_(agent.parameters(), args.max_grad_norm)
+                    optimizer.step()
+                    sil_pg_loss_val = sil_pg.item()
+                    sil_vf_loss_val = sil_vf.item()
+
         y_pred, y_true = b_values.cpu().numpy(), b_returns.cpu().numpy()
         var_y = np.var(y_true)
         explained_var = np.nan if var_y == 0 else 1 - np.var(y_true - y_pred) / var_y
@@ -597,6 +643,8 @@ if __name__ == "__main__":
             extra += f" | GoExplore: buffer={len(frontier_buffer)}, saves={frontier_total_saves}, resets={frontier_total_resets}"
         if prev_floor_kills is not None:
             extra += f" | KillBonus: kills={kill_bonus_total:.0f}, floors={floor_bonus_total:.0f}"
+        if sil_buffer is not None:
+            extra += f" | SIL: buf={len(sil_buffer)}, pos={sil_n_pos}, pg={sil_pg_loss_val:.4f}"
         print(f"SPS: {sps}{extra}")
 
         if iteration in args.log_iterations:

@@ -149,6 +149,20 @@ class PPO_Args:
     """dimension of RLE latent z vector and feature embedding"""
     rle_hidden_dim: int = 256
     """hidden dimension of RLE feature extractor"""
+    sil: bool = False
+    """if toggled, use Self-Imitation Learning (replay high-return transitions)"""
+    sil_coef: float = 0.1
+    """SIL loss coefficient (weight of BC loss on high-return transitions)"""
+    sil_vf_coef: float = 0.01
+    """SIL value loss coefficient"""
+    sil_buffer_size: int = 131072
+    """max number of transitions to store in SIL buffer"""
+    sil_percentile: float = 75.0
+    """only store transitions with returns above this percentile of historical returns"""
+    sil_batch_size: int = 512
+    """mini-batch size for SIL updates"""
+    sil_warmup_frac: float = 0.1
+    """fraction of training before SIL starts (let policy learn basics first)"""
 
     # BC
     bc_dataset_path: str = ""
