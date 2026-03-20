@@ -122,12 +122,14 @@ class PPO_LSTM_Agent(nn.Module):
         use_popart: bool = False,
         use_gru: bool = False,
         extra_stats_dim: int = 0,
+        separate_critic: bool = False,
     ):
         super().__init__()
 
         self.mlp_class = mlp_class
         self.use_popart = use_popart
         self.use_gru = use_gru
+        self.separate_critic = separate_critic
 
         if use_structured_obs:
             pre_layers = max(num_layers // 2 - 1, 1)
@@ -149,6 +151,10 @@ class PPO_LSTM_Agent(nn.Module):
                 nn.init.orthogonal_(param, 1.0)
 
         self.shared_post_lstm = mlp_class(hidden_size, hidden_size, num_layers // 2, activation_fn, use_ln=use_ln)
+
+        # Separate critic trunk: independent post-RNN MLP for value estimation
+        if separate_critic:
+            self.critic_post_lstm = mlp_class(hidden_size, hidden_size, num_layers // 2, activation_fn, use_ln=use_ln)
 
         if use_popart:
             from src.models.gtrxl import PopArtLayer
@@ -196,32 +202,33 @@ class PPO_LSTM_Agent(nn.Module):
                     ),
                 )
                 new_hidden += [h]
-        new_hidden = torch.flatten(torch.cat(new_hidden), 0, 1)
-        new_hidden = self.shared_post_lstm(new_hidden)
-        return new_hidden, lstm_state
+        rnn_out = torch.flatten(torch.cat(new_hidden), 0, 1)
+        actor_hidden = self.shared_post_lstm(rnn_out)
+        critic_hidden = self.critic_post_lstm(rnn_out) if self.separate_critic else actor_hidden
+        return actor_hidden, critic_hidden, lstm_state
 
     def get_value(self, x, lstm_state, done, denormalize=False):
-        hidden, _ = self.get_states(x, lstm_state, done)
-        value = self.critic_head(hidden)
+        _, critic_hidden, _ = self.get_states(x, lstm_state, done)
+        value = self.critic_head(critic_hidden)
         if denormalize and self.use_popart:
             value = self.critic_head.denormalize(value)
         return value
 
     def get_action_and_value(self, x, lstm_state, done, action=None, denormalize=False):
-        hidden, lstm_state = self.get_states(x, lstm_state, done)
-        logits = self.actor_head(hidden)
+        actor_hidden, critic_hidden, lstm_state = self.get_states(x, lstm_state, done)
+        logits = self.actor_head(actor_hidden)
         probs = Categorical(logits=logits)
         if action is None:
             action = probs.sample()
-        value = self.critic_head(hidden)
+        value = self.critic_head(critic_hidden)
         if denormalize and self.use_popart:
             value = self.critic_head.denormalize(value)
-        aux_pred = self.aux_head(hidden) if self.aux_head is not None else None
+        aux_pred = self.aux_head(actor_hidden) if self.aux_head is not None else None
         return action, probs.log_prob(action), probs.entropy(), value, lstm_state, aux_pred
-    
+
     def sample_action(self, x, lstm_state, done):
-        hidden, lstm_state = self.get_states(x, lstm_state, done)
-        logits = self.actor_head(hidden)
+        actor_hidden, _, lstm_state = self.get_states(x, lstm_state, done)
+        logits = self.actor_head(actor_hidden)
         probs = Categorical(logits=logits)
         return probs.sample(), lstm_state
     

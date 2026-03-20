@@ -4735,3 +4735,89 @@ NEXT SESSION PRIORITIES:
   5. If curriculum works at 1B: we hit >30% target!
   6. If not: try VC-PPO (decoupled actor/critic lambda) or self-imitation learning
 
+
+---
+**[2026-03-20 10:11 UTC]**
+
+
+=== SESSION: h069-1B-s2 parsed + GAE LAMBDA BREAKTHROUGH + 4 new pilots ===
+
+Triggered by: h069-1B-s2 (58009758, narval) SUCCESS.
+
+h069-1B-s2 RESULT (floor 0 curriculum kills=5-7 at 1B):
+  avg_return=38.46, 92% dungeon, 72% orc_mage, 76% orc_soldier.
+  Episode length=986 (much longer than h040's 660-760).
+  Wall 42312s (11.75h) on narval A100.
+  BELOW h040 2-seed mean (40.80) by 5.7%.
+  Pilot-to-1B scaling: 38.46/33.58 = 1.145x (vs h040's 1.322x).
+  CURRICULUM DOES NOT SCALE WELL TO 1B.
+
+PILOT-TO-1B SCALING ANALYSIS (critical finding):
+  h040 (simplest: GRU+128+grad):  pilot=30.86 → 1B=40.80  scale=1.32x
+  h044 (+ ent anneal):             pilot=32.62 → 1B=39.0   scale=1.20x
+  h023 (LSTM+128):                 pilot=26.82 → 1B=38.10  scale=1.42x
+  h069 (curriculum k5-7):          pilot=33.58 → 1B=38.46  scale=1.15x
+  h057 (obs augment):              pilot=33.14 → 1B=35.38  scale=1.07x
+  LESSON: Simpler configs scale better. Curriculum/augmentation help at pilot but hurt at scale.
+
+GAE LAMBDA DISCOVERY (potentially major):
+  Default gae_lambda=0.8 gives GAE half-life of only ~3 steps!
+  With 128-step rollouts, most temporal information is wasted.
+  To enter dungeon requires 50+ steps of crafting/preparation.
+  lambda=0.8 means credit for early crafting barely reaches the dungeon entry reward.
+  Previous lambda=0.95 tests (h008/h034) failed with LSTM without grad_norm=1.0.
+  But GRU+grad_norm=1.0 should stabilize the higher variance from lambda=0.95.
+  GAE half-lives: lambda=0.8 → 3.1 steps, 0.9 → 6.5, 0.95 → 13.2, 0.99 → 62.7
+
+SEPARATE CRITIC IMPLEMENTATION:
+  Added --separate-critic flag: independent post-RNN MLP for value function.
+  Currently actor and critic share the entire network except final linear heads.
+  Separate critic lets value function develop features specifically for value estimation.
+
+NEW PILOTS SUBMITTED:
+  h074: gae_lambda=0.95 on narval (58034882) — HIGHEST PRIORITY
+  h075: gae_lambda=0.9 on fir (28533542) — conservative lambda test
+  h076: separate critic on narval (58034895) — architecture improvement
+  h077: lambda=0.95 + separate critic on narval (58034896) — combined
+
+RUNNING JOBS (5 running, 9 pending):
+  h040-1B-s3v2 (narval 58018762, 11h — ~1-2h left) — FINALIZES h040 3-seed
+  h069-1B-s1v3 (narval 58022237, 5.3h — ~7h left) — 2nd curriculum seed
+  h070-1B-s1 (fir 28478436, 8.7h — ~10h left) — aggressive curriculum
+  h070-1B-s3 (narval 58022596, 5.3h — ~7h left) — aggressive curriculum
+  h073-pilot-s1 (narval 58030754, 40min — ~1.5h left) — frac=0.5 curriculum pilot
+  h069-1B-s3 (rorqual 8616355, PENDING)
+  h070-1B-s2 (rorqual 8632579, PENDING)
+  h069-1B-s3v2 (nibi 10629948, PENDING)
+  h070-1B-s2v2 (nibi 10629950, PENDING)
+  h072-pilot (fir 28508617, PENDING behind h070-1B-s1)
+  h074-pilot (narval 58034882, PENDING)
+  h075-pilot (fir 28533542, PENDING behind h072-pilot)
+  h076-pilot (narval 58034895, PENDING)
+  h077-pilot (narval 58034896, PENDING)
+
+1B LEADERBOARD:
+  h040 GRU+128+grad:        s1=40.14 s2=41.46 mean=40.80 (n=2, s3v2 running ~1-2h)
+  h044 GRU+ent+128+grad:    s1=35.5 s2=40.9 s3~40.7 mean=39.0 (n=3, COMPLETE)
+  h069 curriculum k5-7:     s2=38.46 (n=1, s1+s3 running/pending)
+  h023 LSTM+128:             mean=38.10 (n=3, COMPLETE)
+  Baseline PPO-LSTM:         mean=33.88 (n=3, COMPLETE)
+  30% TARGET:                44.04
+
+STRATEGY SHIFT:
+  Curriculum approach is likely a dead end for hitting 30% target.
+  Even h070 (kills=3-5, pilot=34.58) would need 1.27x scaling to match h040, unlikely.
+  New focus: fundamental training quality improvements:
+  1. GAE lambda increase (h074/h075) — fixes credit assignment bottleneck
+  2. Separate critic (h076) — better value estimation
+  3. Combined (h077) — if either works, stack them
+  If lambda=0.95 works at pilot, immediately submit 1B runs.
+
+NEXT SESSION PRIORITIES:
+  1. Parse h040-1B-s3v2 (1-2h) — finalize h040 3-seed mean
+  2. Parse h073-pilot (~1.5h) — curriculum frac=0.5 (likely irrelevant now)
+  3. Parse h074-h077 pilots — GAE lambda + separate critic
+  4. If h074 works: submit 1B runs IMMEDIATELY (this is the path to 44+)
+  5. Parse h069-1B-s1/s3 + h070-1B-s1/s3 as they complete
+  6. Monitor rorqual queue — h069-1B-s3 and h070-1B-s2 stuck in Priority
+

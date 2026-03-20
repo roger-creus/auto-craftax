@@ -121,6 +121,8 @@ class PPO_Args:
     """fraction of training after which curriculum stops (anneals to 0)"""
     curriculum_target_floors: str = "0"
     """comma-separated floor indices to pre-fill kills on (e.g. '1,2' for dungeon+gnomish mines). NOTE: floor 0 starts with 10 kills (ladder always open), so pre-filling floor 0 actually CLOSES the ladder."""
+    separate_critic: bool = False
+    """if toggled, use a separate post-RNN MLP for the critic (asymmetric actor-critic)"""
 
     # BC
     bc_dataset_path: str = ""

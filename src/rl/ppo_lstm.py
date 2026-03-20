@@ -130,6 +130,7 @@ if __name__ == "__main__":
         use_popart=args.use_popart,
         use_gru=args.use_gru,
         extra_stats_dim=extra_stats_dim,
+        separate_critic=args.separate_critic,
     ).to(device)
 
     # Auxiliary kill-count prediction head
