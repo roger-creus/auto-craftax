@@ -4861,3 +4861,56 @@ IMPORTANT CONTEXT FROM WEB SEARCH:
   at pilot, the 1.32x scaling factor could push 1B results to ~44+.
   If none work: consider SIL (self-imitation learning) or hierarchical approaches.
 
+
+---
+**[2026-03-20 10:48 UTC]**
+
+=== SESSION: h040-1B-s3v2 parsed + pilot status check ===
+
+Triggered by: h040-1B-s3v2 (narval 58018762) SUCCESS.
+
+h040-1B-s3v2 RESULT (PPO-GRU + 128 steps + grad=1.0, seed 3):
+  avg_return=37.06, 88% dungeon, orc_mage 56%, orc_soldier 76%.
+  find_bow 88%, fire_bow 88%, diamond 20%, make_diamond_sword 4%.
+  Wall 41950s (11.7h) on narval A100.
+  LOWEST of 3 seeds (s1=40.14, s2=41.46, s3=37.06).
+
+h040 3-SEED FINAL: mean=39.55±2.25 (+16.7% over baseline 33.88).
+  High variance: s2 is 4.4 points above s3. Seed 3 consistently weaker.
+  BELOW 30% target (44.04). Need +11.4% MORE improvement.
+
+CANCELLED nibi backups (h069-1B-s3v2, h070-1B-s2v2) — nodes g[7,26,37] down.
+Rorqual h069-1B-s3 + h070-1B-s2 still pending 1.5+ days (Priority).
+
+RUNNING JOBS STATUS:
+  1B runs:
+    h069-1B-s1v3 (narval, 6h in ~6-7h left) — curriculum seed 1
+    h070-1B-s3 (narval, 6h in ~6-7h left) — aggressive curriculum seed 3
+    h070-1B-s1 (fir, 9.5h in ~8-10h left) — aggressive curriculum seed 1
+    h069-1B-s3 (rorqual, PENDING 1.5d) + h070-1B-s2 (rorqual, PENDING 1.2d)
+  Pilots (all narval):
+    h073 (frac=0.5 curriculum, 1.5h in ~30-60min left) — finishing first
+    h074 (lambda=0.95, 37min in ~1.5h left) — HIGHEST PRIORITY
+    h075 (lambda=0.9, fir PENDING behind h070-1B)
+    h076 (separate critic, 34min in ~1.5h left)
+    h077 (lambda=0.95+sep critic, 34min in ~1.5h left)
+    h078 (VC-PPO actor=0.95/critic=1.0, 31min in ~1.5h left) — CRITICAL
+    h079 (VC-PPO+sep critic, 28min in ~1.5h left)
+  h072 (kills=1-3, fir PENDING behind h070-1B)
+
+1B LEADERBOARD (updated):
+  h040 GRU+128+grad:     mean=39.55±2.25 (n=3, FINAL) — CURRENT BEST
+  h044 GRU+ent+128+grad: mean=39.0 (n=3, FINAL)
+  h069 curriculum k5-7:  s2=38.46 (n=1, s1+s3 running/pending)
+  h023 LSTM+128:         mean=38.10 (n=3, FINAL)
+  Baseline PPO-LSTM:     mean=33.88 (n=3, FINAL)
+  30% TARGET:            44.04
+
+CRITICAL PATH:
+  1. h074 (gae_lambda=0.95) pilot result — expected ~1.5-2h
+  2. h078 (VC-PPO) pilot result — expected ~1.5-2h
+  3. If EITHER shows improvement: submit 1B runs immediately
+  4. GAE lambda is the biggest untapped lever: default 0.8 wastes 128-step rollouts
+  5. Cancel stuck rorqual curriculum jobs and resubmit GAE/VC-PPO if pilots promising
+
+NEXT SESSION: Parse h073-h079 pilots and decide on 1B submissions.
