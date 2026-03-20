@@ -4821,3 +4821,43 @@ NEXT SESSION PRIORITIES:
   5. Parse h069-1B-s1/s3 + h070-1B-s1/s3 as they complete
   6. Monitor rorqual queue — h069-1B-s3 and h070-1B-s2 stuck in Priority
 
+
+---
+**[2026-03-20 10:15 UTC]**
+
+
+=== SESSION UPDATE: VC-PPO implementation + h078/h079 submitted ===
+
+WEB SEARCH FINDINGS (critical):
+  1. Floor 2 barrier is KNOWN UNSOLVED in published work. No model-free method breaks through at 1B.
+     Our ~41 return is consistent with published PPO-RNN baselines. We're at SOTA for model-free.
+  2. ONLY method to reach floor 2: SCALAR (NeurIPS 2025) = LLM-guided planning + skills. 9.1% gnomish mines.
+  3. VC-PPO paper (arxiv 2503.01491, March 2025): DIRECTLY addresses our problem.
+     Key: use lambda=1.0 for critic (MC returns, zero bias), lambda=0.95 for actor.
+     Fixes PPO collapse on long-chain tasks by giving critic true long-horizon value targets.
+  4. Self-Imitation Learning variants (HiPPO, SPEAR) could amplify rare successes.
+
+VC-PPO IMPLEMENTATION:
+  Added --gae-lambda-critic flag. When set, computes GAE twice:
+  - Actor advantages: standard GAE with gae_lambda (e.g., 0.95)
+  - Critic returns: GAE with gae_lambda_critic (e.g., 1.0 = Monte Carlo)
+  This gives the critic unbiased long-horizon targets while keeping actor updates stable.
+
+NEW PILOTS SUBMITTED:
+  h078: VC-PPO (actor=0.95, critic=1.0) on narval (58034915) — HIGHEST PRIORITY
+  h079: VC-PPO + separate critic on narval (58034917) — combined approach
+
+FULL PILOT QUEUE (all on narval, behind running 1B jobs):
+  h074: lambda=0.95 (58034882)
+  h076: separate critic (58034895)
+  h077: lambda=0.95 + sep critic (58034896)
+  h078: VC-PPO (58034915) — MOST PROMISING based on paper evidence
+  h079: VC-PPO + sep critic (58034917)
+  Plus h075 on fir: lambda=0.9 (28533542)
+
+IMPORTANT CONTEXT FROM WEB SEARCH:
+  Floor 2 is the hardest challenge in Craftax for model-free RL.
+  If our value function improvements (h074-h079) can even get 5% improvement
+  at pilot, the 1.32x scaling factor could push 1B results to ~44+.
+  If none work: consider SIL (self-imitation learning) or hierarchical approaches.
+

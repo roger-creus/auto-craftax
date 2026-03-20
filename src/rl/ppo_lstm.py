@@ -348,7 +348,23 @@ if __name__ == "__main__":
                     nextvalues = values[t + 1]
                 delta = rewards[t] + args.gamma * nextvalues * nextnonterminal - values[t]
                 advantages[t] = lastgaelam = delta + args.gamma * args.gae_lambda * nextnonterminal * lastgaelam
-            returns = advantages + values
+
+            # VC-PPO: separate critic returns with higher lambda for less biased value targets
+            if args.gae_lambda_critic >= 0 and args.gae_lambda_critic != args.gae_lambda:
+                critic_returns = torch.zeros_like(rewards).to(device)
+                lastgaelam_c = 0
+                for t in reversed(range(args.num_steps)):
+                    if t == args.num_steps - 1:
+                        nextnonterminal = 1.0 - next_done.float()
+                        nextvalues = next_value
+                    else:
+                        nextnonterminal = 1.0 - dones[t + 1]
+                        nextvalues = values[t + 1]
+                    delta = rewards[t] + args.gamma * nextvalues * nextnonterminal - values[t]
+                    critic_returns[t] = lastgaelam_c = delta + args.gamma * args.gae_lambda_critic * nextnonterminal * lastgaelam_c
+                returns = critic_returns + values
+            else:
+                returns = advantages + values
 
         # flatten the batch
         b_obs = obs.reshape((-1,) + obs_shape)

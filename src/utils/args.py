@@ -43,6 +43,8 @@ class PPO_Args:
     """the discount factor gamma"""
     gae_lambda: float = 0.8
     """the lambda for the general advantage estimation"""
+    gae_lambda_critic: float = -1.0
+    """separate GAE lambda for critic returns (-1 = use gae_lambda for both). VC-PPO style: use 1.0 for critic, 0.95 for actor."""
     num_minibatches: int = 8
     """the number of mini-batches"""
     update_epochs: int = 4
