@@ -4914,3 +4914,70 @@ CRITICAL PATH:
   5. Cancel stuck rorqual curriculum jobs and resubmit GAE/VC-PPO if pilots promising
 
 NEXT SESSION: Parse h073-h079 pilots and decide on 1B submissions.
+
+---
+**[2026-03-20 12:06 UTC]**
+
+=== SESSION: h073-pilot parsed + h074-h079 pilots almost ready ===
+
+Triggered by: h073-pilot-s1 (narval 58030754) SUCCESS.
+
+h073-pilot-s1 RESULT (curriculum kills=3-5, frac=0.5 — 50% envs):
+  avg_return=30.58, 72% dungeon, orc_soldier 12%, zombie 60%, skeleton 56%.
+  find_bow 72%, fire_bow 72%, diamond 4%.
+  Wall 8735s (2.4h) on narval A100.
+  BELOW h040 pilot (30.86) — more curriculum fraction HURTS.
+  h073 CLOSED: Increasing curriculum fraction from 30% to 50% degrades learning.
+  Optimal curriculum dose is LOW (30%). Higher doses give too much easy-mode experience.
+
+CURRICULUM FRACTION COMPARISON:
+  h040 (0% curriculum):    pilot=30.86 → 1B=39.55 (BEST at 1B)
+  h069 (30%, kills=5-7):   pilot=33.58 → 1B=38.46 (scales poorly)
+  h070 (30%, kills=3-5):   pilot=34.58 → 1B running
+  h073 (50%, kills=3-5):   pilot=30.58 (WORST — too much curriculum)
+  CONCLUSION: Curriculum helps pilot but hurts 1B. Higher fraction = worse. DEAD END.
+
+GAE LAMBDA / VC-PPO PILOTS STATUS (CRITICAL):
+  All 5 pilots ~30 min from completion on narval:
+  h074 (lambda=0.95):     started 06:08 EST, ~1:52 elapsed, ~30min left
+  h076 (sep critic):      started 06:10 EST, ~1:49 elapsed, ~30min left
+  h077 (lambda+sep):      started 06:11 EST, ~1:49 elapsed, ~30min left
+  h078 (VC-PPO a=0.95/c=1.0): started 06:14, ~1:45 elapsed, ~30min left
+  h079 (VC-PPO+sep):      started 06:17 EST, ~1:43 elapsed, ~30min left
+  These are the MOST IMPORTANT experiments — fix credit assignment bottleneck.
+
+RUNNING 1B JOBS:
+  h069-1B-s1v3 (narval, 7.3h/24h) — curriculum seed 1
+  h070-1B-s3 (narval, 7.3h/24h) — aggressive curriculum seed 3
+  h070-1B-s1 (fir, 10.7h/24h) — aggressive curriculum seed 1
+  h069-1B-s3 (rorqual, STUCK PENDING 1.5d) — consider cancelling
+  h070-1B-s2 (rorqual, ReqNodeNotAvail) — nodes down
+
+PENDING PILOTS:
+  h072 (fir, kills=1-3) — behind h070-1B-s1 (~13h wait)
+  h075 (fir, lambda=0.9) — behind h072
+
+CLUSTER AVAILABILITY:
+  Narval: 5 A100 slots freeing in ~30min (pilot completions)
+  Nibi: 0 jobs running, available for 1B submissions
+  Rorqual: stuck pending
+  Fir: occupied with h070-1B
+
+1B LEADERBOARD:
+  h040 GRU+128+grad:     mean=39.55±2.25 (n=3, FINAL) — CURRENT BEST
+  h044 GRU+ent+128+grad: mean=39.0 (n=3, FINAL)
+  h069 curriculum k5-7:  s2=38.46 (n=1, s1+s3 running)
+  h023 LSTM+128:         mean=38.10 (n=3, FINAL)
+  Baseline PPO-LSTM:     mean=33.88 (n=3, FINAL)
+  30% TARGET:            44.04
+
+NEXT SESSION (HIGH PRIORITY — pilots completing imminently!):
+  1. Parse h074-h079 pilot results as they arrive
+  2. If ANY pilot > h040 (30.86): IMMEDIATELY submit 1B × 3 seeds
+     - Use narval (5 freed A100 slots) + nibi for maximum throughput
+  3. If h078 (VC-PPO) works: this is the most principled approach, prioritize it
+  4. If h074 (lambda=0.95) works: simpler change, good backup
+  5. If NONE work: try self-imitation learning or SASR as fallback
+  6. Cancel rorqual curriculum jobs if GAE/VC-PPO pilots are promising
+  7. Parse h069-1B-s1 and h070-1B results as 1B runs finish (~5-6h)
+  8. h072/h075 pending on fir — low priority, curriculum is dead end
