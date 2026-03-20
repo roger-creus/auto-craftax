@@ -5160,3 +5160,87 @@ NEXT SESSION PRIORITIES:
   4. If any pilot beats h040: submit 1B immediately
   5. If RND works: this is the most promising path to 44+
   6. Consider self-imitation learning if all HP sweeps fail
+
+---
+**[2026-03-20 13:51 UTC]**
+
+=== SESSION: h091 OOM + RLE implementation + pilots submitted ===
+
+Triggered by: h091-pilot-s1 (narval 58037906) SUCCESS notification — actually OOM crash.
+
+h091 (num_envs=2048) CRASHED with OOM at 262K steps on narval A100 40GB.
+  Same issue as h083 (num_minibatches=4): JAX env uses ~32GB GPU, too little left for PyTorch.
+  h091 CLOSED: infeasible on available hardware.
+
+h083 was already closed last session (OOM at 131K steps).
+
+CANCELLED DEAD-END EXPERIMENTS:
+  h072-pilot (fir 28508617): curriculum kills=1-3 — curriculum is dead end
+  h075-pilot (fir 28533542): gae_lambda=0.9 — lambda experiments all catastrophically bad
+
+WEB SEARCH FINDINGS:
+  1. DeepMind paper (2502.11537): Model-free GRU baseline on Craftax-Classic 46.91%→55.49% via LARGER MODEL.
+     Key: model capacity is the bottleneck, not algorithm sophistication.
+     h084 (hidden=768) tests this direction.
+  2. RLE (Random Latent Exploration, Mahankali 2024 ICML): OUTPERFORMS RND on Atari.
+     Much simpler: fixed feature extractor φ(s), random z from unit sphere.
+     Intrinsic reward = φ(s)·z, policy conditioned on z.
+     No predictor training needed (unlike RND). Deep exploration via diverse z goals.
+  3. Official Craftax Baselines repo: max_grad_norm=1.0 is DEFAULT (we rediscovered via h040).
+
+RLE IMPLEMENTATION (h092-h093):
+  Added --rle flag to ppo_lstm.py:
+  - Fixed random MLP feature extractor φ: obs → 64-dim embedding
+  - z ~ N(0,I) projected to unit sphere, one per env
+  - Intrinsic reward: (φ(s) · z) / running_std × rle_coef
+  - Policy conditioning: z appended to observation (via extra_stats_dim)
+  - z resampled on episode done → each episode has different exploration goal
+  - Two pilots: h092 (coef=0.01 mild) + h093 (coef=0.1 strong)
+
+SUBMITTED PILOTS:
+  h092 (RLE coef=0.01): nibi (10642570) + rorqual (8647015)
+  h093 (RLE coef=0.1):  nibi (10642572) + rorqual (8647016)
+
+RUNNING HP SWEEP PILOTS (all narval):
+  h085 (RND 0.01): 58037409, ~1h elapsed → ~1h left
+  h086 (RND 0.1): 58037410, ~1h elapsed → ~1h left
+  h080 (lr=0.0003): 58037430, ~40min elapsed → ~1.3h left
+  h084 (hidden=768): 58037433, ~40min elapsed → ~1.3h left (may be slower)
+  h087 (reward norm): 58037457, ~38min elapsed → ~1.3h left
+  h081 (update_epochs=2): 58037892, ~22min elapsed → ~1.5h left
+  h082 (vf_coef=1.0): 58037893, ~12min elapsed → ~1.7h left
+  h088 (clip_coef=0.1): 58037894, ~9min elapsed → ~1.8h left
+  h089 (ent_coef=0.02): 58037896, ~9min elapsed → ~1.8h left
+  h090 (no clip_vloss): 58037897, ~9min elapsed → ~1.8h left
+
+RUNNING 1B JOBS:
+  h069-1B-s1v3 (narval 58022237): ~9h elapsed, ~4h left
+  h070-1B-s3 (narval 58022596): ~9h elapsed, ~4h left
+  h070-1B-s1 (fir 28478436): ~12h elapsed, ~6h left
+
+PENDING:
+  h088/h089/h090 backups on rorqual (stuck Priority)
+
+1B LEADERBOARD:
+  h040 GRU+128+grad:     mean=39.55±2.25 (n=3, FINAL) — CURRENT BEST
+  h044 GRU+ent+128+grad: mean=39.0 (n=3, FINAL)
+  h069 curriculum k5-7:  s2=38.46 (n=1, s1 running)
+  h023 LSTM+128:         mean=38.10 (n=3, FINAL)
+  Baseline PPO-LSTM:     mean=33.88 (n=3, FINAL)
+  30% TARGET:            44.04 (need +11.4% improvement)
+
+STRATEGY:
+  Two parallel paths to 44+:
+  1. EXPLORATION: RLE (h092/h093) vs RND (h085/h086). RLE expected to outperform.
+  2. MODEL CAPACITY: h084 (hidden=768). If it helps, try 1024 next.
+  3. HP OPTIMIZATION: h080-h090 sweep. If any beats h040 pilot (30.86), combine with exploration.
+
+NEXT SESSION PRIORITIES:
+  1. Parse h085/h086 (RND) pilots — first to complete (~1h)
+  2. Parse h080/h084/h087 pilots — next wave (~1.3h)
+  3. Parse h081/h082/h088-h090 pilots — third wave (~1.5-2h)
+  4. Parse h092/h093 (RLE) pilots when ready (~2-3h, depends on queue)
+  5. Parse h069-1B-s1 and h070-1B results — 1B runs (~4-6h)
+  6. If RLE pilot beats h040: IMMEDIATELY submit 1B × 3 seeds
+  7. If h084 (hidden=768) works: combine with RLE and submit
+  8. If nothing works: try hidden=1024, or combined exploration+HP changes
