@@ -4555,3 +4555,79 @@ NEXT SESSION PRIORITIES:
   6. If h070/h071 pilot results are good: queue 1B scaling runs
   7. Web search for new ideas running in background — check results
 
+
+---
+**[2026-03-20 01:15 UTC]**
+
+
+=== SESSION CONTINUED: h071 pilot CLOSED + h070 pilot EXCELLENT + h070 1B submitted ===
+
+h071-pilot-s1 RESULT (floor 0 curriculum + ent annealing):
+  avg_return=27.66, 72% dungeon, orc_soldier 12%, orc_mage 0%.
+  -10.4% vs h040 pilot (30.86). -15.2% vs h062 (33.58).
+  CLOSED: Combining curriculum + entropy annealing is COUNTERPRODUCTIVE.
+  Same pattern as h061 (obs+aux combined = worse than either alone).
+  Lesson: do NOT combine curriculum with other modifications.
+
+h070-pilot-s1 RESULT (MORE AGGRESSIVE floor 0 curriculum kills=3-5):
+  avg_return=34.58 (+12.1% vs h040 pilot 30.86). EXCELLENT!
+  Better than h062 kills=5-7 (33.58, +8.8%). Trend continues:
+  more aggressive floor 0 curriculum → better performance.
+  88% dungeon, orc_soldier 44%, orc_mage 8%, zombie 56%.
+  find_bow 88%, fire_bow 76%, diamond 8%, make_iron_sword 52%.
+  1B projection: 34.58 * 1.32 ≈ 45.6 (+34.6% over baseline 33.88).
+
+ACTIONS TAKEN:
+  1. Recorded h071 pilot — CLOSED
+  2. Recorded h070 pilot — PROMISING
+  3. Cancelled h069-1B-s1v2 on fir (nodes DOWN/DRAINED with 64G request)
+  4. Resubmitted h069-1B-s1v3 on narval with 48G
+  5. Submitted h070-1B scaling runs:
+     - h070-1B-s1 on fir (28478436) — started immediately
+     - h070-1B-s2 on rorqual (8632579) — behind h069-1B-s3
+     - h070-1B-s3 on narval (58022596) — behind h069-1B-s1v3, h057-1B-s2
+  6. Formulated h072 (kills=1-3 even more aggressive) and h073 (frac=0.5)
+
+CURRICULUM PERFORMANCE SUMMARY:
+  No curriculum (h040 pilot):        30.86
+  kills=5-7 (h062 pilot):           33.58  (+8.8%)  ← h069 1B scaling
+  kills=3-5 (h070 pilot):           34.58  (+12.1%) ← h070 1B scaling
+  kills=5-7 + ent anneal (h071):    27.66  (-10.4%) ← CLOSED
+  floors 1,2 kills=7-8 (h066):      28.06  (-9.1%)  ← CLOSED
+  VERDICT: Floor 0 curriculum with h040 config (NO ent annealing) is optimal.
+  More aggressive kills target improves performance.
+
+IMPORTANT FINDING — fir 64G NOT AVAILABLE:
+  h069-1B-s1v2 with 64G on fir: 'Nodes DOWN, DRAINED or reserved'.
+  fir 3g.40gb partition may not support 64G requests.
+  h070-1B-s1 submitted with 48G on fir — may OOM at ~994M/1B like h040/h044.
+  Even if it OOMs, the running avg at 99.4% is a good estimate.
+  Narval A100 and rorqual H100 work fine with 48G for 1B runs.
+
+RUNNING JOBS (4 running, 5 pending):
+  h057-1B-s2 (narval 57994663, 10h elapsed — ~2h left)
+  h069-1B-s2 (narval 58009758, 3h — ~9h left)
+  h040-1B-s3v2 (narval 58018762, 2h — ~10h left)
+  h070-1B-s1 (fir 28478436, just started — ~18-20h on fir)
+  h069-1B-s1v3 (narval 58022237, pending)
+  h069-1B-s3 (rorqual 8616355, pending Priority)
+  h070-1B-s2 (rorqual 8632579, pending behind h069-1B-s3)
+  h070-1B-s3 (narval 58022596, pending)
+
+1B LEADERBOARD:
+  h040 GRU+128+grad:        s1=40.14 s2=41.46 mean=40.80 (n=2, s3v2 running)
+  h044 GRU+ent+128+grad:    s1=35.5 s2=40.9 s3≈40.7 mean=39.0 (n=3, COMPLETE)
+  h023 LSTM+128:             mean=38.10 (n=3, COMPLETE)
+  Baseline PPO-LSTM:         mean=33.88 (n=3, COMPLETE)
+  h069 1B (projected):      ~44.3 (+30.8% over baseline) — RUNNING
+  h070 1B (projected):      ~45.6 (+34.6% over baseline) — JUST SUBMITTED
+
+NEXT SESSION PRIORITIES:
+  1. Parse h057-1B-s2 (finishing in ~2h) — obs augment at 1B
+  2. Parse h040-1B-s3v2 (~10h left) — finalize h040 3-seed mean
+  3. Monitor h069 1B runs — first results expected ~12h
+  4. Monitor h070 1B runs — first results expected ~12-20h
+  5. When resources free: submit h072 (kills=1-3) and h073 (frac=0.5) pilots
+  6. If h070 scales well: this becomes new SOTA (>30% target)
+  7. If both h069 and h070 fail to scale: investigate why curriculum helps at pilot but not 1B
+
