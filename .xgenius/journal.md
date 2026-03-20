@@ -5438,3 +5438,87 @@ WEB SEARCH FINDINGS (Craftax SOTA):
    This suggests we may be hitting the ceiling for pure PPO improvements.
    SPEAR or hierarchical approaches may be needed for the breakthrough.
 
+
+---
+**[2026-03-20 16:47 UTC]**
+
+
+=== SESSION: h070-1B-s3 result + SIL implementation + new pilots ===
+
+Triggered by: h070-1B-s3 (narval 58022596) SUCCESS.
+
+KEY RESULT — h070-1B-s3 (curriculum kills=3-5):
+  avg_return=39.38, 88% dungeon, 80% orc_soldier, 64% orc_mage, 0% gnomish mines.
+  MATCHES h040 mean (39.55). Curriculum NOT helping at 1B scale.
+  Same pattern as h044 (ent anneal): 200M advantage doesn't translate to 1B.
+  h070 REMAINS PROMISING (s1 still running fir 15h, s2 cancelled/not resubmitted).
+
+h088 PILOT RESULT (clip_coef=0.1):
+  avg_return=24.78, -19.7% vs h040 (30.86). CLOSED.
+  Tighter clipping restricts updates too much. 40% dungeon, 0% orc kills.
+
+COMPLETE HP SWEEP SUMMARY (h080-h091):
+  Only h085 (RND 0.01) improved: +5.2% at 200M. ALL other HP changes hurt.
+  h040 config is near-optimal. Further gains must come from NEW mechanisms.
+
+BUG FIX: h095 command had invalid flags (--entropy-annealing --entropy-coef-start).
+  Cancelled and resubmitted with correct args (--ent-coef 0.03 --ent-coef-end 0.005).
+
+NEW IMPLEMENTATION — Self-Imitation Learning (SIL):
+  Based on Oh et al. (2018). Stores high-return (obs, action, return) transitions
+  in a replay buffer and adds BC loss: max(0, R - V(s)) * -log π(a|s).
+  Progressive schedule: SIL coefficient ramps up after warmup period.
+  Key insight: agent occasionally gets close to 8 kills on floor 1 but doesn't
+  reliably do it. SIL reinforces those rare successes.
+  New file: src/rl/sil.py. Integrated into ppo_lstm.py with --sil flag.
+
+CANCELLED: nibi jobs (h093/h095/h097/h099) — nodes g[7,26,37] down for hours.
+RESUBMITTED on fir: h092 (RLE 0.01), h093 (RLE 0.1), h097 (RND+768), h095 (fixed).
+
+NEW HYPOTHESES SUBMITTED:
+  h101 (SIL 0.1):               fir 28566339 — SIL alone on h040 config
+  h102 (SIL 0.1 + RND 0.01):    fir 28566341 — SIL + RND combination
+  h103 (SIL + RND + ent anneal): narval 58044385 — full combination
+  h104 (SIL 0.5 + RND 0.01):   rorqual 8656297 — stronger SIL
+
+CLUSTER STATUS:
+  narval: h069-1B-s1v3 RUNNING (~12h), h085-1B-s1/s3 PENDING, h092-h096 PENDING, h103 PENDING
+  fir: h070-1B-s1 RUNNING (~15h), h085-1B-s2 RUNNING (~1h), h092/h093/h095/h097 + h101/h102 PENDING
+  rorqual: h092/h094/h096/h098/h100 PENDING (Priority), h104 PENDING
+  nibi: ALL CANCELLED (nodes down)
+
+1B LEADERBOARD:
+  h040 GRU+128+grad:     mean=39.55±2.25 (n=3, FINAL) — CURRENT BEST
+  h070 curriculum k3-5:  s3=39.38 (n=1, s1 running)
+  h044 GRU+ent+128+grad: mean=39.0 (n=3, FINAL)
+  h069 curriculum k5-7:  s2=38.46 (n=1, s1 running)
+  h023 LSTM+128:         mean=38.10 (n=3, FINAL)
+  Baseline PPO-LSTM:     mean=33.88 (n=3, FINAL)
+  30% TARGET:            44.04 (need +11.4% over h040)
+
+PILOT LEADERBOARD (200M):
+  h070 curriculum k3-5:  34.58 (+12.1% vs h040) — 1B: 39.38 (doesn't scale)
+  h085 RND 0.01:         32.46 (+5.2% vs h040) — 1B RUNNING
+  h040 baseline:         30.86
+
+STRATEGY:
+  Two parallel paths to 44+:
+  1. RND + SIL: h102 combines exploration (RND) with exploitation (SIL). If SIL helps,
+     the agent should more reliably achieve 8 kills on floor 1 and progress deeper.
+  2. RND combinations: h094-h100 pilots testing various RND + HP combos.
+  3. If SIL + RND works: IMMEDIATELY submit 1B × 3 seeds.
+
+CRITICAL INSIGHT: The h040 config is well-tuned. HP sweeps show NO single hyperparameter
+change improves it. The breakthrough must come from MECHANISMS:
+  - RND: +5.2% (novel states → more combat opportunities)
+  - SIL: untested (reinforce rare 8-kill episodes)
+  - Combined: potentially additive
+
+NEXT SESSION PRIORITIES:
+  1. Parse h101-h104 SIL pilot results (fir ~2-3h, narval/rorqual whenever slots open)
+  2. Parse h092-h100 RND combination pilots
+  3. Parse h085-1B results when complete (~17h from now)
+  4. Parse h069-1B-s1 and h070-1B-s1 when complete
+  5. If h102 (SIL+RND) beats h085 (RND alone): submit 1B × 3 seeds
+  6. If nothing crosses 44: consider DreamerV3/world model paradigm shift
+
