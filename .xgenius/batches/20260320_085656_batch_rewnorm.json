@@ -1,0 +1,12 @@
+[
+  {
+    "experiment_id": "h087-pilot-s1",
+    "hypothesis_id": "h087",
+    "cluster": "narval",
+    "command": "python src/rl/ppo_lstm.py --seed 1 --total-timesteps 200000000 --gamma 0.999 --use-structured-obs --use-gru --num-steps 128 --max-grad-norm 1.0 --reward-norm --hypothesis-id h087 --experiment-id h087-pilot-s1 --output-dir /scratch/rogercc/runs_craftax",
+    "gpus": 1,
+    "cpus": 8,
+    "memory": "32G",
+    "walltime": "04:00:00"
+  }
+]

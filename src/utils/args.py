@@ -125,6 +125,18 @@ class PPO_Args:
     """comma-separated floor indices to pre-fill kills on (e.g. '1,2' for dungeon+gnomish mines). NOTE: floor 0 starts with 10 kills (ladder always open), so pre-filling floor 0 actually CLOSES the ladder."""
     separate_critic: bool = False
     """if toggled, use a separate post-RNN MLP for the critic (asymmetric actor-critic)"""
+    reward_norm: bool = False
+    """if toggled, normalize rewards using running mean/std before GAE computation"""
+    rnd: bool = False
+    """if toggled, use RND (Random Network Distillation) intrinsic exploration bonus"""
+    rnd_coef: float = 0.01
+    """scale of RND intrinsic reward relative to extrinsic reward"""
+    rnd_output_dim: int = 64
+    """output dimension of RND target/predictor networks"""
+    rnd_hidden_dim: int = 256
+    """hidden dimension of RND target/predictor networks"""
+    rnd_lr: float = 0.0001
+    """learning rate for RND predictor network"""
 
     # BC
     bc_dataset_path: str = ""

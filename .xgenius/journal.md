@@ -4981,3 +4981,91 @@ NEXT SESSION (HIGH PRIORITY — pilots completing imminently!):
   6. Cancel rorqual curriculum jobs if GAE/VC-PPO pilots are promising
   7. Parse h069-1B-s1 and h070-1B results as 1B runs finish (~5-6h)
   8. h072/h075 pending on fir — low priority, curriculum is dead end
+
+---
+**[2026-03-20 12:58 UTC]**
+
+
+=== SESSION: h078/h076 FAILED + h074/h077 disappeared + 12 new pilots submitted ===
+
+Triggered by: h078-pilot-s1 (narval 58034915) SUCCESS.
+
+RESULTS PARSED:
+  h078 (VC-PPO actor=0.95, critic=1.0): avg_return=21.22, 32% dungeon. TERRIBLE (-31.2% vs h040 30.86).
+  h076 (separate critic): avg_return=22.74, 32% dungeon. TERRIBLE (-26.3% vs h040 30.86).
+
+DISAPPEARED:
+  h074 (lambda=0.95, narval 58034882) — node crash, no logs.
+  h077 (lambda=0.95 + sep critic, narval 58034896) — node crash.
+
+CONCLUSIONS FROM GAE LAMBDA / VC-PPO / SEPARATE CRITIC EXPERIMENTS:
+  ALL FAILED. Key findings:
+  1. gae_lambda=0.95 is catastrophically bad (-31% to -36% vs lambda=0.8). Consistent across:
+     h034 (LSTM+lambda=0.95, pilot 19.72), h078 (GRU+VC-PPO, 21.22), h076 (GRU+sep critic, 22.74).
+  2. lambda=0.8 is OPTIMAL for Craftax. The short GAE half-life (3.1 steps) actually helps
+     because most rewards in Craftax are immediate (kill monster = instant reward).
+  3. Separate critic destroys shared representation learning (-26%).
+  4. VC-PPO doesn't help because the problem isn't critic bias — it's exploration.
+
+  h074 CLOSED (disappeared, both components proven bad).
+  h076 CLOSED. h077 CLOSED. h078 CLOSED.
+  h079 still running — expected to fail too.
+
+STRATEGY PIVOT: HYPERPARAMETER SWEEP + RND EXPLORATION
+  Since all 'clever' modifications failed (VC-PPO, separate critic, curriculum, obs augment),
+  and the simple h040 config remains best, the path forward is:
+  1. Hyperparameter optimization around h040
+  2. Intrinsic exploration motivation (RND) to push into deeper floors
+  3. Reward normalization for training stability
+
+NEW PILOTS SUBMITTED (12 total):
+  On nibi (all PENDING, nodes g[7,26,37] down):
+    h080: lr=0.0003 (nibi 10641528)
+    h081: update_epochs=2 (nibi 10641529)
+    h082: vf_coef=1.0 (nibi 10641531)
+    h083: num_minibatches=4 (nibi 10641532)
+    h084: hidden_size=768 (nibi 10641533)
+  On narval (backup for nibi failures):
+    h080-v2: lr=0.0003 (narval 58037430, PENDING)
+    h083-v2: num_minibatches=4 (narval 58037431, PENDING)
+    h084-v2: hidden_size=768 (narval 58037433, PENDING)
+  On narval (new ideas):
+    h085: RND exploration coef=0.01 (narval 58037409, RUNNING)
+    h086: RND exploration coef=0.1 (narval 58037410, RUNNING)
+    h087: reward normalization (narval 58037457, PENDING)
+
+RND IMPLEMENTATION:
+  Added Random Network Distillation (RND) intrinsic exploration bonus.
+  Target network: fixed random MLP (obs → 64-dim embedding).
+  Predictor: trainable MLP trying to predict target output.
+  Intrinsic reward = MSE(predictor, target), normalized by running std.
+  Novel states = high prediction error = high exploration bonus.
+  This could push agent to explore deeper dungeon floors and engage in more combat.
+
+REWARD NORMALIZATION IMPLEMENTATION:
+  Added --reward-norm flag. Normalizes rewards by running std before GAE.
+  Could stabilize value function training.
+
+RUNNING 1B JOBS:
+  h069-1B-s1v3 (narval, 8.3h) — curriculum seed 1
+  h070-1B-s3 (narval, 8.3h) — aggressive curriculum seed 3
+  h070-1B-s1 (fir, 11.6h) — aggressive curriculum seed 1
+  h069-1B-s3 (rorqual, STUCK PENDING 2d)
+  h070-1B-s2 (rorqual, STUCK PENDING — nodes down)
+
+1B LEADERBOARD:
+  h040 GRU+128+grad:     mean=39.55±2.25 (n=3, FINAL) — CURRENT BEST
+  h044 GRU+ent+128+grad: mean=39.0 (n=3, FINAL)
+  h069 curriculum k5-7:  s2=38.46 (n=1, s1+s3 running)
+  h023 LSTM+128:         mean=38.10 (n=3, FINAL)
+  Baseline PPO-LSTM:     mean=33.88 (n=3, FINAL)
+  30% TARGET:            44.04
+
+NEXT SESSION PRIORITIES:
+  1. Parse h079 pilot (expected to fail like h078/h076)
+  2. Parse h080-h087 pilots as they complete
+  3. If any pilot beats h040 (30.86): submit 1B × 3 seeds IMMEDIATELY
+  4. RND (h085/h086) is the most promising novel direction
+  5. Parse h069-1B-s1 and h070-1B-s1/s3 when 1B runs finish (~4-6h)
+  6. If no pilots work: consider self-imitation learning or hierarchical RL
+

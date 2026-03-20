@@ -139,6 +139,43 @@ if __name__ == "__main__":
         agent.aux_head = agent.aux_head.to(device)
         print(f"Auxiliary kill prediction enabled: coef={args.aux_kill_coef}")
 
+    # Reward normalization (running mean/std)
+    reward_rms = None
+    if args.reward_norm:
+        reward_rms = RunningMeanStd((1,), device)
+        print(f"Reward normalization enabled")
+
+    # RND (Random Network Distillation) exploration
+    rnd_target = None
+    rnd_predictor = None
+    rnd_optimizer = None
+    rnd_reward_rms = None
+    if args.rnd:
+        obs_dim_flat = np.array(envs.single_observation_space.shape).prod() + extra_stats_dim
+        # Target network: fixed random MLP
+        rnd_target = nn.Sequential(
+            nn.Linear(obs_dim_flat, args.rnd_hidden_dim),
+            nn.ReLU(),
+            nn.Linear(args.rnd_hidden_dim, args.rnd_hidden_dim),
+            nn.ReLU(),
+            nn.Linear(args.rnd_hidden_dim, args.rnd_output_dim),
+        ).to(device)
+        # Freeze target
+        for p in rnd_target.parameters():
+            p.requires_grad = False
+        # Predictor network: trainable MLP (slightly larger)
+        rnd_predictor = nn.Sequential(
+            nn.Linear(obs_dim_flat, args.rnd_hidden_dim),
+            nn.ReLU(),
+            nn.Linear(args.rnd_hidden_dim, args.rnd_hidden_dim),
+            nn.ReLU(),
+            nn.Linear(args.rnd_hidden_dim, args.rnd_output_dim),
+        ).to(device)
+        rnd_optimizer = torch.optim.Adam(rnd_predictor.parameters(), lr=args.rnd_lr)
+        # Running stats for normalizing intrinsic rewards
+        rnd_reward_rms = RunningMeanStd((1,), device)
+        print(f"RND exploration enabled: coef={args.rnd_coef}, output_dim={args.rnd_output_dim}, hidden_dim={args.rnd_hidden_dim}")
+
     if args.curriculum_kills:
         curriculum_floors = [int(f) for f in args.curriculum_target_floors.split(",")]
         print(f"Curriculum learning enabled: frac={args.curriculum_frac}, kills=[{args.curriculum_min_kills},{args.curriculum_max_kills}], end_frac={args.curriculum_end_frac}, target_floors={curriculum_floors}")
@@ -286,6 +323,24 @@ if __name__ == "__main__":
                 # Update tracking: reset for done envs
                 prev_floor_kills = current_kills * (~next_done).float()
                 prev_player_level = player_level * (~next_done).float()
+
+            # RND intrinsic reward
+            if rnd_target is not None:
+                with torch.no_grad():
+                    obs_flat = next_obs.view(args.num_envs, -1)
+                    rnd_target_feat = rnd_target(obs_flat)
+                    rnd_pred_feat = rnd_predictor(obs_flat)
+                    rnd_error = (rnd_target_feat - rnd_pred_feat).pow(2).mean(dim=-1)  # (num_envs,)
+                    # Normalize by running stats
+                    rnd_reward_rms.update(rnd_error.unsqueeze(-1))
+                    rnd_intrinsic = rnd_error / (rnd_reward_rms.var.squeeze().sqrt() + 1e-8)
+                    reward = reward.view(-1) + args.rnd_coef * rnd_intrinsic
+
+            # Reward normalization
+            if reward_rms is not None:
+                reward_flat = reward.view(-1)
+                reward_rms.update(reward_flat.unsqueeze(-1))
+                reward = reward_flat / (reward_rms.var.squeeze().sqrt() + 1e-8)
 
             rewards[step] = reward.view(-1)
 
@@ -448,6 +503,17 @@ if __name__ == "__main__":
                 loss.backward()
                 nn.utils.clip_grad_norm_(agent.parameters(), args.max_grad_norm)
                 optimizer.step()
+
+                # RND predictor update (separate optimizer, doesn't affect PPO agent)
+                if rnd_predictor is not None:
+                    obs_flat_rnd = b_obs[mb_inds].view(-1, b_obs.shape[-1])
+                    with torch.no_grad():
+                        rnd_tgt = rnd_target(obs_flat_rnd)
+                    rnd_pred = rnd_predictor(obs_flat_rnd)
+                    rnd_loss = (rnd_tgt - rnd_pred).pow(2).mean()
+                    rnd_optimizer.zero_grad()
+                    rnd_loss.backward()
+                    rnd_optimizer.step()
 
             if args.target_kl is not None and approx_kl > args.target_kl:
                 break
