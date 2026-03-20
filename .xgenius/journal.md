@@ -4631,3 +4631,41 @@ NEXT SESSION PRIORITIES:
   6. If h070 scales well: this becomes new SOTA (>30% target)
   7. If both h069 and h070 fail to scale: investigate why curriculum helps at pilot but not 1B
 
+
+---
+**[2026-03-20 01:17 UTC]**
+
+
+=== RESEARCH FINDINGS (web search) ===
+
+Key papers/techniques potentially applicable to our PPO-GRU on Craftax:
+
+QUICK WINS (if curriculum doesn't scale):
+1. VC-PPO: Separate actor/critic GAE lambda. Higher lambda for critic
+   reduces bias, lower lambda for actor reduces variance. Simple code change.
+   Previous tests (h008, h034) showed gae_lambda=0.95 hurts, but those
+   were LSTM/GTrXL without curriculum or grad_norm=1.0.
+2. SASR (ICLR 2025): Beta-distribution success rate rewards as shaped reward.
+   Lightweight, no extra networks. Tracks which states appear in high-return
+   episodes and uses that as auxiliary reward signal.
+3. Self-imitation learning: Store top-K episodes by return, add BC loss
+   alongside PPO to reinforce successful behaviors.
+
+MEDIUM EFFORT:
+4. SOL: Scalable Option Learning for hierarchical RL in roguelikes (NetHack).
+   Uses options framework with GPU-parallelized training.
+5. ARES: Attention-based reward redistribution (offline).
+
+HIGH EFFORT BUT BEST RESULTS:
+6. SCALAR (NeurIPS 2025): LLM-guided planning + deep RL skill learning.
+   88.2% diamond collection, 9.1% gnomish mines on Craftax. But requires
+   LLM planner — fundamentally different architecture.
+
+CONFIRMED DEAD ENDS (from Craftax paper):
+- RND, ICM, E3B intrinsic motivation — ALL HURT performance on Craftax
+  (already known from session 2026-03-19 18:57)
+
+PRIORITY: Wait for h069/h070 1B results first. If curriculum scales,
+we hit the 30% target. If not, try VC-PPO lambda decoupling or
+self-imitation learning as next approaches.
+
