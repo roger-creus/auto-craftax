@@ -5244,3 +5244,96 @@ NEXT SESSION PRIORITIES:
   6. If RLE pilot beats h040: IMMEDIATELY submit 1B × 3 seeds
   7. If h084 (hidden=768) works: combine with RLE and submit
   8. If nothing works: try hidden=1024, or combined exploration+HP changes
+
+---
+**[2026-03-20 15:45 UTC]**
+
+
+=== SESSION: HP sweep results + h085 RND discovery + new submissions ===
+
+Triggered by: h081-pilot-s1v2 (narval 58037892) SUCCESS.
+
+PILOT RESULTS PARSED THIS SESSION:
+  h081 (update_epochs=2):  avg_return=18.50, -40.0% vs h040. CLOSED — fewer epochs = less sample efficiency.
+  h087 (reward norm):      avg_return=18.94, -38.6% vs h040. CLOSED — reward normalization hurts.
+  h085 (RND coef=0.01):    avg_return=32.46, +5.2% vs h040. **PROMISING!** Mild RND exploration helps!
+  h084 (hidden=768):       avg_return=28.66, -7.1% vs h040. OPEN — larger model slower at 200M, may improve at 1B.
+  h080 (lr=0.0003):        avg_return=23.46, -24.0% vs h040. CLOSED — higher LR catastrophic.
+  h086 (RND coef=0.1):     avg_return=21.98, -28.8% vs h040. CLOSED — strong RND destroys learning.
+
+KEY DISCOVERY: RND COEFFICIENT SENSITIVITY
+  RND coef=0.005 → untested (h096 pilot submitted)
+  RND coef=0.01  → +5.2% (h085, PROMISING)
+  RND coef=0.1   → -28.8% (h086, CATASTROPHIC)
+  This contradicts the Craftax paper which said RND hurts. The key is the coefficient must be VERY MILD.
+  At 0.01, the intrinsic bonus is ~1% of extrinsic reward — enough to nudge exploration without distorting learning.
+  At 0.1, the intrinsic bonus dominates — agent explores aimlessly (2794 avg episode length).
+
+WEB SEARCH FINDINGS:
+  1. Craftax paper confirms: standard intrinsic exploration (RND, ICM, E3B) with default coefficients HURTS.
+     Our finding: ultra-mild RND (0.01) IS beneficial. This is a novel finding.
+  2. DeepMind MBRL (2502.01591) achieves 69.66% on Craftax-Classic (1M steps, 8 H100s) using world models.
+     Their model-free baseline achieves 55.49% with ResNet+GRU. Model capacity was key lever.
+  3. Official Craftax baselines: GRU, hidden=512, gamma=0.99, lambda=0.8, max_grad_norm=1.0 — our h040 already improved on this.
+
+CANCELLED STUCK JOBS:
+  - rorqual: h088/h089/h090 backups (narval versions running) + h092/h093 (resubmitted on narval)
+  - nibi: h092/h093 (resubmitted on narval)
+
+NEW SUBMISSIONS:
+  h085-1B-s1 (narval 58041541): RND 0.01 seed 1, 1B steps — PENDING
+  h085-1B-s2 (fir 28562821): RND 0.01 seed 2, 1B steps — RUNNING
+  h085-1B-s3 (narval 58041543): RND 0.01 seed 3, 1B steps — PENDING
+  h092-pilot-s1v3 (narval 58041347): RLE 0.01, 200M pilot — PENDING
+  h093-pilot-s1v3 (narval 58041350): RLE 0.1, 200M pilot — PENDING
+  h094-pilot-s1 (narval 58041545): curriculum + RND 0.01 combined, 200M pilot — PENDING
+  h095-pilot-s1 (narval 58041555): ent anneal + RND 0.01, 200M pilot — PENDING
+  h096-pilot-s1 (narval 58041557): RND 0.005 (ultra-mild), 200M pilot — PENDING
+
+STILL RUNNING:
+  h082 (vf_coef=1.0): narval 58037893, ~2.3h elapsed
+  h088 (clip_coef=0.1): narval 58037894, ~2.2h elapsed
+  h089 (ent_coef=0.02): narval 58037896, ~2.2h elapsed
+  h090 (no clip_vloss): narval 58037897, ~2.2h elapsed
+  h069-1B-s1v3: narval, ~11h elapsed
+  h070-1B-s3: narval, ~11h elapsed
+  h070-1B-s1: fir, ~14.5h elapsed
+
+1B LEADERBOARD:
+  h040 GRU+128+grad:     mean=39.55±2.25 (n=3, FINAL) — CURRENT BEST
+  h044 GRU+ent+128+grad: mean=39.0 (n=3, FINAL)
+  h069 curriculum k5-7:  s2=38.46 (n=1, s1 running)
+  h023 LSTM+128:         mean=38.10 (n=3, FINAL)
+  Baseline PPO-LSTM:     mean=33.88 (n=3, FINAL)
+  30% TARGET:            44.04
+
+PILOT LEADERBOARD (200M):
+  h070 curriculum k3-5:  34.58 (+12.1% vs h040) — 1B RUNNING
+  h062 curriculum buggy: 33.58
+  h057 obs augment:      33.14
+  h085 RND 0.01:         32.46 (+5.2% vs h040) — 1B SUBMITTED
+  h044 ent anneal:       32.62
+  h040 baseline:         30.86
+
+BOTTLENECK ANALYSIS:
+  Agent enters dungeon 88-96% at 1B but NEVER reaches Floor 2 (0% gnomish mines).
+  Kills orcs on Floor 1 (88% orc_soldier, 76% orc_mage) but doesn't complete 8-kill threshold.
+  The problem is combat completion, not combat initiation.
+  Curriculum (h070) helps by pre-training kill behavior.
+  Mild RND (h085) helps by encouraging more diverse exploration.
+
+STRATEGY:
+  1. WAIT for h070-1B results — if it scales like h040 (pilot→1B = +28%), could reach 44.3!
+  2. WAIT for h085-1B results — if it scales similarly, could reach ~41.6.
+  3. h094 pilot combines curriculum+RND — could be the winning formula.
+  4. h095 combines ent anneal+RND — another promising combo.
+  5. h096 tests even milder RND (0.005) — finding optimal coefficient.
+
+NEXT SESSION PRIORITIES:
+  1. Parse h082/h088/h089/h090 pilots (should complete within ~1h)
+  2. Parse h092-h096 pilots (queued, ~3-4h from now)
+  3. If h094 (curriculum+RND) beats both h070 and h085 pilots: SUBMIT 1B × 3 seeds
+  4. Parse h069-1B-s1 and h070-1B results when 1B runs finish (~6-12h)
+  5. Parse h085-1B results (~18-24h from now)
+  6. If nothing hits 44: try model-based RL (DreamerV3/world model) as paradigm shift
+
