@@ -56,3 +56,10 @@ Both jobs resubmitted: h020→nibi (10532814), h021→rorqual (8541287).
 **Also:** v2 of h059 crashed with "Unrecognized options: --aux-kill-pred" despite the field existing in args.py. This was caused by stale `__pycache__` on fir — Python cached an older version of args.py without the field.
 
 **Fix:** Added `agent.aux_head = agent.aux_head.to(device)` after `init_aux_head()`. Also cleared `__pycache__` on all clusters. v4 submitted with both fixes.
+
+## 2026-03-20 18:50 — SIL replay buffer GPU OOM on 3g.40gb partitions
+h101, h102, h104 all crashed with CUDA OOM within 5 minutes of starting. The SIL replay buffer
+(131072 entries × 8268 obs_dim × 4 bytes = ~4.1 GB) was pre-allocated on GPU. Since JAX/Craftax 
+uses ~30GB of the 40GB 3g.40gb GPU, only ~9GB is available for PyTorch. The buffer plus PPO rollout
+data exceeded this. Fixed by storing the buffer on CPU and moving mini-batches to GPU on-demand.
+Resubmitted h101-h104 with fix.
