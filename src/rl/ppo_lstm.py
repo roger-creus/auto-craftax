@@ -104,19 +104,27 @@ if __name__ == "__main__":
     # Observation augmentation: append kill count on current floor (normalized 0-1)
     extra_stats_dim = 0
     if args.obs_augment:
-        extra_stats_dim = 1  # kill count on current floor / 8.0
-        print(f"Observation augmentation enabled: +{extra_stats_dim} features (kill count)")
+        extra_stats_dim += 1  # kill count on current floor / 8.0
+        print(f"Observation augmentation enabled: +1 features (kill count)")
+    if args.rle:
+        extra_stats_dim += args.rle_dim  # z vector appended to obs for policy conditioning
+        print(f"RLE conditioning: +{args.rle_dim} features (latent z vector)")
 
     def augment_obs(obs_tensor):
-        """Append kill count on current floor (normalized 0-1) to observation."""
-        if not args.obs_augment:
+        """Append kill count and/or RLE z vector to observation."""
+        parts = [obs_tensor]
+        if args.obs_augment:
+            env_state = envs.env._state.env_state
+            pl_np = np.asarray(env_state.player_level).astype(int)
+            mk = np.asarray(env_state.monsters_killed)  # (num_envs, num_floors)
+            kills = mk[np.arange(args.num_envs), pl_np].clip(max=8).astype(np.float32) / 8.0
+            kills_t = torch.as_tensor(kills, device=device).unsqueeze(-1)  # (num_envs, 1)
+            parts.append(kills_t)
+        if rle_z is not None:
+            parts.append(rle_z)  # (num_envs, rle_dim)
+        if len(parts) == 1:
             return obs_tensor
-        env_state = envs.env._state.env_state
-        pl_np = np.asarray(env_state.player_level).astype(int)
-        mk = np.asarray(env_state.monsters_killed)  # (num_envs, num_floors)
-        kills = mk[np.arange(args.num_envs), pl_np].clip(max=8).astype(np.float32) / 8.0
-        kills_t = torch.as_tensor(kills, device=device).unsqueeze(-1)  # (num_envs, 1)
-        return torch.cat([obs_tensor, kills_t], dim=-1)
+        return torch.cat(parts, dim=-1)
 
     agent = PPO_LSTM_Agent(
         obs_dim=np.array(envs.single_observation_space.shape).prod() + extra_stats_dim,
@@ -175,6 +183,31 @@ if __name__ == "__main__":
         # Running stats for normalizing intrinsic rewards
         rnd_reward_rms = RunningMeanStd((1,), device)
         print(f"RND exploration enabled: coef={args.rnd_coef}, output_dim={args.rnd_output_dim}, hidden_dim={args.rnd_hidden_dim}")
+
+    # RLE (Random Latent Exploration) — simpler than RND, conditions policy on random z
+    rle_phi = None
+    rle_z = None
+    rle_reward_rms = None
+    if args.rle:
+        obs_dim_flat = np.array(envs.single_observation_space.shape).prod()
+        if args.obs_augment:
+            obs_dim_flat += 1  # obs augment adds 1 feature before RLE z
+        # Fixed random feature extractor: obs → rle_dim embedding
+        rle_phi = nn.Sequential(
+            nn.Linear(obs_dim_flat, args.rle_hidden_dim),
+            nn.ReLU(),
+            nn.Linear(args.rle_hidden_dim, args.rle_hidden_dim),
+            nn.ReLU(),
+            nn.Linear(args.rle_hidden_dim, args.rle_dim),
+        ).to(device)
+        for p in rle_phi.parameters():
+            p.requires_grad = False
+        # Initialize z vectors (unit sphere) for each env
+        rle_z = torch.randn(args.num_envs, args.rle_dim, device=device)
+        rle_z = rle_z / (rle_z.norm(dim=-1, keepdim=True) + 1e-8)
+        # Running stats for normalizing intrinsic rewards
+        rle_reward_rms = RunningMeanStd((1,), device)
+        print(f"RLE exploration enabled: coef={args.rle_coef}, dim={args.rle_dim}, hidden_dim={args.rle_hidden_dim}")
 
     if args.curriculum_kills:
         curriculum_floors = [int(f) for f in args.curriculum_target_floors.split(",")]
@@ -336,6 +369,18 @@ if __name__ == "__main__":
                     rnd_intrinsic = rnd_error / (rnd_reward_rms.var.squeeze().sqrt() + 1e-8)
                     reward = reward.view(-1) + args.rnd_coef * rnd_intrinsic
 
+            # RLE intrinsic reward: r_i = φ(s) · z, normalized by running std
+            if rle_phi is not None:
+                with torch.no_grad():
+                    # Strip RLE z from obs to get raw obs for feature extraction
+                    obs_for_phi = next_obs[..., :-args.rle_dim]
+                    phi_s = rle_phi(obs_for_phi.view(args.num_envs, -1))  # (num_envs, rle_dim)
+                    rle_reward = (phi_s * rle_z).sum(dim=-1)  # (num_envs,)
+                    # Normalize by running stats
+                    rle_reward_rms.update(rle_reward.unsqueeze(-1))
+                    rle_intrinsic = rle_reward / (rle_reward_rms.var.squeeze().sqrt() + 1e-8)
+                    reward = reward.view(-1) + args.rle_coef * rle_intrinsic
+
             # Reward normalization
             if reward_rms is not None:
                 reward_flat = reward.view(-1)
@@ -363,6 +408,17 @@ if __name__ == "__main__":
                             avg_achievements[k] = deque(maxlen=25)
                         avg_achievements[k].append(v)
                     print(f"global_step={global_step}, episodic_return={infos['r'][idx]}, episodic_length={infos['l'][idx]}, avg_reward={np.mean(avg_ep_reward)}")
+
+                # RLE: resample z for done envs (new episode = new exploration goal)
+                if rle_z is not None:
+                    done_idx_list = done_indices.tolist()
+                    if isinstance(done_idx_list, int):
+                        done_idx_list = [done_idx_list]
+                    new_z = torch.randn(len(done_idx_list), args.rle_dim, device=device)
+                    new_z = new_z / (new_z.norm(dim=-1, keepdim=True) + 1e-8)
+                    rle_z[done_idx_list] = new_z
+                    # Update z portion of obs for done envs
+                    next_obs[done_idx_list, -args.rle_dim:] = new_z
 
             # Go-Explore: detect milestones and apply frontier resets
             if frontier_buffer is not None:

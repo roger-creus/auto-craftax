@@ -137,6 +137,14 @@ class PPO_Args:
     """hidden dimension of RND target/predictor networks"""
     rnd_lr: float = 0.0001
     """learning rate for RND predictor network"""
+    rle: bool = False
+    """if toggled, use RLE (Random Latent Exploration) intrinsic bonus — policy conditioned on random z"""
+    rle_coef: float = 0.01
+    """scale of RLE intrinsic reward relative to extrinsic reward"""
+    rle_dim: int = 64
+    """dimension of RLE latent z vector and feature embedding"""
+    rle_hidden_dim: int = 256
+    """hidden dimension of RLE feature extractor"""
 
     # BC
     bc_dataset_path: str = ""
