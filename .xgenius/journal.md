@@ -4493,3 +4493,65 @@ NEXT SESSION PRIORITIES:
   4. Monitor h040-1B-s3v2 (~12h left) — resubmission
   5. Parse h070 pilot (after h044 finishes on fir)
   6. Monitor h069 1B runs — THE EXPERIMENT THAT MATTERS MOST
+
+---
+**[2026-03-20 00:50 UTC]**
+
+
+=== SESSION: h044-1B-s3 OOM parsed + h069-1B-s1 rescheduled ===
+
+Triggered by: h044-1B-s3 (28364197, fir) SUCCESS (but OOM killed at 99.4%).
+
+h044-1B-s3 ANALYSIS:
+  Job ran 20.2h on fir H100 3g.40gb with 48G memory.
+  OOM killed at 994M/1B (99.4%) — same issue as h040-1B-s3 on fir.
+  Running avg_return from last 500 episodes: ~40.76
+  Running avg_return from last 200 episodes: ~40.59
+  Using ~40.7 as estimated final result. No CSV saved.
+  NOT resubmitting — we have 3 data points for h044.
+
+h044 3-SEED SUMMARY (COMPLETE):
+  s1=35.5 (narval A100, 12h) — 84% dungeon
+  s2=40.9 (rorqual H100, 10.2h) — 100% dungeon
+  s3≈40.7 (fir H100, OOM@994M) — estimated from log
+  MEAN = 39.0 (+15.1% over baseline 33.88)
+  High seed variance: s1 is an outlier at 35.5 vs s2/s3 at ~40.8.
+  Below h040 (40.80 2-seed mean). Entropy annealing provides no benefit
+  over h040 at 1B scale despite pilot advantage.
+
+QUEUE OPTIMIZATION:
+  Cancelled h069-1B-s1 on nibi (was scheduled Mar 21 — too far out).
+  Resubmitted as h069-1B-s1v2 on fir with 64G memory (job 28474521).
+  Will queue behind h070-pilot which should complete in ~1h.
+
+RUNNING JOBS (5 running, 2 pending):
+  h040-1B-s3v2 (narval 58018762, 1.8h elapsed — ~10h left, 64G)
+  h057-1B-s2 (narval 57994663, 9.3h — ~3h left)
+  h069-1B-s2 (narval 58009758, 2.7h — ~10h left)
+  h071-pilot-s1 (narval 58010085, 2.7h — should finish soon, ~30min left)
+  h070-pilot-s1v3 (fir 28467084, 1.7h — should finish soon, ~1h left)
+  h069-1B-s3 (rorqual 8616355, PENDING Priority — 9h queue)
+  h069-1B-s1v2 (fir 28474521, PENDING behind h070 pilot)
+
+1B LEADERBOARD:
+  h040 GRU+128+grad:      s1=40.14 s2=41.46 mean=40.80 (n=2, s3v2 running)
+  h044 GRU+ent+128+grad:  s1=35.5 s2=40.9 s3≈40.7 mean=39.0 (n=3, COMPLETE)
+  h023 LSTM+128:           mean=38.10 (n=3, COMPLETE)
+  Baseline PPO-LSTM:       mean=33.88 (n=3, COMPLETE)
+
+IMPORTANT OBSERVATION — fir OOM pattern:
+  Both h040-1B-s3 and h044-1B-s3 OOM'd on fir at ~994M/1B with 48G.
+  h040-1B-s3v2 resubmitted on narval with 64G (running, 1.8h).
+  h069-1B-s1v2 submitted on fir with 64G (should be safe).
+  OOM may be fir-specific (H100 3g.40gb memory fragmentation?).
+  Narval A100 and rorqual H100 were fine with 48G for the same workload.
+
+NEXT SESSION PRIORITIES:
+  1. Parse h070 pilot (aggressive floor 0 curriculum kills=3-5) — finishing soon
+  2. Parse h071 pilot (curriculum + ent annealing) — finishing soon
+  3. Parse h057-1B-s2 (~3h left) — obs augment at 1B scale
+  4. Parse h040-1B-s3v2 (~10h left) — finalize h040 3-seed mean
+  5. Monitor h069 1B runs — HIGHEST PRIORITY experiment
+  6. If h070/h071 pilot results are good: queue 1B scaling runs
+  7. Web search for new ideas running in background — check results
+
