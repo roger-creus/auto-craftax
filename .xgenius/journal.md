@@ -5522,3 +5522,166 @@ NEXT SESSION PRIORITIES:
   5. If h102 (SIL+RND) beats h085 (RND alone): submit 1B × 3 seeds
   6. If nothing crosses 44: consider DreamerV3/world model paradigm shift
 
+
+---
+**[2026-03-20 18:47 UTC]**
+
+
+=== SESSION: h092 RLE result + SIL OOM fix + new hypotheses ===
+
+Triggered by: h092-pilot-s1v5 (fir 28566055) SUCCESS.
+
+KEY RESULT — h092 (RLE exploration coef=0.01):
+  avg_return=18.94, 0% dungeon, -38.6% vs h040 (30.86).
+  RLE is ACTIVELY HARMFUL even at mild 0.01 coefficient.
+  No combat progression, no dungeon entry. Much worse than RND.
+  CLOSED — RLE does not work for Craftax.
+
+SIL OOM BUG FIX:
+  h101, h102, h104 all OOM'd on 3g.40gb GPUs (5 min runtime).
+  Root cause: SIL replay buffer (131K * obs_dim float32) allocated on GPU.
+  JAX/Craftax uses ~30GB of 40GB GPU; only ~9GB left for PyTorch.
+  The SIL buffer competes with PPO rollout data for that 9GB.
+  FIX: Store SIL buffer on CPU, move mini-batches (512 samples) to GPU only when sampling.
+  Code synced to all clusters.
+
+RESUBMITTED SIL EXPERIMENTS:
+  h101 (SIL 0.1):               fir 28584959
+  h102 (SIL 0.1 + RND 0.01):    rorqual 8662240
+  h103 (SIL 0.1 + RND 0.01 + ent anneal): narval 58050045
+  h104 (SIL 0.5 + RND 0.01):   fir 28585171
+
+NEW HYPOTHESIS:
+  h105 (RND upward annealing 0→0.02): narval 58050131
+  Motivation: let agent learn basics without exploration noise, then gradually
+  increase RND to push deeper floor exploration. Opposite of standard decay.
+
+CANCELLED:
+  h103-pilot-s1 (narval 58044385) — would OOM with old SIL code
+
+CURRENTLY RUNNING (17 total):
+  Rorqual (5): h092-v4, h094-v2, h096-v2, h098, h100 — all ~2h elapsed, ~2h left
+  Fir (5): h097-v2, h093-v5, h095-v4, h070-1B-s1 (17h), h085-1B-s2 (3h)
+  Fir new (2): h101-v2, h104-v2 — just submitted
+  Rorqual new (1): h102-v2 — just submitted
+  Narval pending (5): h092-v3, h093-v3, h094, h096, h085-1B-s1/s3
+  Narval new (2): h103-v2, h105 — just submitted
+
+EXPLORATION METHOD COMPARISON (200M pilots):
+  h085 RND 0.01:       32.46 (+5.2% vs h040) — BEST EXPLORATION
+  h040 no exploration:  30.86 (baseline)
+  h086 RND 0.1:        21.98 (-28.8%) — too strong
+  h092 RLE 0.01:       18.94 (-38.6%) — catastrophic
+  h087 reward norm:    18.94 (-38.6%) — catastrophic
+  → Only MILD RND (0.01) helps. All other exploration methods hurt.
+
+1B LEADERBOARD:
+  h040 GRU+128+grad:     mean=39.55±2.25 (n=3, FINAL) — CURRENT BEST
+  h070 curriculum k3-5:  s3=39.38 (n=1, s1 running fir 17h)
+  h044 GRU+ent+128+grad: mean=39.0 (n=3, FINAL)
+  h069 curriculum k5-7:  s2=38.46 (n=1)
+  h023 LSTM+128:         mean=38.10 (n=3, FINAL)
+  Baseline PPO-LSTM:     mean=33.88 (n=3, FINAL)
+  30% TARGET:            44.04
+
+STRATEGY:
+  Three parallel paths to 44+:
+  1. RND scaling: if h085-1B gives ~41.5, need +6% more from combinations
+  2. SIL: h101-h104 testing. If SIL works, combine with RND for potential additive gains
+  3. RND schedule: h105 (upward annealing) + h098 (downward annealing) test optimal schedule
+  4. RND combinations: h094 (curriculum+RND), h097 (RND+768), h100 (dungeon-only RND)
+
+NEXT SESSION PRIORITIES:
+  1. Parse rorqual pilot results (h094, h096, h098, h100) — should complete ~2h from now
+  2. Parse fir pilot results (h093, h095, h097) — should complete ~2h from now
+  3. Parse SIL pilot results (h101, h102, h104) — ~2-3h from now
+  4. Parse h070-1B-s1 (fir) — should complete within ~7h
+  5. Parse h085-1B results as they come in
+  6. If any SIL or RND combination beats h085 (32.46 at 200M): submit 1B × 3 seeds
+  7. If h085-1B ≥ 41: submit best combination as 1B × 3 seeds immediately
+
+
+---
+**[2026-03-20 21:07 UTC]**
+
+=== SESSION: h101 SIL result + h092-h100 rorqual results + h096-1B submitted ===
+
+Triggered by: h101-pilot-s1v2 (fir 28584959) SUCCESS.
+
+NEW PILOT RESULTS PARSED THIS SESSION (200M):
+  h096 (RND 0.005):        33.54 (+8.7% vs h040, +3.3% vs h085) — **NEW BEST PILOT!!**
+    76% dungeon, 28% orc_mage, 48% orc_soldier. Optimal RND coefficient is 0.005 not 0.01.
+  h101 (SIL 0.1):          30.70 (-0.5% vs h040) — SIL alone is neutral. CLOSED.
+  h094 (curriculum+RND):   30.54 (-1.0% vs h040) — no synergy. CLOSED.
+  h098 (RND 0.05→0.005):   27.54 (-10.8% vs h040) — annealing from high hurts. CLOSED.
+  h100 (dungeon-only RND): 25.30 (-18.0% vs h040) — restricting RND hurts. CLOSED.
+  h095 (ent anneal+RND):   24.90 (-19.3% vs h040) — ent anneal kills RND benefit. CLOSED.
+  h097 (RND+hidden=768):   19.46 (-36.9% vs h040) — larger model+RND catastrophic. CLOSED.
+  h093 (RLE 0.1):           4.94 — catastrophic. RLE is useless. CLOSED.
+
+UPDATED PILOT LEADERBOARD (200M, all on h040 base):
+  h096 RND 0.005:         33.54 (+8.7%) — NEW BEST
+  h085 RND 0.01:          32.46 (+5.2%)
+  h040 no exploration:    30.86 (baseline)
+  h101 SIL 0.1:           30.70 (-0.5%)
+  h094 curriculum+RND:    30.54 (-1.0%)
+  h098 RND anneal:        27.54 (-10.8%)
+  h100 dungeon-only RND:  25.30 (-18.0%)
+  h095 ent anneal+RND:    24.90 (-19.3%)
+  h097 RND+768:           19.46 (-36.9%)
+  h092 RLE 0.01:          18.46 (-40.2%)
+  h093 RLE 0.1:            4.94 (-84.0%)
+
+KEY INSIGHT: RND coefficient is critical. 0.005 > 0.01 > 0.001(?). Too high hurts.
+Everything else we've tried to combine with RND (curriculum, ent anneal, larger model, 
+dungeon-only, high-to-low annealing) HURTS. The only thing left to test:
+  - Coefficient fine-tuning (h106: 0.003, h107: 0.007)
+  - SIL + optimal RND (h108: SIL 0.1 + RND 0.005)
+  - Longer rollouts + RND (h109: 256 steps + RND 0.005)
+
+ACTIONS THIS SESSION:
+  1. Cancelled redundant narval pilots (h092-v3, h093-v3, h094, h096 — already have results)
+  2. Submitted h096-1B × 3 seeds: fir 28614738, rorqual 8670014, narval 58058574
+  3. Submitted h106 (RND 0.003) pilot on fir 28615020
+  4. Submitted h107 (RND 0.007) pilot on rorqual 8670016
+  5. Submitted h108 (SIL 0.1 + RND 0.005) pilot on narval 58058577
+  6. Submitted h109 (RND 0.005 + 256 steps) pilot on fir 28616004
+  7. Updated results bank with all 8 new experiment results
+  8. Updated 8 hypothesis statuses (h093-h098, h100, h101 all closed; h096 promising)
+
+CURRENTLY RUNNING/PENDING:
+  fir: h070-1B-s1 (20h/24h), h085-1B-s2 (5h/24h), h104-pilot (2.3h/4h),
+       h096-1B-s1 (queued), h106-pilot (queued), h109-pilot (queued)
+  rorqual: h102-pilot (2.3h/4h), h096-1B-s2 (queued), h107-pilot (queued)
+  narval: h085-1B-s1 (starts ~23:30), h085-1B-s3 (starts ~00:39),
+          h103-pilot (pending), h105-pilot (pending),
+          h096-1B-s3 (queued), h108-pilot (queued)
+
+1B LEADERBOARD:
+  h040 GRU+128+grad:     mean=39.55±2.25 (n=3, FINAL) — CURRENT BEST
+  h070 curriculum k3-5:  s3=39.38 (n=1, s1 running fir 20h)
+  h044 GRU+ent+128+grad: mean=39.0 (n=3, FINAL)
+  h069 curriculum k5-7:  s2=38.46 (n=1)
+  h023 LSTM+128:         mean=38.10 (n=3, FINAL)
+  Baseline PPO-LSTM:     mean=33.88 (n=3, FINAL)
+  30% TARGET:            44.04
+
+EXPECTED SCALING (if h096 scales like h040 at pilot→1B = +28%):
+  h096 at 1B: ~33.54 * 1.28 = ~42.9
+  Still short of 44.04 target. Need +2.6% more.
+  Hope: SIL + RND (h108) or longer rollouts (h109) could provide the extra boost.
+  If h085-1B (RND 0.01) outperforms this scaling, it means more training helps RND disproportionately.
+
+WEB SEARCH: Found IRPO paper (arxiv 2601.21391) — uses multiple intrinsic rewards.
+  Interesting but complex to implement. Focus on coefficient sweep + SIL combinations first.
+  SCALAR (LLM-guided planning) achieves 9.1% gnomish mines. Hierarchical RL could be next paradigm.
+
+NEXT SESSION PRIORITIES:
+  1. Parse h102/h104 SIL+RND pilots (should complete within ~1.5h)
+  2. Parse h106/h107 RND coefficient sweep pilots (~3h from now)
+  3. Parse h108 (SIL+RND 0.005) and h109 (RND+256 steps) pilots
+  4. Parse h070-1B-s1 (fir, ~4h left)
+  5. Parse h085-1B-s2/s1/s3 results as they complete
+  6. If h108 (SIL+RND 0.005) beats h096 (33.54): submit 1B × 3 seeds
+  7. If h096-1B hits ~43+: we're close to target, look for final +2-3% boost
+  8. If nothing crosses 44: consider hierarchical RL or DreamerV3 paradigm shift
