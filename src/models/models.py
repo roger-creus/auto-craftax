@@ -128,6 +128,7 @@ class PPO_LSTM_Agent(nn.Module):
         mlp_class=MLP,
         use_structured_obs: bool = False,
         use_popart: bool = False,
+        use_symlog: bool = False,
         use_gru: bool = False,
         extra_stats_dim: int = 0,
         separate_critic: bool = False,
@@ -137,6 +138,7 @@ class PPO_LSTM_Agent(nn.Module):
 
         self.mlp_class = mlp_class
         self.use_popart = use_popart
+        self.use_symlog = use_symlog
         self.use_gru = use_gru
         self.separate_critic = separate_critic
 
@@ -171,6 +173,9 @@ class PPO_LSTM_Agent(nn.Module):
         if use_popart:
             from src.models.gtrxl import PopArtLayer
             self.critic_head = PopArtLayer(ac_size, 1)
+        elif use_symlog:
+            from src.models.gtrxl import SymlogTwoHotLayer
+            self.critic_head = SymlogTwoHotLayer(ac_size)
         else:
             self.critic_head = layer_init(nn.Linear(ac_size, 1), std=1.0)
         self.actor_head = layer_init(nn.Linear(ac_size, n_actions), std=0.01)
@@ -252,7 +257,7 @@ class PPO_LSTM_Agent(nn.Module):
             value = self.critic_head.denormalize(value)
         value_int = self.critic_head_int(critic_hidden) if self.critic_head_int is not None else None
         aux_pred = self.aux_head(actor_hidden) if self.aux_head is not None else None
-        return action, probs.log_prob(action), probs.entropy(), value, lstm_state, aux_pred, value_int
+        return action, probs.log_prob(action), probs.entropy(), value, lstm_state, aux_pred, value_int, critic_hidden
 
     def sample_action(self, x, lstm_state, done):
         actor_hidden, _, lstm_state = self.get_states(x, lstm_state, done)

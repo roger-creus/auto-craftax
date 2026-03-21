@@ -138,6 +138,7 @@ if __name__ == "__main__":
         mlp_class=get_mlp_class(args.mlp_class),
         use_structured_obs=args.use_structured_obs,
         use_popart=args.use_popart,
+        use_symlog=args.use_symlog,
         use_gru=args.use_gru,
         extra_stats_dim=extra_stats_dim,
         separate_critic=args.separate_critic,
@@ -312,7 +313,7 @@ if __name__ == "__main__":
 
             # action logic
             with torch.no_grad():
-                action, logprob, _, value, next_lstm_state, _, value_int = agent.get_action_and_value(next_obs, next_lstm_state, next_done, denormalize=True)
+                action, logprob, _, value, next_lstm_state, _, value_int, _ = agent.get_action_and_value(next_obs, next_lstm_state, next_done, denormalize=True)
                 values[step] = value.flatten()
                 if use_dual_value and value_int is not None:
                     values_int[step] = value_int.flatten()
@@ -599,7 +600,7 @@ if __name__ == "__main__":
                 mbenvinds = envinds[start:end]
                 mb_inds = flatinds[:, mbenvinds].ravel()  # be really careful about the index
 
-                _, newlogprob, entropy, newvalue, _, aux_pred, newvalue_int = agent.get_action_and_value(
+                _, newlogprob, entropy, newvalue, _, aux_pred, newvalue_int, critic_feats = agent.get_action_and_value(
                     b_obs[mb_inds],
                     (initial_lstm_state[0][:, mbenvinds], initial_lstm_state[1][:, mbenvinds]),
                     b_dones[mb_inds],
@@ -625,7 +626,9 @@ if __name__ == "__main__":
 
                 # value loss
                 newvalue = newvalue.view(-1)
-                if args.use_popart:
+                if args.use_symlog:
+                    v_loss = agent.critic_head.loss(critic_feats, b_returns[mb_inds])
+                elif args.use_popart:
                     mb_returns_norm = agent.critic_head.normalize(b_returns[mb_inds].unsqueeze(-1)).squeeze(-1)
                     v_loss = 0.5 * ((newvalue - mb_returns_norm) ** 2).mean()
                 elif args.clip_vloss:
