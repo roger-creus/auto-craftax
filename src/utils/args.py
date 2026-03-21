@@ -73,6 +73,8 @@ class PPO_Args:
     """the activation function to use in the MLP"""
     use_ln: bool = False
     """if toggled, use layer normalization in the MLP"""
+    use_bn: bool = False
+    """if toggled, use BatchNorm on first layer of observation encoder (PQN-style)"""
     use_structured_obs: bool = False
     """if toggled, use CNN+MLP structured observation encoder instead of flat MLP"""
     use_popart: bool = False

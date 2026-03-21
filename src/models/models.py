@@ -22,10 +22,13 @@ class CraftaxObsEncoder(nn.Module):
     MAP_DIM = MAP_H * MAP_W * MAP_C  # 8217
     STATS_DIM = 51
 
-    def __init__(self, hidden_size, extra_stats_dim=0):
+    def __init__(self, hidden_size, extra_stats_dim=0, use_bn=False):
         super().__init__()
         self.extra_stats_dim = extra_stats_dim
         actual_stats_dim = self.STATS_DIM + extra_stats_dim
+        total_obs_dim = self.MAP_DIM + actual_stats_dim
+        # Optional BatchNorm on raw observation (PQN paper: critical for sparse symbolic obs)
+        self.input_bn = nn.BatchNorm1d(total_obs_dim) if use_bn else None
         # Spatial map encoder: 2-layer CNN + adaptive pool
         self.map_cnn = nn.Sequential(
             nn.Conv2d(self.MAP_C, 32, 3, padding=1),
@@ -56,6 +59,10 @@ class CraftaxObsEncoder(nn.Module):
         )
 
     def forward(self, obs):
+        # Optional input BatchNorm (normalize sparse symbolic features)
+        if self.input_bn is not None:
+            orig_shape = obs.shape
+            obs = self.input_bn(obs.reshape(-1, orig_shape[-1])).reshape(orig_shape)
         # Split observation
         map_flat = obs[..., :self.MAP_DIM]
         stats = obs[..., self.MAP_DIM:]
@@ -117,6 +124,7 @@ class PPO_LSTM_Agent(nn.Module):
         num_layers: int = 5,
         activation_fn: nn.Module = nn.Tanh,
         use_ln: bool = False,
+        use_bn: bool = False,
         mlp_class=MLP,
         use_structured_obs: bool = False,
         use_popart: bool = False,
@@ -138,7 +146,7 @@ class PPO_LSTM_Agent(nn.Module):
         if use_structured_obs:
             pre_layers = max(num_layers // 2 - 1, 1)
             self.shared_pre_lstm = nn.Sequential(
-                CraftaxObsEncoder(hidden_size, extra_stats_dim=extra_stats_dim),
+                CraftaxObsEncoder(hidden_size, extra_stats_dim=extra_stats_dim, use_bn=use_bn),
                 mlp_class(hidden_size, hidden_size, pre_layers, activation_fn, use_ln=use_ln),
             )
         else:

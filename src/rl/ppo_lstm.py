@@ -134,6 +134,7 @@ if __name__ == "__main__":
         hidden_size=args.hidden_size,
         activation_fn=get_activation_fn(args.activation_fn),
         use_ln=args.use_ln,
+        use_bn=args.use_bn,
         mlp_class=get_mlp_class(args.mlp_class),
         use_structured_obs=args.use_structured_obs,
         use_popart=args.use_popart,
