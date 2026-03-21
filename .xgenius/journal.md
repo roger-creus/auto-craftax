@@ -6392,3 +6392,80 @@ NEXT SESSION PRIORITIES:
   4. Parse h125 (ac=2048+LN+RND 0.01) — narval, ~4-5h
   5. Parse h085-1B-s3 and h096-1B-s3 — ~11h from now
   6. If any architecture pilot >35: submit 1B x3 IMMEDIATELY
+
+---
+**[2026-03-21 12:12 UTC]**
+
+
+=== SESSION: h096-1B-s3 parsed + h122/h126 resubmitted on narval ===
+
+Triggered by: h096-1B-s3 (narval 58058574) SUCCESS.
+
+h096-1B-s3 RESULT:
+  avg_return=40.98, 100% dungeon, 92% orc_soldier, 72% orc_mage.
+  44% iron_sword, 32% iron_pickaxe, 20% diamond, 16% sapphire.
+  Wall 47635s (13.2h).
+
+h096-1B FINAL (2 seeds, s1 lost on fir):
+  Mean = (40.02 + 40.98) / 2 = 40.50
+  +2.4% vs h040 (39.55).
+  RND 0.005 helps at 1B but less than h085 RND 0.01 (s1=41.38).
+
+1B LEADERBOARD (updated):
+  h085-1B-s1 (RND 0.01):   41.38 — CURRENT BEST (1 seed, s3 still running ~1h)
+  h096-1B mean (RND 0.005): 40.50 (2 seeds FINAL)
+  h040 (no RND):            39.55 ± 2.25 (3 seeds FINAL)
+  30% TARGET:               44.04
+  Gap: 44.04 - 41.38 = 2.66 (6.4% improvement needed)
+
+RND SCALING INSIGHT:
+  At 200M: RND 0.005 > 0.01 (33.54 vs 32.46)
+  At 1B:   RND 0.01 > 0.005 (41.38 vs 40.50)
+  Higher RND coef maintains exploration pressure longer at scale.
+
+RESUBMITTED ON NARVAL (rorqual/nibi pending 7h, Priority queue):
+  h122-pilot-s1v3 (narval 58077354): ac=2048 + LN (pure architecture test)
+  h126-pilot-s1v3 (narval 58077355): ac=2048 + LN + RND 0.01 + lr=0.00045 + grad=0.5
+  These will start as h085-1B-s3 and h124 finish.
+
+CURRENTLY RUNNING (8 jobs):
+  1B runs:
+    h085-1B-s3 (narval, 13.7h elapsed, ~0-2h remaining)
+  Architecture pilots (CRITICAL PATH):
+    h124 (narval, 3h/6h) — ac=2048 + LN + residual → ~3h remaining
+    h125 (narval, 24min/6h) — ac=2048 + LN + RND 0.01 → ~5.5h remaining
+    h123 (fir, 1.3h/6h) — ac=2048 + LN + RND 0.005 → ~4.7h remaining
+    h118 (fir, 1.3h/6h) — hidden=1024 (expect bad) → ~4.7h remaining
+    h113-v2 (fir, 1.3h/4h) — dual value (expect bad) → ~2.7h remaining
+  Queued on narval:
+    h122-pilot-s1v3 — starts when h085-1B-s3 finishes
+    h126-pilot-s1v3 — starts when h124 finishes
+  Still pending (may never start):
+    h122 (rorqual), h122-v2 (nibi), h126 (rorqual), h126-v2 (nibi)
+
+EXPECTED TIMELINE:
+  ~1h: h085-1B-s3 completes → h122 narval starts
+  ~2.7h: h113-v2 completes on fir
+  ~3h: h124 completes on narval (FIRST ARCHITECTURE RESULT) → h126 narval starts
+  ~4.7h: h118, h123 complete on fir
+  ~5.5h: h125 completes on narval
+  ~7-9h: h122 narval, h126 narval complete
+
+STRATEGY:
+  Architecture pilots (h122-h126) are our ONLY remaining lever to close the 6.4% gap.
+  If ANY pilot scores >35 at 200M:
+    → Submit best wide AC + RND 0.01 at 1B x3 seeds on ALL clusters
+    → Expected 1B return: could be 43+ if architecture and RND combine multiplicatively
+  If ALL pilots fail (<30):
+    → Architecture gap may not apply to symbolic obs
+    → Consider paradigm shifts: hierarchical RL, different reward shaping, longer rollouts
+
+NEXT SESSION PRIORITIES:
+  1. Parse h085-1B-s3 result → update h085 to 2 seeds
+  2. Parse h124 (wide AC + residual) — MOST IMPORTANT architecture result
+  3. Parse h113-v2 (dual value, expect bad → close h113)
+  4. Parse h118 (hidden=1024, expect bad → close h118)
+  5. Parse h123 (wide AC + RND 0.005) and h125 (wide AC + RND 0.01)
+  6. Parse h122 narval and h126 narval results when they finish
+  7. If any architecture pilot >35: submit 1B x3 seeds IMMEDIATELY
+
