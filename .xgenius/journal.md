@@ -7066,3 +7066,66 @@ NEXT SESSION PRIORITIES:
   3. Parse BN combo pilot results as they complete
   4. If h127-1B-s1v4 or any BN combo is promising → plan final 1B runs
 
+
+---
+**[2026-03-21 18:09 UTC]**
+
+
+=== SESSION: h147 pilot result — 3x LR catastrophic failure ===
+
+Triggered by: h147-pilot-s1v2 (rorqual 8753176) SUCCESS notification.
+
+h147 RESULT — CATASTROPHIC:
+  BN + RND 0.01 + lr=0.0006 (3x default lr=0.0002)
+  avg_return=18.58 at 200M. -40% vs h040 baseline (30.86). 0% dungeon entry.
+  Wall 7977s (2.2h) — ran normally, just learned badly.
+  3x LR completely destroys learning even with BN input normalization.
+  BN on obs encoder alone does NOT enable higher learning rates like BN throughout the network would.
+
+ACTIONS TAKEN:
+  1. Recorded h147 result in results bank — CLOSED
+  2. Cancelled h146 (nibi 10704175, 2x LR) and h148 (nibi 10704188, 2x LR + ent)
+     Higher LR line is dead. Default lr=0.0002 is correct even with BN.
+  3. h150 (BN + 2048 envs) remains pending on nibi — freed up queue space
+
+CURRENTLY RUNNING (10):
+  Pilots (ETA 2-3h):
+    h143-pilot-s1v4 (narval): BN + ent anneal + RND 0.01 — 2h12m elapsed
+    h144-pilot-s1v3 (rorqual): BN + RND 0.005 — 2h18m elapsed
+    h145-pilot-s1v3 (fir): BN + ent anneal + RND 0.005 — 2h8m elapsed
+    h149-pilot-s1 (narval): BN + RND 0.01 + kill/floor bonuses — 1h49m elapsed
+    h151-pilot-s1 (rorqual): BN + RND 0.01 + hidden 768 — 2h18m elapsed
+  1B runs (ETA 8-10h):
+    h127-1B-s1v4 (fir): BN + RND 0.01 seed 1 — 1h55m elapsed
+    h127-1B-s2v3 (narval): BN + RND 0.01 seed 2 — 2h12m elapsed
+    h127-1B-s3v4 (rorqual): BN + RND 0.01 seed 3 — 2h18m elapsed
+    h085-1B-s2v3 (narval): RND 0.01 seed 2 — 2h12m elapsed
+    h129-1B-s1 (fir): RND 0.015 seed 1 — 4h55m elapsed
+  Pending (nibi):
+    h150-pilot-s1: BN + 2048 envs — stuck on Priority
+
+HIGHER LR CONCLUSION:
+  Input-only BN (obs encoder normalization) does NOT enable higher LR in RL.
+  Unlike supervised learning where BN smooths the loss landscape throughout the network,
+  our BN only normalizes the observation input. The rest of the network (GRU, actor, critic)
+  is unchanged, so the optimization dynamics remain sensitive to LR.
+  lr=0.0002 is correct for PPO in this environment.
+
+1B LEADERBOARD (unchanged):
+  h085 s1: 41.38 (BEST SINGLE SEED — RND 0.01)
+  h096 mean: 40.50 (2 seeds — RND 0.005)
+  h040 mean: 39.55 ± 2.33 (3 seeds — no RND)
+  h085 mean: 39.38 (2 seeds — high variance)
+  30% TARGET: 44.04
+  h127 (BN+RND 0.01) pilot: 34.86 → projected 1B: 42-45
+
+NEXT SESSION PRIORITIES:
+  1. Parse h143 (BN+ent+RND) pilot — MOST IMPORTANT, could be best combo
+  2. Parse h144 (BN+RND 0.005) pilot — BN with optimal RND from h096 line
+  3. Parse h145 (BN+ent+RND 0.005) pilot
+  4. Parse h149 (BN+bonuses) pilot — can BN + reward shaping break floor 1?
+  5. Parse h151 (BN+hidden 768) pilot — can BN enable larger models?
+  6. Parse h129-1B-s1 (RND 0.015 at 1B) — should be done in ~5h
+  7. Monitor h127-1B seeds — first results expected in ~8-10h
+  8. If any combo pilot > 37: submit 1B x3 IMMEDIATELY
+
