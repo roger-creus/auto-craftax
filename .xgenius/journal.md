@@ -7400,3 +7400,77 @@ NEXT SESSION PRIORITIES:
   6. If any pilot > 36: submit 1B x3 IMMEDIATELY
   7. When h127-1B seeds complete: ANALYZE vs 30% target
 
+
+---
+**[2026-03-21 21:07 UTC]**
+
+=== SESSION: Parse h150 (OOM), submit h159/h160 (higher RND coef with BN) ===
+
+Triggered by: h150-pilot-s1v4 (narval 58086151) SUCCESS notification (actually an OOM crash).
+
+h150 RESULT (BN + RND 0.01 + num_envs=2048):
+  OOM crash at ~262K steps (0.13% of 200M). CUDA OOM during BatchNorm forward pass.
+  narval A100 (48GB) is not enough for 2048 envs + BN. Would need full H100 80GB.
+  STATUS → CLOSED.
+
+BN COMBO SCORECARD (all vs h127=34.86 at 200M):
+  h127: BN + RND 0.01 = 34.86 (BASELINE, BEST)
+  h128: + wide AC 2048 = 27.42 (-21.3%) ← DEAD
+  h143: + ent anneal 0.03→0.005 = 19.62 (-43.7%) ← DEAD
+  h144: + RND 0.005 = 32.82 (-5.9%) ← below optimal
+  h145: + ent anneal + RND 0.005 = 22.1 (-36.6%) ← DEAD
+  h147: + 3x LR = 18.58 (-46.7%) ← DEAD
+  h149: + reward shaping = 2.06 (-94.1%) ← DEAD
+  h150: + 2048 envs = OOM CRASH ← DEAD
+  h154: + obs whitening + 25% pred update = 18.90 (-45.8%) ← DEAD
+  h151: + hidden 768 = RUNNING (rorqual, ~50min remaining)
+  h153: + obs whitening only = RUNNING (narval, ~1.5h remaining)
+  h155: + full proper RND coef=0.5 = RUNNING (narval, ~1.5h remaining)
+  h156: + ent=0.02 (higher) = RUNNING (narval, ~4h remaining)
+  h157: + 256 steps = PENDING (rorqual, starts after h151)
+  h158: + curriculum kills=3-5 = PENDING (fir, starts after h129)
+  h159: + RND 0.02 = SUBMITTED (narval 58086618) ← NEW
+  h160: + RND 0.03 = SUBMITTED (rorqual 8788627) ← NEW
+
+KEY INSIGHT — RND COEFFICIENT SHIFT WITH BN:
+  Without BN: optimal 200M = 0.005, optimal 1B = 0.01 (higher is better at scale)
+  With BN: at 200M, 0.01 > 0.005 (h127=34.86 vs h144=32.82)
+  BN shifts the optimal RND coefficient upward, likely because BN helps the predictor
+  learn faster → need more intrinsic reward to maintain exploration signal.
+  Testing if even higher coefficients (0.02, 0.03) are better with BN.
+
+CURRENTLY RUNNING (11 + 4 pending):
+  Pilots finishing soon:
+    h151-pilot-s1 (rorqual): BN + hidden 768 — 5h10m elapsed, ~50min remaining ← KEY
+    h153-pilot-s1 (narval): BN + obs whitening — 2h33m elapsed, ~1.5h remaining
+    h155-pilot-s1 (narval): full proper RND coef=0.5 — 2h33m elapsed, ~1.5h remaining
+  Recently started:
+    h156-pilot-s1v2 (narval): BN + ent=0.02 — just started, ~4h remaining
+    h159-pilot-s1 (narval 58086618): BN + RND 0.02 — just submitted
+    h160-pilot-s1 (rorqual 8788627): BN + RND 0.03 — just submitted
+  1B runs:
+    h127-1B-s1v4 (fir): seed 1, ~5h elapsed — ~5h remaining
+    h127-1B-s2v3 (narval): seed 2, ~5h elapsed — ~8h remaining
+    h127-1B-s3v4 (rorqual): seed 3, ~5h elapsed — ~5h remaining
+    h085-1B-s2v3 (narval): seed 2, ~5h elapsed — ~8h remaining
+    h129-1B-s1 (fir): RND 0.015, ~8h elapsed — ~2-4h remaining
+  Pending:
+    h157-pilot-s1 (rorqual): starts after h151
+    h158-pilot-s1 (fir): starts after h129
+
+1B LEADERBOARD (unchanged):
+  h085 s1: 41.38 (BEST SINGLE SEED — RND 0.01)
+  h096 mean: 40.50 (2 seeds — RND 0.005)
+  h040 mean: 39.55 ± 2.33 (3 seeds — no RND)
+  30% TARGET: 44.04
+  h127 (BN+RND 0.01) pilot: 34.86 → projected 1B: 41.8-45.3
+
+NEXT SESSION PRIORITIES:
+  1. Parse h151 (BN+hidden 768) — SHOULD BE DONE FIRST (~1h)
+  2. Parse h153/h155 — likely to fail based on h154 (obs whitening catastrophic)
+  3. Parse h129-1B-s1 (RND 0.015 at 1B) — should finish in ~2-4h
+  4. Monitor h127-1B seeds — CRITICAL, first results in ~5h (fir s1 and rorqual s3)
+  5. Parse h156/h157/h158/h159/h160 pilots when done
+  6. If any pilot > 36: submit 1B x3 IMMEDIATELY
+  7. When h127-1B seeds complete: ANALYZE vs 30% target
+  8. IF h127-1B disappoints (<44): consider training longer (1.5B) or larger model (h151 if works)
