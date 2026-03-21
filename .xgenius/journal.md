@@ -6469,3 +6469,48 @@ NEXT SESSION PRIORITIES:
   6. Parse h122 narval and h126 narval results when they finish
   7. If any architecture pilot >35: submit 1B x3 seeds IMMEDIATELY
 
+
+---
+**[2026-03-21 12:19 UTC]**
+
+
+=== ADDENDUM: BatchNorm hypothesis + web search insights ===
+
+WEB SEARCH RESULTS (key findings):
+  1. Our 41.38% appears to be FAR ABOVE any published MFRL result on Craftax-Symbolic 
+     (~15-18% published). We're already significantly ahead of literature.
+  2. PQN paper: BatchNorm on first layer is CRITICAL for sparse symbolic observations.
+     We have NO BatchNorm. This is a potential quick win.
+  3. AGaLiTe (gated linear transformers) outperform both GRU and GTrXL on Craftax-Symbolic
+     with cheaper inference. Worth exploring if current architecture changes fail.
+  4. IRPO (2026): More principled than additive RND bonus, backpropagates extrinsic
+     reward through exploratory policies. Could replace our RND approach.
+
+IMPLEMENTED: --use-bn flag for BatchNorm1d on raw observation vector before splitting
+  into map/stats branches. Applied in CraftaxObsEncoder.
+
+NEW HYPOTHESES SUBMITTED:
+  h127 (fir 28728463): BN + RND 0.01 — tests if BatchNorm alone improves our best config
+  h128 (fir 28728471): BN + wide AC 2048 + LN + RND 0.01 — combines ALL architecture improvements
+    (BatchNorm from PQN + wide AC from DeepMind + RND 0.01 from our exploration sweep)
+
+COMPLETE JOB OVERVIEW (10 running/pending):
+  1B: h085-1B-s3 (narval, ~0-1h remaining)
+  Architecture pilots on narval:
+    h124 (ac=2048+LN+residual, ~3h remaining)
+    h125 (ac=2048+LN+RND 0.01, ~5.5h remaining)
+    h122 (ac=2048+LN, queued behind h085-1B-s3)
+    h126 (ac=2048+LN+RND 0.01+DeepMind hyperparams, queued behind h124)
+  Architecture pilots on fir:
+    h118 (hidden=1024, ~4.7h remaining, expect bad)
+    h113-v2 (dual value, ~2.7h remaining, expect bad)
+    h123 (ac=2048+LN+RND 0.005, ~4.7h remaining)
+    h127 (BN+RND 0.01, queued)
+    h128 (BN+wideAC+RND 0.01, queued)
+  Still pending rorqual/nibi:
+    h122, h126, h122-v2, h126-v2
+
+If h128 shows strong pilot results (>35 at 200M), this would be our best 1B candidate:
+  PPO-GRU + BN + ac=2048 + LN + RND 0.01
+  Combines all three architecture improvements with our best exploration method.
+
