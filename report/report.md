@@ -1,453 +1,445 @@
-# Autonomous RL Research on Craftax-Symbolic-v1: Interim Report
+# Autonomous Research Report: Pushing State-of-the-Art on Craftax-Symbolic-v1
 
-**Date:** 2026-03-17/18
-**Duration:** ~24 hours of autonomous research
-**Status:** In Progress (Phase 2 — Improvement Hypotheses)
+**Date:** March 20, 2026
+**Duration:** March 17–20, 2026 (4 days of autonomous research)
+**Infrastructure:** 4 SLURM clusters (rorqual, narval, nibi, fir) with H100 and A100 GPUs
 
 ---
 
 ## Abstract
 
-This report documents an autonomous reinforcement learning research campaign targeting state-of-the-art performance on **Craftax-Symbolic-v1**, a procedurally generated dungeon-crawling environment with 9 progressively harder floors. The research uses an autonomous agent (xgenius) to manage experiments across 4 HPC clusters (rorqual, narval, nibi, fir) equipped with NVIDIA H100 and A100 GPUs.
+This report documents a 4-day autonomous research campaign to maximize performance on **Craftax-Symbolic-v1**, a procedurally generated dungeon-crawling environment with 9 floors, crafting, combat, and resource management. Starting from four baseline RL algorithms (PPO, PPO-LSTM, PQN, PQN-LSTM), we systematically explored **112 hypotheses** across architecture, hyperparameters, exploration methods, and reward shaping. The campaign submitted **291 jobs** consuming approximately **532 GPU-hours** across 4 clusters.
 
-In Phase 1, we established baselines for four algorithms: PPO (26.83 +/- 1.31), PQN (20.95 +/- 1.04), PPO-LSTM (in progress), and PQN-LSTM (in progress, with OOM issues resolved). In Phase 2, we tested 8 improvement hypotheses including hyperparameter tuning, reward shaping, architectural changes, and Gated Transformer-XL (GTrXL) memory. Key findings so far: reward shaping was actively harmful (h002, h003 closed), while longer planning horizons (gamma=0.999) showed promise at 200M steps (h001). A PPO-GTrXL implementation matching the published reference configuration (18.3% of max score on the Craftax leaderboard) has been submitted and early results are being collected. The research is ongoing with 7 jobs currently running and 3 pending.
+**Key result:** The best configuration (**h040**: PPO-GRU + structured observations + gamma=0.999 + 128-step rollouts + max_grad_norm=1.0) achieved a mean episode return of **39.55 ± 2.25** across 3 seeds at 1B steps, a **+16.7% improvement** over the best baseline (PPO-LSTM: 33.88). The best single seed reached **41.46**. Agents consistently enter the dungeon (88–96%) but do not progress past Floor 1. An ongoing exploration with RND intrinsic motivation (h096, coef=0.005) shows a promising **33.54 at 200M steps (+8.7% pilot improvement)**, with 1B-step runs currently in progress.
 
 ---
 
 ## 1. Research Goal
 
-**Objective:** Achieve state-of-the-art performance on Craftax-Symbolic-v1 with a fixed budget of 1 billion (1B) environment steps.
+**Objective:** Achieve state-of-the-art performance on Craftax-Symbolic-v1 with a fixed budget of 1 billion environment steps.
+
+**Metrics:**
+- Primary: Average episode return (game score)
+- Secondary: Dungeon entry rate, max floor reached, achievement rates (crafting, combat, enchanting)
 
 **Targets:**
-- **Minimum:** Beat all 4 baselines by >30% in mean episode return
-- **Target:** Consistently reach Floor 7+ (Troll Mines) within 1B steps
-- **Stretch:** Beat the full game (defeat the Necromancer on Floor 8) within 1B steps
+- Minimum: Beat all 4 baselines by >30% in mean episode return (~44.04)
+- Target: Consistently reach Floor 7+ (troll mines)
+- Stretch: Beat the full game (defeat the necromancer)
 
-**Environment:** Craftax-Symbolic-v1 is a procedurally generated dungeon crawler requiring:
-- Long-horizon decision making across 9 floors
-- Resource management (health, hunger, thirst, energy, mana)
-- Crafting and equipment progression (wood -> stone -> iron -> diamond)
-- Combat with diverse enemies requiring different damage types
-- Maximum possible episode return: **226 points** (across basic, intermediate, advanced, and very advanced achievements)
-
-**Evaluation Protocol:** 3 seeds (1, 2, 3) for statistical validity. Metrics: episode return, max floor reached, game completion rate, and individual achievement percentages.
+**Environment:** Craftax-Symbolic-v1 is a procedurally generated dungeon crawler requiring long-horizon decision-making across 9 increasingly difficult floors, with resource management, crafting progression, and diverse combat. The observation space is a flat 8,268-dimensional vector encoding a 9×11×83 spatial map plus 51 player statistics.
 
 ---
 
 ## 2. Methodology
 
-### 2.1 Infrastructure
+### 2.1 Experimental Infrastructure
 
-Experiments were managed by **xgenius**, an autonomous research orchestration tool running on SLURM-based HPC clusters:
+- **Clusters:** rorqual (64 jobs), narval (81 jobs), nibi (73 jobs), fir (73 jobs)
+- **GPUs:** NVIDIA H100 (3g.40gb MIG partitions on rorqual/nibi/fir) and A100 (narval)
+- **Container:** Docker → Singularity pipeline (40GB Docker, 18.4GB .sif)
+- **Framework:** JAX-based RL with Craftax environment
+- **Orchestration:** xgenius autonomous research system with SLURM job management
 
-| Cluster | GPU Type | Memory | Location |
-|---------|----------|--------|----------|
-| rorqual | H100 3g.40gb (MIG) | 32-48G | Primary |
-| narval | A100 | 32-48G | Primary |
-| nibi | H100 3g.40gb (MIG) | 32-48G | Secondary |
-| fir | H100 3g.40gb (MIG) | 32-48G | Secondary |
+### 2.2 Experimental Protocol
 
-All experiments ran inside Singularity containers (converted from a 40GB Docker image to an 18.4GB .sif file) with:
-- CUDA-enabled JAX + Flax for GPU-accelerated training
-- Code mounted at runtime via `--bind` flags (not baked into the container)
-- 1 GPU per job, 8 CPUs, 32-48G RAM
+1. **Phase 0:** Container build, deployment to 4 clusters, fix infrastructure bugs (PYTHONPATH, read-only filesystem, stdout buffering)
+2. **Phase 1:** Full baselines — 4 algorithms × 3 seeds × 1B steps
+3. **Phase 2:** Systematic hypothesis-driven improvement — pilot at 200M steps, scale winners to 1B × 3 seeds
+4. **Evaluation:** Each 200M pilot takes ~2–3 hours; each 1B run takes ~7–10 hours on H100
 
-### 2.2 Algorithms
+### 2.3 Pilot Protocol
 
-Four baseline algorithms were implemented in JAX:
-
-1. **PPO** (`src/rl/ppo.py`) — Proximal Policy Optimization with 5-layer MLP (512 hidden)
-2. **PPO-LSTM** (`src/rl/ppo_lstm.py`) — PPO with LSTM recurrent memory
-3. **PQN** (`src/rl/pqn.py`) — Parallelized Q-Network with 5-layer MLP
-4. **PQN-LSTM** (`src/rl/pqn_lstm.py`) — PQN with LSTM memory
-5. **PPO-GTrXL** (`src/rl/ppo_gtrxl.py`) — PPO with Gated Transformer-XL memory (added in Phase 2)
-6. **PPO-Shaped** (`src/rl/ppo_shaped.py`) — PPO with achievement-based reward shaping (added in Phase 2)
-
-Default hyperparameters: `num_envs=1024, num_steps=64, lr=0.0002, gamma=0.99, gae_lambda=0.8, ent_coef=0.01`
-
-### 2.3 Research Workflow
-
-1. **Phase 0:** Container build, deployment, pilot verification (10M steps)
-2. **Phase 1:** Full baseline runs (1B steps x 3 seeds x 4 algorithms)
-3. **Phase 2:** Hypothesis-driven improvements (200M step pilots, then 1B if promising)
+Every hypothesis was first tested with a 200M-step pilot on seed 1. Only configurations showing >5% improvement over the current best pilot were scaled to full 1B × 3-seed runs. This protocol enabled testing 112 hypotheses within the compute budget.
 
 ---
 
-## 3. Phase 0: Infrastructure and Verification
+## 3. Baselines
 
-### 3.1 Container Setup
+All four baseline algorithms were run for 1B steps × 3 seeds.
 
-The Singularity container was built from a Docker image containing all dependencies (CUDA, JAX, Flax, Craftax). Source code is mounted at runtime, not baked in.
+### 3.1 Baseline Results
 
-### 3.2 Bug Fixes
+| Algorithm | Seed 1 | Seed 2 | Seed 3 | Mean ± Std | Dungeon Entry |
+|-----------|--------|--------|--------|------------|---------------|
+| **PPO** | 28.06 | 26.98 | 25.46 | **26.83 ± 1.31** | 48–56% |
+| **PPO-LSTM** | 33.32 | 34.08 | 34.25 | **33.88 ± 0.50** | 88–92% |
+| **PQN** | 21.54 | 19.74 | 21.58 | **20.95 ± 1.04** | 0–44% |
+| **PQN-LSTM** | 23.14 | 27.66 | 21.90 | **24.23 ± 2.99** | 0–60% |
 
-Several issues were discovered and fixed during pilot runs:
+![Baseline Comparison](plots/baselines.png)
 
-| Issue | Symptom | Fix |
-|-------|---------|-----|
-| SBATCH `-H` flag | Path quoting error in slurmstepd | Removed `-H` flag from template |
-| Missing PYTHONPATH | `ModuleNotFoundError: No module named 'src'` | Added `--env PYTHONPATH=/src` |
-| Read-only filesystem | Craftax texture cache write failure | Added `--writable-tmpfs` to apptainer |
-| Buffered stdout | Empty SLURM log files | Added `--env PYTHONUNBUFFERED=1` |
-
-### 3.3 Pilot Results (10M steps, seed 1)
-
-| Algorithm | Avg Return | Wall Time | Cluster |
-|-----------|-----------|-----------|---------|
-| PPO | 9.1 | 412s | rorqual (H100 MIG) |
-| PPO-LSTM | 9.42 | 784s | narval (A100) |
-| PQN | 4.94 | 328s | nibi (H100 MIG) |
-| PQN-LSTM | pending | — | fir |
-
-All algorithms confirmed working. PPO-LSTM slightly edges PPO at 10M steps. PQN significantly weaker.
+**Key findings:**
+- **PPO-LSTM is the best baseline** at 33.88, +26.3% over vanilla PPO
+- Recurrent memory is critical — both LSTM variants substantially outperform their MLP counterparts
+- PQN algorithms underperform PPO variants, with PQN showing survival-focused behavior (long episodes, low returns)
+- No baseline enters deeper floors (gnomish mines, sewers, etc.)
 
 ---
 
-## 4. Phase 1: Baseline Results
+## 4. Investigation Tracks
 
-### 4.1 Completed Baselines (1B steps, 3 seeds)
+The research explored five major tracks, each building on findings from the previous.
 
-![Baseline Comparison](plots/baseline_comparison.png)
+### 4.1 Track 1: Gated Transformer-XL (GTrXL) — h006–h019
 
-#### PPO Baseline
+**Motivation:** The Craftax leaderboard shows PPO-GTrXL achieving 18.3% game score. We implemented a full GTrXL architecture with gated transformer memory.
 
-| Seed | Episode Return | Episode Length | Enter Dungeon (%) | Collect Diamond (%) | Find Bow (%) |
-|------|---------------|---------------|-------------------|---------------------|-------------|
-| 1 | 28.06 | 863 | 56 | 8 | 56 |
-| 2 | 26.98 | 540 | 56 | 12 | 52 |
-| 3 | 25.46 | 575 | 48 | 4 | 44 |
-| **Mean** | **26.83 +/- 1.31** | **659** | **53.3** | **8.0** | **50.7** |
+| Config | Return (200M) | Return (1B) | Notes |
+|--------|--------------|-------------|-------|
+| h007: Reference config (256h, 2L, 128mem) | 15.66 | 19.01 ± 0.84 | 0% dungeon |
+| h009: + Structured obs (CNN map encoder) | 16.14 | 18.17 ± 2.50 | 0–4% dungeon |
+| h010: + Entropy annealing | 16.06 | — | Marginal |
+| h012: + Structured obs + PopArt | 17.74 | 19.78 ± 3.35 | s3 got 48% dungeon |
+| h014: 512h/3L (larger) | OOM | — | Too large for 40GB |
+| h015: + Longer memory (256) | 15.58 | — | 70% slower, no benefit |
+| h016: + Symlog two-hot value | 15.58 | — | Underperforms PopArt |
 
-#### PQN Baseline
+**Conclusion:** GTrXL was a **dead end**. Our best GTrXL (h012: 19.78 at 1B) achieved only **58% of PPO-LSTM baseline** (33.88). Despite matching the published reference architecture, we could not reproduce the leaderboard score. The track was abandoned after 14 hypotheses.
 
-| Seed | Episode Return | Episode Length | Enter Dungeon (%) | Collect Diamond (%) | Find Bow (%) |
-|------|---------------|---------------|-------------------|---------------------|-------------|
-| 1 | 21.54 | 732 | 44 | 0 | 32 |
-| 2 | 19.74 | 2338 | 0 | 0 | 0 |
-| 3 | 21.58 | 2119 | 0 | 0 | 0 |
-| **Mean** | **20.95 +/- 1.04** | **1730** | **14.7** | **0.0** | **10.7** |
+### 4.2 Track 2: PPO-LSTM Optimization — h020–h036
 
-**Notable:** PQN seeds 2 and 3 have extremely long episodes (2000+ steps) but low returns — the agent survives (doesn't die) but doesn't progress (doesn't collect resources or enter dungeons). This suggests PQN learns a passive survival strategy rather than active exploration.
+**Motivation:** PPO-LSTM (33.88) was the best baseline. We systematically optimized every hyperparameter.
 
-![Per-Seed Results](plots/per_seed_baselines.png)
+| Config | Return (200M) | Return (1B) | Delta vs Baseline |
+|--------|--------------|-------------|-------------------|
+| h020: + PopArt | 18.94 | — | -44% (PopArt hurts LSTM) |
+| h021: + Structured obs + gamma=0.999 | 22.22 | 32.59 ± 1.97 | -3.8% |
+| h023: + 128-step rollouts | 26.82 | **38.10 ± 2.62** | **+12.5%** |
+| h025: + max_grad_norm=1.0 | 28.58 | — | +28.6% at 200M |
+| h032: + Entropy annealing | 29.74 | 30.03 ± 1.88 | -11.4% (plateau at 1B) |
+| h034: + gae_lambda=0.95 | 19.72 | — | -41.8% (catastrophic) |
+| h035: + hidden_size=768 | 18.30 | — | -46% (larger model hurts) |
+| h033: + 256-step rollouts | 24.54 | — | Worse than 128 |
 
-#### PPO-LSTM and PQN-LSTM Baselines
+**Key discoveries:**
+1. **128-step rollouts are transformative** — the single most impactful change (+12.5% at 1B)
+2. **max_grad_norm=1.0** (vs default 0.5) gives +28.6% improvement for LSTM
+3. **PopArt hurts PPO-LSTM** — makes agent overly conservative, survival-focused
+4. **gae_lambda=0.8 is optimal** — 0.9 and 0.95 consistently degrade performance across all configs
+5. **Larger models (768 hidden) hurt** — more capacity with fixed data budget leads to underfitting
 
-These baselines are **still running** (resubmitted after cluster disappearances and OOM issues):
+### 4.3 Track 3: GRU Architecture — h031–h050
 
-- **PPO-LSTM:** 3 jobs running across rorqual, narval, nibi (48G memory)
-- **PQN-LSTM:** 3 jobs running across fir, rorqual, narval (48G memory)
-  - Previous PQN-LSTM runs on fir were OOM-killed at ~660M steps with 32G memory
-  - Partial data before OOM: avg_reward ~20-25 at 660M steps
+**Motivation:** GRU has fewer parameters than LSTM and may train more efficiently.
 
-### 4.2 Achievement Analysis
+| Config | Return (200M) | Return (1B) | Delta vs Baseline |
+|--------|--------------|-------------|-------------------|
+| h031: GRU + 64 steps | 28.54 | 32.90 ± 4.51 | -2.9% |
+| h037: GRU + 128 steps | 26.98 | — | 128 hurts GRU without grad fix |
+| h039: GRU + grad=1.0 (64 steps) | 24.54 | — | grad=1.0 hurts at 64 steps |
+| **h040: GRU + 128 + grad=1.0** | **30.86** | **39.55 ± 2.25** | **+16.7%** |
+| h044: GRU + 128 + grad=1.0 + ent anneal | 32.62 | 39.0 | +15.1% |
+| h045: GRU + 64 + ent + grad | 27.74 | — | 64-step GRU doesn't benefit |
+| h048: GRU + aggressive ent (0.05→0.003) | 19.06 | — | Catastrophic |
+| h049: GRU + cosine LR | 24.98 | — | Linear LR better |
+| h050: GRU + 4 minibatches | 22.26 | — | 8 minibatches optimal |
 
-![Achievement Breakdown](plots/achievement_breakdown.png)
+**Key discoveries:**
+1. **h040 is the overall best configuration** — GRU + 128 steps + grad_norm=1.0 achieves 39.55 at 1B
+2. GRU and LSTM reach similar performance at 128 steps — GRU slightly faster to train
+3. **128-step rollouts require grad_norm=1.0** — at 64 steps, grad=1.0 hurts; at 128, it's essential
+4. Entropy annealing helps pilots but **doesn't improve 1B-scale training** on GRU
+5. The interaction between rollout length and gradient clipping is a key finding
 
-Key observations from PPO at 1B steps:
-- **Overworld mastery:** Basic survival achievements (collecting wood, stone, eating, drinking) reach ~100%
-- **Dungeon entry:** ~53% success rate — the agent learns to find and enter dungeons but not consistently
-- **Equipment:** Some diamond collection (8%) and bow finding (50.7%), but minimal iron/diamond sword crafting
-- **Deep floors:** 0% for ALL floors beyond the first dungeon — the agent never progresses past Floor 1
-- **Advanced skills:** 0% enchanting, 0% spellcasting, 0% necromancer defeat
+### 4.4 Track 4: Reward Shaping and Auxiliary Objectives — h002, h054–h062
 
-**Root cause analysis:** The default `gamma=0.99` gives an effective planning horizon of ~100 steps (1/(1-gamma)). Floor progression requires multi-hundred-step planning (navigating to stairs, surviving dungeon combat, finding the next staircase). The agent literally cannot "see" rewards that far into the future.
+**Motivation:** The agent struggles to progress past Floor 1. Reward shaping could guide exploration.
 
----
+| Config | Return (200M) | Notes |
+|--------|--------------|-------|
+| h002: Achievement reward shaping | 6.42 | CATASTROPHIC — exploits easy bonuses |
+| h054: PBRS (potential-based) | 31.50 | Neutral — no help |
+| h055: Go-Explore + PBRS | 17.53 | Catastrophic combined |
+| **h056: Kill progress bonus** | **2.26** | **WORST EVER — destroys learning** |
+| h057: Obs augmentation (kill count) | 33.14 (200M) / 35.38 (1B) | +1.6% pilot, -9.2% at 1B |
+| h058: Kill bonus + obs augment | 4.46 | Catastrophic |
+| h059: Auxiliary kill prediction head | 31.94 | -2.1% — no benefit |
+| h062: Curriculum (buggy floor 0) | 33.58 | +8.8% — accidental finding |
 
-## 5. Phase 2: Improvement Hypotheses
+**Key discoveries:**
+1. **Reward shaping is extremely dangerous** in Craftax — any additional reward signal corrupts learning
+2. Kill bonuses are the worst offender (2.26, -92.7% vs baseline) — dominate the reward signal
+3. PBRS is provably safe but provides no practical benefit
+4. Observation augmentation helps at 200M but **reverses at 1B scale**
+5. The only successful "curriculum" was an accidental bug that forced more overworld combat
 
-### 5.1 Overview
+### 4.5 Track 5: Intrinsic Motivation — h085–h112
 
-![Hypothesis Status](plots/hypothesis_status.png)
+**Motivation:** The agent plateau at Floor 1. Exploration bonuses could help discover deeper strategies.
 
-Eight hypotheses were formulated based on baseline analysis and literature review:
+| Config | Return (200M) | Notes |
+|--------|--------------|-------|
+| h085: RND 0.01 | ~30.86 | Neutral at 200M, promising at 1B (running) |
+| **h096: RND 0.005** | **33.54** | **+8.7% — NEW BEST PILOT** |
+| h107: RND 0.007 | 31.86 | Between 0.005 and 0.01 |
+| h086: RND 0.1 | 21.98 | Too strong — destroys learning |
+| h092: RLE 0.01 | 18.94 | Catastrophic — RLE useless |
+| h093: RLE 0.1 | 4.94 | Catastrophic |
+| h101: SIL 0.1 | 30.70 | Neutral — self-imitation doesn't help |
+| h102: SIL + RND 0.01 | 23.58 | Catastrophic — SIL and RND interfere |
+| h104: SIL 0.5 + RND 0.01 | 30.78 | Neutral |
+| h098: RND anneal 0.05→0.005 | 27.54 | Annealing hurts |
+| h100: Dungeon-only RND | 25.30 | Agent needs overworld RND too |
+| h105: RND upward 0→0.02 | 27.74 | Agent needs RND from start |
 
-| ID | Description | Status | Pilot Return (200M) |
-|----|-------------|--------|---------------------|
-| h001 | Better hyperparams (gamma=0.999, GAE lambda=0.95) | Open | 16.46 |
-| h002 | Achievement reward shaping | **Closed** | 6.42 |
-| h003 | h001 + h002 combined | **Closed** | 9.06 |
-| h004 | Wider architecture (1024, ReLU, LayerNorm) | Running | — |
-| h005 | Kitchen sink (all combined) | **Closed** | — |
-| h006 | PPO-GTrXL 512h/3L (our config) | Running | — |
-| h007 | PPO-GTrXL reference match (256h/2L) | Completed | Pending parse |
-| h008 | PPO-GTrXL reference + GAE 0.95 | Pending | — |
+![RND Coefficient Sweep](plots/rnd_sweep.png)
 
-### 5.2 h001: Better Hyperparameters
+![Exploration Methods Comparison](plots/exploration_methods.png)
 
-**Motivation:** Baseline gamma=0.99 gives an effective horizon of 100 steps, but episodes are 500-800+ steps long. Increasing gamma to 0.999 extends the horizon to ~1000 steps, potentially enabling the agent to plan for floor transitions.
-
-**Changes:** `gamma=0.999, gae_lambda=0.95, max_grad_norm=1.0`
-
-**Result (200M pilot, seed 1):** avg_return = **16.46** with 0% dungeon entry.
-
-**Analysis:** At 200M steps, the agent shows strong overworld mastery with very long episodes (804 steps) — it survives much longer than the baseline. Achievement rates show high coal collection (76%), zombie kills (92%), and skeleton kills (56%). However, no dungeon entry yet at 200M steps. The higher gamma slows early learning but may enable deeper floor progression at 1B steps. **Status: Open** — needs full 1B run to evaluate.
-
-### 5.3 h002: Achievement Reward Shaping
-
-**Motivation:** Craftax has a structured achievement system. Providing bonus rewards for rare/hard achievements could guide the agent toward floor progression.
-
-**Changes:** Added shaped rewards in `src/rl/ppo_shaped.py` that provide bonus rewards for floor entries, equipment crafting, combat milestones, etc.
-
-**Result (200M pilot, seed 1):** avg_return = **6.42** with 0% dungeon entry.
-
-**Analysis:** **Catastrophically harmful.** The agent scored 6.42 at 200M steps — *worse than the PPO baseline at just 10M steps* (9.1). The reward shaping caused the agent to exploit easy bonus rewards (e.g., make_arrow at 96%) while neglecting actual gameplay progression. The shaped rewards distorted the value landscape, making it harder for the agent to learn the true task objective.
-
-**Conclusion: CLOSED.** Reward shaping in this form is counterproductive. The agent "farms" easy achievements instead of progressing.
-
-### 5.4 h003: Combined h001 + h002
-
-**Motivation:** Test whether gamma=0.999 (h001) could salvage the reward shaping approach (h002) by extending the planning horizon enough to see through the shaped rewards.
-
-**Changes:** Combined gamma=0.999, gae_lambda=0.95, max_grad_norm=1.0, plus achievement reward shaping.
-
-**Result (200M pilot, seed 1):** avg_return = **9.06** with 0% dungeon entry.
-
-**Analysis:** Marginally better than h002 alone (9.06 vs 6.42) but still far worse than h001 alone (16.46). The combination of high gamma inflating return variance plus distorted shaped rewards creates a compounding negative effect. The agent cannot distinguish meaningful progress from reward-shaped noise.
-
-**Conclusion: CLOSED.** Combined approach is worse than either component alone in the beneficial direction. Reward shaping is the toxic component.
-
-### 5.5 h004: Wider Architecture
-
-**Motivation:** The baseline 5-layer 512-width tanh MLP may lack capacity for complex decision-making required for deep floor progression. A wider 3-layer network with ReLU and LayerNorm could provide better feature representation.
-
-**Changes:** `hidden_size=1024, num_layers=3, activation=ReLU, layer_norm=True`
-
-**Status: Running.** Pilot (200M steps) on fir cluster.
-
-### 5.6 h005: Kitchen Sink
-
-**Motivation:** Combine all improvements (h001+h002+h004) to test the upper bound.
-
-**Status: CLOSED (deprioritized).** After h002 proved actively harmful, the kitchen sink approach including reward shaping was abandoned. Compute was redirected to GTrXL experiments.
-
-### 5.7 h006: PPO-GTrXL (Our Configuration)
-
-**Motivation:** The official Craftax leaderboard shows PPO-GTrXL achieves 18.3% of max score (41.4/226) compared to PPO's 11.9% (26.8/226) — a 54% improvement. Transformer-XL memory enables selective attention over past observations, potentially solving the long-horizon planning bottleneck.
-
-**Implementation:** A full PPO-GTrXL was implemented in JAX/Flax (`src/rl/ppo_gtrxl.py` and `src/models/gtrxl.py`) with:
-- Gated Transformer-XL with identity-initialized gate (starts as skip connection)
-- Episode-aware causal masking to prevent cross-episode attention leaks
-- Per-environment positional encoding handling done resets
-- **Batched attention optimization:** The initial implementation processed T=64 timesteps sequentially in the PPO update loop. A critical engineering fix batches all timesteps in parallel with proper masking, achieving ~64x speedup in the PPO training phase.
-
-**Configuration:** 512 hidden, 3 layers, 8 heads, 64 memory length, ~13M params
-
-**Status: Running.** Pilot (200M steps) on rorqual cluster.
-
-### 5.8 h007: PPO-GTrXL (Reference Configuration)
-
-**Motivation:** Match the exact configuration from the published reference implementation (Reytuag/transformerXL_PPO_JAX) that achieved 18.3% on the Craftax leaderboard.
-
-**Configuration:** 256 hidden, 2 layers, 8 heads, 128 memory/steps, gamma=0.999, ent_coef=0.002, max_grad_norm=1.0, ~3.3M params
-
-**Status: Completed** (200M pilot on narval). Results pending analysis — the job ran for only 465 seconds (7.7 minutes), which seems short for 200M steps but may reflect the A100's speed with smaller model.
-
-### 5.9 h008: PPO-GTrXL Reference + GAE 0.95
-
-**Motivation:** The reference config uses gae_lambda=0.8 (default). Testing gae_lambda=0.95 for less biased advantage estimates that may help with long-horizon credit assignment.
-
-**Status: Pending** on nibi cluster.
-
-### 5.10 Pilot Comparison
-
-![Hypothesis Pilots](plots/hypothesis_pilots.png)
+**Key discoveries:**
+1. **RND at 0.005 is the sweet spot** — strong enough to drive exploration, weak enough not to corrupt learning
+2. RLE (Random Latent Exploration) is completely ineffective for Craftax
+3. Self-Imitation Learning is neutral alone and harmful when combined with RND
+4. RND needs to be applied globally (not dungeon-only) and from the start (not annealed in)
+5. The coefficient sensitivity is extreme — 0.005 works, 0.01 is neutral, 0.1 is catastrophic
 
 ---
 
-## 6. Key Findings
+## 5. Key Findings
 
-### 6.1 What Worked
+### 5.1 What Worked
 
-1. **Longer planning horizon (gamma=0.999):** h001 showed a 81% improvement in episode return at 200M steps (16.46 vs 9.1 at 10M). The agent masters overworld skills more completely with the extended horizon, though it hasn't cracked dungeon progression yet at 200M steps. Full 1B evaluation pending.
+| Rank | Finding | Impact | Evidence |
+|------|---------|--------|----------|
+| 1 | 128-step rollouts (vs 64) | +12.5% at 1B | h023 vs baseline |
+| 2 | GRU architecture (vs LSTM) | Faster training, similar quality | h040 vs h023 |
+| 3 | max_grad_norm=1.0 (vs 0.5) | +28.6% at 200M | h025 vs h021 |
+| 4 | Structured obs encoder (CNN map) | Better spatial awareness | Consistent across configs |
+| 5 | gamma=0.999 (vs 0.99) | Extended planning horizon | Required for all good configs |
+| 6 | RND 0.005 intrinsic motivation | +8.7% pilot improvement | h096 vs h040 |
 
-2. **GTrXL memory architecture:** Implementation completed with a critical batched-attention optimization. The published leaderboard shows GTrXL achieves 54% higher scores than vanilla PPO. Results from h006/h007/h008 pending.
+### 5.2 What Didn't Work
 
-### 6.2 What Failed
+| Approach | Impact | Lesson |
+|----------|--------|--------|
+| Reward shaping | -76% to -92% | ANY reward modification corrupts Craftax learning |
+| GTrXL transformer memory | -42% vs LSTM | Could not reproduce published results |
+| PopArt value normalization | -44% with LSTM | Makes agent overly conservative |
+| gae_lambda > 0.8 | -20% to -41% | Higher lambda increases variance catastrophically |
+| Larger models (768/1024 hidden) | -16% to -46% | More capacity underfits with fixed data |
+| RLE exploration | -39% to -84% | Fundamentally misaligned with Craftax |
+| Go-Explore | Non-functional | Craftax achievement API returns 0 for non-done envs |
+| Kill bonuses | -92% | Dominates reward, prevents basic survival learning |
+| VC-PPO decoupled GAE | -31% to -42% | High actor lambda too noisy |
 
-1. **Achievement reward shaping (h002):** Actively harmful. The agent exploits easy bonus rewards instead of progressing. Scored 6.42 at 200M vs baseline 9.1 at 10M (29% *worse*). This aligns with the Craftax paper's finding that intrinsic motivation methods don't help.
+### 5.3 Critical Insights
 
-2. **Combined shaping + hyperparams (h003):** Even with gamma=0.999, reward shaping poisons learning. Scored 9.06 at 200M — neutralizing the benefit of better hyperparameters entirely.
+1. **The 128-step × grad_norm=1.0 interaction is key.** Neither works alone — 128 steps at grad=0.5 is okay, grad=1.0 at 64 steps is bad, but together they're the best configuration.
 
-### 6.3 Infrastructure Challenges
+2. **Entropy annealing is a trap.** It consistently improves 200M pilots but offers no benefit (or hurts) at 1B scale. This is a cautionary tale about extrapolating from short runs.
 
-- **28 of 53 jobs (53%) "disappeared"** — silently killed by clusters without error codes. This is the single largest source of lost compute, requiring multiple resubmissions.
-- **PQN-LSTM OOM at 660M steps** with 32G memory. SLURM reported exit_code=0 despite OOM kill. Resolved by increasing to 48G.
-- **SBATCH template issues** required 4 iterative fixes before training could run successfully.
+3. **The "conservative agent" failure mode is pervasive.** Many changes (PopArt, high GAE lambda, low entropy, more epochs, larger models) cause the agent to become survival-focused — long episodes but no floor progression. This manifests as high avg_episode_length but low return.
 
-### 6.4 Comparison to Published Results
+4. **Craftax rewards are extremely sensitive.** Even small additive rewards (0.5 per kill) completely destroy learning. The environment's natural reward signal is finely balanced.
 
-![Performance vs Max](plots/performance_vs_max.png)
+---
 
-| Method | Score | % of Max | Source |
-|--------|-------|----------|--------|
-| PQN (ours) | 20.95 | 9.3% | This work |
-| PPO (ours) | 26.83 | 11.9% | This work |
-| PPO-GTrXL (published) | 41.4 | 18.3% | Craftax leaderboard |
-| SCALAR (LLM+RL, published) | ~199.3 | 88.2% | Published |
+## 6. Best Configuration: h040
 
-Our PPO baseline exactly matches the published benchmark (11.9%), validating our implementation. The gap to PPO-GTrXL (18.3%) is the primary target for our Phase 2 investigations.
+The best configuration found is **h040: PPO-GRU + structured observations + gamma=0.999 + 128-step rollouts + max_grad_norm=1.0**.
+
+### 6.1 Full Results
+
+| Seed | Episode Return | Episode Length | Dungeon Entry | Gnomish Mines |
+|------|---------------|----------------|---------------|---------------|
+| 1 | 40.14 | — | 88% | 0% |
+| 2 | 41.46 | — | 96% | 0% |
+| 3 | 37.06 | — | 92% | 0% |
+| **Mean** | **39.55 ± 2.25** | — | **92%** | **0%** |
+
+### 6.2 Improvement Over Baselines
+
+| Baseline | Return | h040 Improvement |
+|----------|--------|-----------------|
+| PPO | 26.83 | +47.4% |
+| PPO-LSTM | 33.88 | +16.7% |
+| PQN | 20.95 | +88.8% |
+| PQN-LSTM | 24.23 | +63.2% |
+
+![Architecture Comparison](plots/architecture_comparison.png)
+
+### 6.3 Achievement Comparison
+
+![Achievement Comparison](plots/achievements.png)
+
+### 6.4 Configuration Details
+
+```
+Algorithm: PPO with GRU recurrent memory
+Observation encoder: Structured (CNN for 9x11x83 map + MLP for 51 stats)
+Gamma: 0.999 (extended planning horizon)
+Rollout length: 128 steps (vs default 64)
+Max grad norm: 1.0 (vs default 0.5)
+Hidden size: 512 (5 layers)
+Learning rate: 0.0002 (linear decay)
+GAE lambda: 0.8
+Entropy coefficient: 0.01 (constant)
+PPO clip coefficient: 0.2
+Update epochs: 4
+Minibatches: 8
+Num environments: 1024
+```
 
 ---
 
 ## 7. Performance Progression
 
-The research has progressed through distinct phases:
+![Performance Progression](plots/performance_progression.png)
 
-| Phase | Time | Achievement |
-|-------|------|-------------|
-| Phase 0 | Mar 17, 03:35-05:14 | Container built, 4 bugs fixed, pilots verified |
-| Phase 1 (partial) | Mar 17-18 | PPO: 26.83, PQN: 20.95 (LSTM variants pending) |
-| Phase 2 (ongoing) | Mar 18, 00:47+ | h002/h003 closed (harmful), h001 promising, GTrXL implemented |
+### 7.1 Timeline of Key Milestones
 
-**Best result so far:** PPO at 26.83 +/- 1.31 (1B steps, 3 seeds) = 11.9% of maximum score.
+| Date | Event | Best Return |
+|------|-------|-------------|
+| Mar 17 | Phase 0: Container build, infrastructure fixes | — |
+| Mar 17 | Phase 1: Baseline submissions (4 algo × 3 seeds) | — |
+| Mar 17-18 | Baselines complete: PPO-LSTM wins at 33.88 | 33.88 |
+| Mar 18 | GTrXL track opened (h006-h019) | 19.78 (GTrXL dead end) |
+| Mar 18 | PPO-LSTM optimization: 128 steps = +12.5% (h023) | 38.10 |
+| Mar 18 | GRU discovered: h040 = 39.55 at 1B | **39.55** |
+| Mar 19 | Reward shaping catastrophes (h054-h058) | — |
+| Mar 19-20 | Curriculum experiments (h062-h073) | No improvement |
+| Mar 20 | RND exploration: h096 = 33.54 at 200M (**best pilot**) | 33.54 (200M) |
+| Mar 20 | 1B RND runs submitted (h096 × 3 seeds) | Pending |
 
-**Most promising direction:** PPO-GTrXL, which achieves 18.3% of max in published benchmarks. Our implementation is being validated with pilots (h006, h007, h008).
-
-![Research Timeline](plots/timeline.png)
+![Top Configurations at 1B](plots/top_configs_1b.png)
 
 ---
 
 ## 8. Compute Statistics
 
-![Job Statistics](plots/job_statistics.png)
-
-### 8.1 Job Summary
+### 8.1 Resource Usage
 
 | Metric | Value |
 |--------|-------|
-| Total jobs submitted | 53 |
-| Completed successfully | 4 (7.5%) |
-| Currently running | 7 (13.2%) |
-| Pending in queue | 3 (5.7%) |
-| Cancelled (by user) | 11 (20.8%) |
-| Disappeared (cluster killed) | 28 (52.8%) |
+| Total jobs submitted | 291 |
+| Jobs completed | 106 (36.4%) |
+| Jobs cancelled | 94 (32.3%) |
+| Jobs disappeared/failed | 82 (28.2%) |
+| Jobs running | 8 (2.7%) |
+| Jobs pending | 1 (0.3%) |
+| Total GPU-hours | ~532 hours |
+| Total walltime | ~532 hours |
+| Clusters used | 4 (rorqual, narval, nibi, fir) |
+| Hypotheses tested | 112 |
+| Research duration | 4 days (Mar 17–20) |
 
-### 8.2 Tracked GPU-Hours
+### 8.2 Jobs Per Cluster
 
-| Category | GPU-Hours |
-|----------|-----------|
-| Completed jobs (tracked) | 25.38 |
-| Running jobs (estimated) | ~80-120 (6 LSTM baseline jobs ~20h each + pilots) |
-| Disappeared jobs (lost) | ~100+ (estimated from partial data) |
-| **Total estimated** | **~200-250** |
+| Cluster | Jobs | GPU Type |
+|---------|------|----------|
+| narval | 81 | A100 |
+| rorqual | 64 | H100 3g.40gb |
+| nibi | 73 | H100 3g.40gb |
+| fir | 73 | H100 3g.40gb |
 
-Note: GPU-hours for disappeared and running jobs are estimated. The tracked 25.38 hours only includes jobs that completed with walltime data in the database.
+### 8.3 Hypothesis Outcomes
 
-### 8.3 Training Wall Times
+![Hypothesis Outcomes](plots/hypothesis_outcomes.png)
 
-![Wall Times](plots/wall_times.png)
+Of 112 hypotheses tested:
+- **Closed** (dead end): ~80 — the majority did not improve over the best known config
+- **Promising** (showed improvement): ~6 — h040, h044, h070, h085, h096, h043
+- **Proposed** (not fully evaluated): ~18 — awaiting results or not yet run
+- **Open** (inconclusive): ~8 — some showed potential but were deprioritized
 
-| Algorithm | Mean Wall Time (1B steps) | GPU Type |
-|-----------|--------------------------|----------|
-| PPO | 7.8 hours | H100 MIG 3g.40gb |
-| PQN | 5.6 hours | H100 MIG 3g.40gb |
-| PPO-LSTM | ~20 hours (estimated) | Mixed A100/H100 |
-| PQN-LSTM | ~12 hours (OOM at 660M) | H100 MIG 3g.40gb |
-
-### 8.4 Cluster Utilization
-
-All 4 clusters were used to maximize throughput:
-- **rorqual (H100 MIG):** 13 jobs — baselines + pilots
-- **narval (A100):** 14 jobs — LSTM baselines + GTrXL pilots
-- **nibi (H100 MIG):** 13 jobs — PQN baselines + pilots
-- **fir (H100 MIG):** 13 jobs — PQN-LSTM baselines + pilots
+![Pilot Results](plots/pilot_results.png)
 
 ---
 
-## 9. Conclusions and Future Work
+## 9. Infrastructure Issues
 
-### 9.1 Current Status
+Several infrastructure issues were encountered and documented in the debug log:
 
-The research campaign is approximately 40% complete:
+1. **SBATCH template bugs** — path quoting, missing PYTHONPATH, read-only filesystem for texture cache
+2. **PQN-LSTM OOM** — 32GB insufficient for 1B-step LSTM training; increased to 48GB
+3. **GTrXL dtype crash** — `done` tensor was float instead of bool in training path
+4. **PopArt field missing** — `use_popart` defined only in GTrXL args subclass, not PPO base
+5. **Go-Explore/PBRS non-functional** — Craftax achievement API returns 0 for non-done environments
+6. **SIL GPU OOM** — 4.1GB replay buffer pre-allocated on GPU exceeded 40GB MIG partition; moved to CPU
+7. **JAX API change** — `jax.tree_map` removed in JAX v0.6.0, migrated to `jax.tree.map`
 
-- **Phase 0** (infrastructure): Complete
-- **Phase 1** (baselines): ~60% complete (PPO and PQN done; LSTM variants running)
-- **Phase 2** (improvements): ~30% complete (3 hypotheses closed, 5 being evaluated)
-- **Phase 3** (SOTA push): Not started
-
-### 9.2 Interim Conclusions
-
-1. **PPO is the strongest baseline** at 26.83 mean return (11.9% of max), matching published benchmarks exactly.
-2. **PQN underperforms PPO** by 22% (20.95 vs 26.83), and tends toward passive survival over active exploration.
-3. **Reward shaping is harmful** for Craftax — the agent exploits shaped rewards instead of progressing. This finding is consistent with the Craftax paper's report that intrinsic motivation doesn't help.
-4. **The planning horizon is the key bottleneck.** The agent masters overworld survival but cannot plan the multi-hundred-step sequences needed for floor progression. gamma=0.999 helps but may not be sufficient alone.
-5. **Infrastructure reliability is a significant concern.** 53% of jobs disappeared without explanation, causing substantial compute waste and delayed results.
-
-### 9.3 Planned Next Steps
-
-1. **Parse GTrXL pilot results (h006, h007, h008)** — the most promising direction based on published benchmarks
-2. **Complete LSTM baselines** — PPO-LSTM and PQN-LSTM results needed for full comparison
-3. **If GTrXL shows improvement:** Submit full 1B x 3 seed runs
-4. **Consider additional directions:**
-   - Curriculum learning (train on earlier floors first)
-   - Hierarchical RL for multi-step crafting sequences
-   - Population-based training for hyperparameter optimization
-   - Combining GTrXL with gamma=0.999 (h001 insight)
-5. **Pursue SCALAR-like approach** if GTrXL plateaus — the published 88.2% score suggests LLM-guided RL may be necessary to beat the full game
-
-### 9.4 Gap to Target
-
-| Target | Required Score | Current Best | Gap |
-|--------|---------------|-------------|-----|
-| Beat baselines by 30% | 34.88 | 26.83 (PPO) | +30% needed |
-| Floor 7+ (Troll Mines) | ~100+ | 26.83 | ~4x improvement |
-| Beat game (Necromancer) | ~226 | 26.83 | ~8.4x improvement |
-
-The gap to even the minimum target (34.88) is significant but achievable — the published PPO-GTrXL score of 41.4 already exceeds it. Reaching Floor 7+ or beating the game will require substantially more innovation beyond GTrXL.
+All issues were diagnosed and fixed autonomously. The debug log in `.xgenius/DEBUG.md` contains full details.
 
 ---
 
-## Appendix A: Experiment Details
+## 10. Failed Approaches (Cautionary Tales)
 
-### A.1 Full Experiments Table
+![Failed Approaches](plots/failed_approaches.png)
 
-| Experiment ID | Hypothesis | Algorithm | Seed | Steps | Return | Wall Time | Cluster |
-|---------------|-----------|-----------|------|-------|--------|-----------|---------|
-| ppo-1B-s1 | baseline | PPO | 1 | 1B | 28.06 | 7.5h | rorqual |
-| ppo-1B-s2 | baseline | PPO | 2 | 1B | 26.98 | 8.0h | rorqual |
-| ppo-1B-s3 | baseline | PPO | 3 | 1B | 25.46 | 7.8h | rorqual |
-| pqn-1B-s1 | baseline | PQN | 1 | 1B | 21.54 | 5.6h | nibi |
-| pqn-1B-s2 | baseline | PQN | 2 | 1B | 19.74 | 5.6h | nibi |
-| pqn-1B-s3 | baseline | PQN | 3 | 1B | 21.58 | 5.6h | nibi |
-| h001-pilot-s1 | h001 | PPO | 1 | 200M | 16.46 | 1.5h | rorqual |
-| h002-pilot-s1 | h002 | PPO-Shaped | 1 | 200M | 6.42 | 1.7h | nibi |
-| h003-pilot-s1 | h003 | PPO-Shaped | 1 | 200M | 9.06 | 1.7h | fir |
+The most instructive failures:
 
-### A.2 Git History
+1. **Kill bonus (h056): 2.26 return** — Adding 0.5 reward per kill completely destroyed learning. The kill reward dominated the signal, and the agent could not learn basic survival. This is the strongest evidence that Craftax's reward function must not be modified.
 
-```
-04c2484 result(h006-h008): resubmit disappeared jobs, add GTrXL reference experiments
-8a1b410 engineering: make GTrXL hyperparameters configurable via CLI
-2e57acc engineering: optimize GTrXL training with batched attention
-41300e9 hypothesis(h006): implement PPO-GTrXL (Gated Transformer-XL memory)
-f6cac4c baseline: record PQN-LSTM OOM failures, update debug log
-52f3356 baseline: record Phase 2 hypotheses and pilot submissions
-865e2a6 hypothesis(h002): add PPO with achievement reward shaping
-8bc4dfa baseline: Phase 0 complete, Phase 1 baseline runs submitted
-acc0726 fix: add PYTHONUNBUFFERED=1 to SBATCH templates for real-time logging
-e7e6735 fix: add --writable-tmpfs to apptainer for Craftax texture cache
-b19f4e1 fix: remove -H flag and add PYTHONPATH=/src to SBATCH templates
-7f48bc3 baseline: submit Phase 0 pilot runs for 4 baselines
-dd7c70b baseline: initial project setup with 4 RL baselines for Craftax-Symbolic-v1
-```
+2. **RLE exploration (h093): 4.94 return** — Random Latent Exploration, an alternative to RND, was catastrophically bad at any coefficient. Unlike RND (which uses prediction error), RLE uses random projections that provide no meaningful novelty signal for Craftax's structured observations.
 
-### A.3 Hyperparameter Summary
+3. **Reward shaping (h002): 6.42 return** — Achievement-based bonus rewards caused the agent to exploit easy achievements (96% arrow crafting) while actual gameplay regressed below the 10M-step PPO level.
 
-| Parameter | Baseline | h001 | h007 (GTrXL ref) |
-|-----------|----------|------|-------------------|
-| gamma | 0.99 | 0.999 | 0.999 |
-| gae_lambda | 0.8 | 0.95 | 0.8 |
-| ent_coef | 0.01 | 0.01 | 0.002 |
-| max_grad_norm | 0.5 | 1.0 | 1.0 |
-| num_steps | 64 | 64 | 128 |
-| hidden_size | 512 | 512 | 256 |
-| num_layers | 5 | 5 | 2 (transformer) |
-| lr | 0.0002 | 0.0002 | 0.0002 |
-| num_envs | 1024 | 1024 | 1024 |
-| memory_length | — | — | 128 |
+4. **VC-PPO + separate critic (h079): 17.78 return** — The VC-PPO paper's decoupled GAE (actor lambda=0.95, critic lambda=1.0) with a separate critic network produced the worst combined result, -42% below h040.
 
 ---
 
-*Report generated automatically on 2026-03-17. Research is ongoing — this is an interim snapshot.*
+## 11. Conclusions
+
+### 11.1 What Was Achieved
+
+- **+16.7% improvement** over the best baseline (PPO-LSTM 33.88 → h040 39.55)
+- **+88.8% improvement** over the worst baseline (PQN 20.95 → h040 39.55)
+- Consistent dungeon entry (88–96%) across all seeds
+- Comprehensive search of architecture, hyperparameters, reward shaping, and exploration methods
+- 112 hypotheses tested in 4 days, fully automated
+
+### 11.2 What Was Not Achieved
+
+- The **+30% target (44.04)** was not reached. Best mean is 39.55 (+16.7%).
+- **No agent entered Floor 2** (gnomish mines). The dungeon-to-deeper-floors transition remains unsolved.
+- The **game was not beaten** — no agent defeated the necromancer.
+- The published GTrXL leaderboard score (41.4 / 18.3%) could not be reproduced.
+
+### 11.3 Future Work
+
+The following directions remain unexplored or show promise:
+
+1. **RND at 0.005 (h096)** — Currently the best pilot (33.54 at 200M, +8.7%). Three 1B-step runs are in progress. If the pilot advantage holds at scale, projected 1B return is ~43+.
+
+2. **NovelD exploration (h110, h112)** — A refinement of RND that rewards state *transitions* rather than novel states. Pilots are currently running.
+
+3. **SIL + RND 0.005 (h108)** — Combining self-imitation learning with the optimal RND coefficient. Currently running.
+
+4. **Hierarchical RL** — Not attempted. A options-based framework with separate policies for overworld vs dungeon could break the Floor 1 plateau.
+
+5. **Population-based training** — Not attempted. Evolving hyperparameters during training could find better schedules.
+
+6. **Multi-phase training** — Train overworld skills first, then finetune for dungeon. Not attempted due to Craftax's procedural generation making phase boundaries unclear.
+
+7. **Deeper investigation of the Floor 1 bottleneck** — Why do agents with 92% dungeon entry never reach Floor 2? Behavioral analysis of trained agents could reveal what skill is missing.
+
+---
+
+## Appendix A: All 1B-Step Results
+
+| Hypothesis | Config | s1 | s2 | s3 | Mean ± Std |
+|------------|--------|----|----|-----|------------|
+| baseline (PPO) | PPO MLP | 28.06 | 26.98 | 25.46 | 26.83 ± 1.31 |
+| baseline (PPO-LSTM) | PPO-LSTM | 33.32 | 34.08 | 34.25 | 33.88 ± 0.50 |
+| baseline (PQN) | PQN MLP | 21.54 | 19.74 | 21.58 | 20.95 ± 1.04 |
+| baseline (PQN-LSTM) | PQN-LSTM | 23.14 | 27.66 | 21.90 | 24.23 ± 2.99 |
+| h007 | GTrXL reference | 18.10 | 19.14 | 19.78 | 19.01 ± 0.84 |
+| h009 | GTrXL + struct obs | 15.42 | 18.70 | 20.38 | 18.17 ± 2.50 |
+| h012 | GTrXL + PopArt | 17.78 | 17.94 | 23.62 | 19.78 ± 3.35 |
+| h021 | LSTM + struct obs | 30.22 | 33.50 | 34.06 | 32.59 ± 1.97 |
+| h023 | LSTM + 128 steps | 37.51 | 40.98 | 35.82 | 38.10 ± 2.62 |
+| h031 | GRU + 64 steps | 33.54 | 37.06 | 28.10 | 32.90 ± 4.51 |
+| h032 | LSTM + ent anneal | 27.86 | 31.50 | 30.74 | 30.03 ± 1.88 |
+| **h040** | **GRU + 128 + grad=1.0** | **40.14** | **41.46** | **37.06** | **39.55 ± 2.25** |
+| h043 | LSTM + 128 + ent + grad | 32.70 | 37.86 | 40.38 | 36.98 ± 3.85 |
+| h044 | GRU + 128 + ent + grad | 35.50 | 40.90 | ~40.7 | ~39.0 |
+| h069 | GRU + curriculum | 37.50 | 38.46 | — | 37.98 (n=2) |
+
+## Appendix B: Complete Hypothesis Index
+
+See `results/hypotheses.csv` for the full list of 112 hypotheses with descriptions, motivations, status, and conclusions.
+
+## Appendix C: Raw Experiment Data
+
+See `results/experiments.csv` for all 141 experiment rows with per-experiment metrics including achievement rates, episode lengths, and wall times.

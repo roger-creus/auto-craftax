@@ -5873,3 +5873,81 @@ NEXT SESSION PRIORITIES:
   7. If h113 beats h096 (33.54): submit 1B × 3 seeds immediately
   8. Retry pulling h070-1B-s1 from fir when connectivity improves
 
+
+---
+**[2026-03-21 03:18 UTC]**
+
+=== SESSION: h106 parsed + h115-h117 submitted + fir jobs recovered ===
+
+Triggered by: h106-pilot-s1v2 (rorqual 8678284) SUCCESS.
+
+NEW RESULT PARSED:
+  h106 (RND 0.003): avg_return=19.38 (-37.2% vs h040). CATASTROPHIC. 0% dungeon entry.
+  RND 0.003 is WAY worse than no RND (30.86). Sharp non-monotonic cliff between 0.003 and 0.005.
+  Theory: 0.003 too weak to drive exploration but strong enough to corrupt value function (worst of both worlds).
+
+UPDATED RND COEFFICIENT RANKING (200M pilot):
+  0.005: 33.54 (+8.7%)  — BEST (h096)
+  0.01:  32.46 (+5.2%)  — h085
+  0.007: 31.86 (+3.2%)  — h107
+  0.0:   30.86 (baseline) — h040
+  0.003: 19.38 (-37.2%) — h106 CATASTROPHIC
+
+FIR CLUSTER RECOVERY:
+  h111-pilot-s1 (fir 28680076): actually RUNNING despite DB 'disappeared'. 2.5h/4h elapsed.
+  h085-1B-s2 (fir 28562821): actually RUNNING. 11.5h/24h elapsed.
+  h096-1B-s1 (fir 28614738): actually RUNNING. 5.6h/24h elapsed.
+  All three were marked disappeared due to earlier SSH timeout issues.
+
+NEW HYPOTHESES SUBMITTED (200M pilots):
+  h115: RND 0.005 + rnd_lr=0.00003 (slow predictor) → fir 28691857
+    Motivation: slower predictor learning maintains exploration bonus longer for deep floors
+  h116: RND 0.005 + larger predictor (512h/128out) → narval 58068946
+    Motivation: more expressive RND networks → finer-grained novelty detection
+  h117: RND 0.005 + update_epochs=2 → nibi 10673981
+    Motivation: fewer PPO updates may generalize better with diverse RND-driven data
+
+CURRENTLY RUNNING/PENDING (12 jobs):
+  1B runs (critical):
+    h096-1B-s2 (rorqual, 6h/24h)
+    h096-1B-s3 (narval, 4.5h/24h)
+    h096-1B-s1 (fir, 5.6h/24h) — RECOVERED
+    h085-1B-s1 (narval, 4.7h/24h)
+    h085-1B-s3 (narval, 4.7h/24h)
+    h085-1B-s2 (fir, 11.5h/24h) — RECOVERED
+    h096-1B-s1v2 (nibi, PENDING)
+  Active pilots:
+    h110 NovelD 0.005 (rorqual, 2.4h/4h) — finishes ~1h
+    h111 RND decay (fir, 2.5h/4h + narval, 1h/4h) — two copies running
+    h113 RND dual value 0.005 (nibi, PENDING)
+    h114 RND dual value 0.01 (rorqual, PENDING)
+  New pilots:
+    h115 slow predictor (fir, PENDING)
+    h116 larger nets (narval, PENDING)
+    h117 fewer epochs (nibi, PENDING)
+
+STRATEGY:
+  Expected h096-1B: ~42.9 (based on 33.54 * 1.28x scaling)
+  Target: 44.04 (30% above PPO baseline 33.88)
+  Gap: ~2.6% improvement needed
+
+  Best hope for closing gap:
+    1. h113 dual value heads — most principled improvement (separate V_ext/V_int prevents value corruption)
+    2. h115 slower predictor — maintains exploration longer for deep floors
+    3. Better-than-expected 1B scaling of h096 (maybe >1.28x with RND helping late exploration)
+
+  If h096-1B < 43: need to find pilot config that scores 34.5+ at 200M
+  If h096-1B ≈ 43: need +2.5% from dual value heads or predictor tuning
+  If h096-1B > 44: target reached!
+
+WEB SEARCH: Found DeepMind TWM achieves 67% on Craftax-classic (model-based RL, MBRL).
+  Our model-free approach is fundamentally limited compared to world model approaches.
+  If all RND tuning fails to reach 44, should consider DreamerV3-style MBRL as paradigm shift.
+
+NEXT SESSION PRIORITIES:
+  1. Parse h110 (NovelD 0.005) — finishes ~1h from now
+  2. Parse h111 (RND decay) — finishes ~1-2h from now
+  3. Parse h113/h114 (dual value) — when nibi/rorqual GPUs free up
+  4. Parse h115-h117 results — ~3-4h from now
+  5. Monitor h096-1B progress — ~18h until first seed completes
+  6. Parse h085-1B-s2 (fir) — should complete in ~12h
