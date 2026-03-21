@@ -7129,3 +7129,79 @@ NEXT SESSION PRIORITIES:
   7. Monitor h127-1B seeds — first results expected in ~8-10h
   8. If any combo pilot > 37: submit 1B x3 IMMEDIATELY
 
+
+---
+**[2026-03-21 18:28 UTC]**
+
+
+=== SESSION: Parse h144, implement proper RND improvements, submit h152-h155 ===
+
+Triggered by: h144-pilot-s1v3 (rorqual 8753180) SUCCESS notification.
+
+h144 RESULT (BN + RND 0.005):
+  avg_return=32.82 at 200M. Below h127 pilot (34.86). Confirms RND 0.01 > 0.005 with BN.
+  88% dungeon, 0% floor 2. Status → CLOSED.
+
+CANCELLED h150 on nibi (10704275) — stuck pending 7h on Priority. Resubmitted on rorqual (8774065).
+
+CRITICAL FINDING — Our RND implementation was missing 3 key best practices from Burda et al. 2018:
+  Compared our implementation against CleanRL reference (ppo_rnd_envpool.py):
+  1. OBSERVATION WHITENING: RND networks should receive whitened obs (running mean/std, clip [-5,5]).
+     We were feeding raw 8268-dim obs. Implemented as --rnd-obs-norm flag.
+  2. NON-EPISODIC INTRINSIC REWARDS: Intrinsic value function should NOT reset at episode boundaries.
+     Our dual-value GAE used dones for both streams. Fixed with --rnd-non-episodic flag (requires --rnd-dual-value).
+     Critical for Craftax where agent dies frequently — exploration value should persist across episodes.
+  3. PREDICTOR UPDATE PROPORTION: CleanRL only trains predictor on 25% of experience (random mask).
+     We trained on 100%, which can overfit and kill the novelty signal.
+     Implemented as --rnd-update-proportion 0.25 flag.
+
+  All three flags default to off (backward compatible with running experiments).
+
+NEW HYPOTHESES SUBMITTED:
+  h152 (nibi 10707540): FULL PROPER RND — BN + obs norm + dual value + non-episodic + 25% update + rnd_coef=0.01
+    Tests all three improvements combined. Most likely to show improvement.
+  h153 (narval 58083356): BN + obs whitening only — isolates obs norm effect vs h127
+  h154 (fir 28767020): BN + obs whitening + 25% predictor update (no dual value)
+    Tests obs norm + predictor regularization without dual value complexity.
+  h155 (narval 58083364): Full proper RND with rnd_coef=0.5 (50x higher than current)
+    CleanRL uses int_coef=1.0/ext_coef=2.0. With dual value, higher intrinsic weight may help.
+
+CODE CHANGES (3 commits, synced to all clusters):
+  1. --rnd-obs-norm: Whitens obs for RND (running mean/std, clip [-5,5])
+  2. --rnd-non-episodic: Non-episodic GAE for intrinsic rewards (always nnt=1.0)
+  3. --rnd-update-proportion: Random mask on predictor training samples
+
+CURRENTLY RUNNING (9 + 4 pending):
+  Pilots finishing soon (~1-2h):
+    h143-pilot-s1v4 (narval): BN + ent anneal + RND 0.01 — ~2.5h elapsed
+    h145-pilot-s1v3 (fir): BN + ent + RND 0.005 — ~2.5h elapsed
+    h149-pilot-s1 (narval): BN + kill/floor bonus — ~2h elapsed
+    h151-pilot-s1 (rorqual): BN + hidden 768 — ~2.5h elapsed
+  1B runs (~8-10h remaining):
+    h127-1B-s1v4 (fir), h127-1B-s2v3 (narval), h127-1B-s3v4 (rorqual)
+    h085-1B-s2v3 (narval), h129-1B-s1 (fir)
+  Pending/queued:
+    h150-pilot-s1v2 (rorqual), h152-pilot-s1 (nibi), h153-pilot-s1 (narval), h154-pilot-s1 (fir), h155-pilot-s1 (narval)
+
+1B LEADERBOARD (unchanged):
+  h085 s1: 41.38 (BEST SINGLE SEED — RND 0.01)
+  h096 mean: 40.50 (2 seeds — RND 0.005)
+  h040 mean: 39.55 ± 2.33 (3 seeds — no RND)
+  30% TARGET: 44.04
+
+STRATEGY:
+  Two parallel tracks:
+  1. BN combo pilots (h143/h145/h149/h151) → identify best combo for 1B submission
+  2. Proper RND (h152/h153/h154/h155) → could be transformative if obs norm + non-episodic + predictor regularization help
+  If any proper RND pilot > 36 → submit 1B x3 immediately
+  h127-1B results remain our PRIMARY hope — expected in 8-10h
+
+NEXT SESSION PRIORITIES:
+  1. Parse h143 (BN+ent+RND) — should be done first
+  2. Parse h145 (BN+ent+RND 0.005)
+  3. Parse h149 (BN+kill/floor bonus) — can BN + reward shaping break floor 1?
+  4. Parse h151 (BN+hidden 768) — can BN enable larger models?
+  5. Parse h152-h155 proper RND pilots — CRITICAL for next direction
+  6. Monitor h127-1B seeds
+  7. Submit 1B runs for best pilot(s)
+
