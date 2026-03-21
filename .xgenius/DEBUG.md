@@ -63,3 +63,6 @@ h101, h102, h104 all crashed with CUDA OOM within 5 minutes of starting. The SIL
 uses ~30GB of the 40GB 3g.40gb GPU, only ~9GB is available for PyTorch. The buffer plus PPO rollout
 data exceeded this. Fixed by storing the buffer on CPU and moving mini-batches to GPU on-demand.
 Resubmitted h101-h104 with fix.
+
+## 2026-03-21 ~22:30 — Fir cluster SSH timeouts
+Fir SSH is very slow/timing out. Cannot pull h070-1B-s1 results. `xgenius ls` and `xgenius pull --job-id` both time out at 600s. `xgenius sync` eventually succeeded after retries. Jobs are still running on fir (h085-1B-s2, h096-1B-s1) but we can't interact with the cluster. May be cluster-wide storage issue or network problem.
