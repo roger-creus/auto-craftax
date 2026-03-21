@@ -66,3 +66,20 @@ Resubmitted h101-h104 with fix.
 
 ## 2026-03-21 ~22:30 — Fir cluster SSH timeouts
 Fir SSH is very slow/timing out. Cannot pull h070-1B-s1 results. `xgenius ls` and `xgenius pull --job-id` both time out at 600s. `xgenius sync` eventually succeeded after retries. Jobs are still running on fir (h085-1B-s2, h096-1B-s1) but we can't interact with the cluster. May be cluster-wide storage issue or network problem.
+
+## 2026-03-21 11:30 — Stale __pycache__ causing AttributeError crashes on all clusters
+**Problem:** Every job submitted after commit 74be972 (added use_symlog to ppo_lstm.py) crashed with:
+```
+AttributeError: 'PPO_Args' object has no attribute 'use_symlog'
+```
+Even though args.py WAS synced correctly (has use_symlog on line 208).
+
+**Root cause:** xgenius sync uses rsync with `--exclude __pycache__ --exclude *.pyc`. When args.py was updated on the cluster, the old .pyc files persisted. Python used the stale .pyc (which lacked use_symlog) instead of recompiling from the updated .py.
+
+**Fix:** Updated both SBATCH templates to:
+1. Run `find CODE_DIR -name '__pycache__' -exec rm -rf {} +` BEFORE singularity exec
+2. Set `PYTHONDONTWRITEBYTECODE=1` env var to prevent .pyc generation
+
+**Impact:** All jobs submitted between sessions 14:40-15:07 UTC crashed. Cancelled 15 jobs, resubmitted 13 with fixed template.
+
+**Prevention:** The template fix is permanent — future jobs will always clean __pycache__ before running and won't generate new .pyc files.

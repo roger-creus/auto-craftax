@@ -6883,3 +6883,88 @@ NEXT SESSION:
   4. Parse any completed combo pilots (h143, h144, h145, h146, h147, h148)
   5. If h127-1B-s1v2 has results → CRITICAL scoring
 
+
+---
+**[2026-03-21 15:34 UTC]**
+
+
+=== SESSION: Fix __pycache__ crash, resubmit all jobs, new hypotheses h149-h151 ===
+
+Triggered by: h143-pilot-s1v3 (narval 58080106) SUCCESS notification.
+
+h143-pilot-s1v3 CRASHED — SAME use_symlog AttributeError:
+  Completed in 281s (should take hours). Exit code 0 misleading.
+  Root cause: stale __pycache__ on clusters. xgenius sync excludes __pycache__ and *.pyc.
+  When args.py was updated (use_symlog added), the old .pyc persisted on clusters.
+  Python used the cached .pyc (which lacks use_symlog) instead of recompiling from the updated .py.
+  ALL jobs submitted after the symlog commit were affected:
+    h127-1B-s1v2 (fir): crashed
+    h127-1B-s2v2/s3v2 (narval): crashed  
+    h146-pilot-s1 (narval): crashed
+    h143-pilot-s1v3 (narval): crashed
+
+FIX APPLIED — SBATCH TEMPLATE UPDATED:
+  1. Added 'find CODE_DIR -name __pycache__ -exec rm -rf {} +' BEFORE singularity exec
+  2. Added '--env PYTHONDONTWRITEBYTECODE=1' to prevent .pyc generation entirely
+  3. Re-synced all 4 clusters with updated templates
+  4. Cancelled ALL pending jobs (used old template)
+  5. Resubmitted everything with new template
+
+JOBS RESUBMITTED WITH FIXED TEMPLATE:
+  h127-1B-s1v3 (fir 28740403): seed 1, 1B steps
+  h127-1B-s2v3 (narval 58080786): seed 2, 1B steps
+  h127-1B-s3v4 (rorqual 8753171): seed 3, 1B steps
+  h143-pilot-s1v4 (narval 58080787): BN+ent anneal+RND 0.01
+  h146-pilot-s1v2 (nibi 10704175): BN+RND+lr=0.0004
+  h147-pilot-s1v2 (rorqual 8753176): BN+RND+lr=0.0006
+  h148-pilot-s1v2 (nibi 10704188): BN+ent+RND+lr=0.0004
+  h085-1B-s2v3 (narval 58080802): RND 0.01 1B seed 2
+  h144-pilot-s1v3 (rorqual 8753180): BN+RND 0.005
+  h145-pilot-s1v2 (fir 28740528): BN+ent+RND 0.005
+
+STILL RUNNING (healthy — pre-symlog code):
+  h129-1B-s1 (fir 28729510): RND 0.015, ~2h elapsed, ~8h remaining
+  h126-pilot-s1v4 (narval 58077628): DeepMind config, ~2.5h elapsed
+
+CRITICAL FINDING — ZERO FLOOR 2 ENTRY ACROSS ALL EXPERIMENTS:
+  Analyzed ALL 120+ completed experiments. NONE have ever entered gnomish_mines (floor 2).
+  Even the best 1B results (return ~41, 100% dungeon) show 0% floor 2 entry.
+  Tutorial confirms: must kill 8 orc creatures on floor 1 to unlock ladder to floor 2.
+  The agent enters the dungeon but cannot consistently kill 8 orcs without dying.
+  
+  This means incremental hyperparameter tuning will NOT break through to floor 2.
+  We need either:
+  1. Reward shaping that directly incentivizes killing + floor descent (h149)
+  2. Much better training (BN combo experiments may help)
+  3. Fundamentally different exploration strategies
+
+NEW HYPOTHESES SUBMITTED:
+  h149 (narval 58080829): BN + RND 0.01 + kill bonus 0.5 + floor bonus 10.0
+    Direct reward shaping to break floor 1 ceiling. Previous bonus experiments failed WITHOUT BN.
+  h150 (nibi 10704275): BN + RND 0.01 + num_envs=2048
+    Larger batch size improves BN statistics + increases effective batch for gradients.
+  h151 (rorqual 8753220): BN + RND 0.01 + hidden_size=768
+    BN might fix the larger model failure (h084/h097 catastrophic without BN).
+
+CURRENT JOB SUMMARY:
+  RUNNING: h129-1B-s1 (fir), h126-pilot-s1v4 (narval) — both healthy
+  PENDING: 13 newly submitted jobs across all 4 clusters
+
+1B LEADERBOARD (unchanged):
+  h096 (RND 0.005): 40.50 (2 seeds)
+  h040 (baseline): 39.55 ± 2.33 (3 seeds)
+  h085 (RND 0.01): 39.38 (2 seeds)
+  30% TARGET: 44.04
+  h127 (BN+RND 0.01): PENDING 1B — estimated 42-45
+
+NEXT SESSION PRIORITIES:
+  1. Check if h126 (DeepMind config) completed — parse result
+  2. Check h129-1B-s1 progress — parse if completed  
+  3. Parse h143/h146/h147/h148 BN combo pilot results — MOST CRITICAL
+  4. Parse h149 (reward shaping + BN) — key to breaking floor 1 ceiling
+  5. Parse h144/h145 (lower RND + BN) pilots
+  6. Parse h150/h151 (larger batch/model + BN) pilots
+  7. Monitor h127-1B seeds — first results expected in ~10-12h
+  8. If any BN combo pilot > 37: submit 1B x3 seeds immediately
+  9. If h149 (reward shaping) shows >2% gnomish_mines entry: CRITICAL SUCCESS — submit 1B
+
