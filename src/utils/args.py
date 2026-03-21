@@ -151,6 +151,8 @@ class PPO_Args:
     """if toggled, only apply RND intrinsic reward when agent is in the dungeon (floor > 0)"""
     rnd_noveld: bool = False
     """if toggled, use NovelD: reward = max(rnd_error(s') - rnd_error(s), 0) instead of raw rnd_error(s')"""
+    rnd_obs_norm: bool = False
+    """if toggled, whiten observations before feeding to RND networks (standard practice from Burda et al. 2018)"""
     rnd_dual_value: bool = False
     """if toggled, use separate value heads for extrinsic and intrinsic rewards (original RND paper approach)"""
     gamma_int: float = 0.99

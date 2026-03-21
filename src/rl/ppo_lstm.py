@@ -192,6 +192,8 @@ if __name__ == "__main__":
         rnd_optimizer = torch.optim.Adam(rnd_predictor.parameters(), lr=args.rnd_lr)
         # Running stats for normalizing intrinsic rewards
         rnd_reward_rms = RunningMeanStd((1,), device)
+        # Optional: running stats for whitening RND observations (Burda et al. 2018)
+        rnd_obs_rms = RunningMeanStd((obs_dim_flat,), device) if args.rnd_obs_norm else None
         rnd_anneal_str = f" -> {args.rnd_coef_end}" if args.rnd_coef_end >= 0 else ""
         noveld_str = " (NovelD mode)" if args.rnd_noveld else ""
         print(f"RND exploration enabled: coef={args.rnd_coef}{rnd_anneal_str}, output_dim={args.rnd_output_dim}, hidden_dim={args.rnd_hidden_dim}{noveld_str}")
@@ -395,8 +397,14 @@ if __name__ == "__main__":
             if rnd_target is not None:
                 with torch.no_grad():
                     obs_flat = next_obs.view(args.num_envs, -1)
-                    rnd_target_feat = rnd_target(obs_flat)
-                    rnd_pred_feat = rnd_predictor(obs_flat)
+                    # Optionally whiten observations for RND (Burda et al. 2018)
+                    if rnd_obs_rms is not None:
+                        rnd_obs_rms.update(obs_flat)
+                        obs_flat_rnd = ((obs_flat - rnd_obs_rms.mean) / (rnd_obs_rms.var.sqrt() + 1e-8)).clamp(-5, 5)
+                    else:
+                        obs_flat_rnd = obs_flat
+                    rnd_target_feat = rnd_target(obs_flat_rnd)
+                    rnd_pred_feat = rnd_predictor(obs_flat_rnd)
                     rnd_error = (rnd_target_feat - rnd_pred_feat).pow(2).mean(dim=-1)  # (num_envs,)
                     # NovelD: bonus = max(error(s') - error(s), 0) — reward transitions to MORE novel states
                     if prev_rnd_error is not None:
@@ -665,10 +673,13 @@ if __name__ == "__main__":
 
                 # RND predictor update (separate optimizer, doesn't affect PPO agent)
                 if rnd_predictor is not None:
-                    obs_flat_rnd = b_obs[mb_inds].view(-1, b_obs.shape[-1])
+                    obs_flat_rnd_train = b_obs[mb_inds].view(-1, b_obs.shape[-1])
+                    # Apply same whitening as during rollout (using frozen running stats)
+                    if rnd_obs_rms is not None:
+                        obs_flat_rnd_train = ((obs_flat_rnd_train - rnd_obs_rms.mean) / (rnd_obs_rms.var.sqrt() + 1e-8)).clamp(-5, 5)
                     with torch.no_grad():
-                        rnd_tgt = rnd_target(obs_flat_rnd)
-                    rnd_pred = rnd_predictor(obs_flat_rnd)
+                        rnd_tgt = rnd_target(obs_flat_rnd_train)
+                    rnd_pred = rnd_predictor(obs_flat_rnd_train)
                     rnd_loss = (rnd_tgt - rnd_pred).pow(2).mean()
                     rnd_optimizer.zero_grad()
                     rnd_loss.backward()
