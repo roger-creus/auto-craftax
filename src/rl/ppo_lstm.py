@@ -148,6 +148,12 @@ if __name__ == "__main__":
         agent.aux_head = agent.aux_head.to(device)
         print(f"Auxiliary kill prediction enabled: coef={args.aux_kill_coef}")
 
+    # Dual value head for RND (separate V_ext and V_int)
+    if args.rnd and args.rnd_dual_value:
+        agent.init_intrinsic_value_head(args.hidden_size)
+        agent.critic_head_int = agent.critic_head_int.to(device)
+        print(f"RND dual value heads enabled: gamma_int={args.gamma_int}")
+
     # Reward normalization (running mean/std)
     reward_rms = None
     if args.reward_norm:
@@ -241,6 +247,10 @@ if __name__ == "__main__":
     rewards = torch.zeros((args.num_steps, args.num_envs)).to(device)
     dones = torch.zeros((args.num_steps, args.num_envs)).to(device)
     values = torch.zeros((args.num_steps, args.num_envs)).to(device)
+    # Dual value head storage for RND intrinsic rewards
+    use_dual_value = args.rnd and args.rnd_dual_value
+    rewards_int = torch.zeros((args.num_steps, args.num_envs)).to(device) if use_dual_value else None
+    values_int = torch.zeros((args.num_steps, args.num_envs)).to(device) if use_dual_value else None
     aux_targets = torch.zeros((args.num_steps, args.num_envs)).to(device) if args.aux_kill_pred else None
 
     next_lstm_state = (
@@ -300,8 +310,10 @@ if __name__ == "__main__":
 
             # action logic
             with torch.no_grad():
-                action, logprob, _, value, next_lstm_state, _ = agent.get_action_and_value(next_obs, next_lstm_state, next_done, denormalize=True)
+                action, logprob, _, value, next_lstm_state, _, value_int = agent.get_action_and_value(next_obs, next_lstm_state, next_done, denormalize=True)
                 values[step] = value.flatten()
+                if use_dual_value and value_int is not None:
+                    values_int[step] = value_int.flatten()
             actions[step] = action
             logprobs[step] = logprob
 
@@ -400,7 +412,11 @@ if __name__ == "__main__":
                         env_state_rnd = envs.env._state.env_state
                         in_dungeon = torch.as_tensor(np.asarray(env_state_rnd.player_level), device=device).float() > 0
                         rnd_intrinsic = rnd_intrinsic * in_dungeon.float()
-                    reward = reward.view(-1) + rnd_coef_now * rnd_intrinsic
+                    if use_dual_value:
+                        # Store intrinsic reward separately — do NOT add to extrinsic reward
+                        rewards_int[step] = rnd_intrinsic
+                    else:
+                        reward = reward.view(-1) + rnd_coef_now * rnd_intrinsic
 
             # RLE intrinsic reward: r_i = φ(s) · z, normalized by running std
             if rle_phi is not None:
@@ -475,12 +491,20 @@ if __name__ == "__main__":
 
         # bootstrap value if not done
         with torch.no_grad():
-            next_value = agent.get_value(
+            next_value_result = agent.get_value(
                 next_obs,
                 next_lstm_state,
                 next_done,
                 denormalize=True,
-            ).reshape(1, -1)
+            )
+            if use_dual_value:
+                next_value, next_value_int = next_value_result
+                next_value = next_value.reshape(1, -1)
+                next_value_int = next_value_int.reshape(1, -1)
+            else:
+                next_value = next_value_result.reshape(1, -1)
+
+            # Extrinsic GAE
             advantages = torch.zeros_like(rewards).to(device)
             lastgaelam = 0
             for t in reversed(range(args.num_steps)):
@@ -493,6 +517,7 @@ if __name__ == "__main__":
                 delta = rewards[t] + args.gamma * nextvalues * nextnonterminal - values[t]
                 advantages[t] = lastgaelam = delta + args.gamma * args.gae_lambda * nextnonterminal * lastgaelam
 
+            # Compute extrinsic returns BEFORE modifying advantages
             # VC-PPO: separate critic returns with higher lambda for less biased value targets
             if args.gae_lambda_critic >= 0 and args.gae_lambda_critic != args.gae_lambda:
                 critic_returns = torch.zeros_like(rewards).to(device)
@@ -510,6 +535,24 @@ if __name__ == "__main__":
             else:
                 returns = advantages + values
 
+            # Intrinsic GAE (dual value heads): separate advantages with gamma_int
+            returns_int = None
+            if use_dual_value:
+                advantages_int = torch.zeros_like(rewards_int).to(device)
+                lastgaelam_int = 0
+                for t in reversed(range(args.num_steps)):
+                    if t == args.num_steps - 1:
+                        nextnonterminal = 1.0 - next_done.float()
+                        nextvalues_int = next_value_int
+                    else:
+                        nextnonterminal = 1.0 - dones[t + 1]
+                        nextvalues_int = values_int[t + 1]
+                    delta_int = rewards_int[t] + args.gamma_int * nextvalues_int * nextnonterminal - values_int[t]
+                    advantages_int[t] = lastgaelam_int = delta_int + args.gamma_int * args.gae_lambda * nextnonterminal * lastgaelam_int
+                returns_int = advantages_int + values_int
+                # Combined advantage for policy gradient
+                advantages = advantages + rnd_coef_now * advantages_int
+
         # flatten the batch
         b_obs = obs.reshape((-1,) + obs_shape)
         b_logprobs = logprobs.reshape(-1)
@@ -518,6 +561,8 @@ if __name__ == "__main__":
         b_advantages = advantages.reshape(-1)
         b_returns = returns.reshape(-1)
         b_values = values.reshape(-1)
+        b_returns_int = returns_int.reshape(-1) if returns_int is not None else None
+        b_values_int = values_int.reshape(-1) if use_dual_value else None
         b_aux_targets = aux_targets.reshape(-1) if aux_targets is not None else None
 
         # SIL: populate buffer with high-return transitions
@@ -552,7 +597,7 @@ if __name__ == "__main__":
                 mbenvinds = envinds[start:end]
                 mb_inds = flatinds[:, mbenvinds].ravel()  # be really careful about the index
 
-                _, newlogprob, entropy, newvalue, _, aux_pred = agent.get_action_and_value(
+                _, newlogprob, entropy, newvalue, _, aux_pred, newvalue_int = agent.get_action_and_value(
                     b_obs[mb_inds],
                     (initial_lstm_state[0][:, mbenvinds], initial_lstm_state[1][:, mbenvinds]),
                     b_dones[mb_inds],
@@ -594,8 +639,14 @@ if __name__ == "__main__":
                 else:
                     v_loss = 0.5 * ((newvalue - b_returns[mb_inds]) ** 2).mean()
 
+                # Intrinsic value loss (dual value heads)
+                v_loss_int = torch.tensor(0.0)
+                if use_dual_value and newvalue_int is not None:
+                    newvalue_int_flat = newvalue_int.view(-1)
+                    v_loss_int = 0.5 * ((newvalue_int_flat - b_returns_int[mb_inds]) ** 2).mean()
+
                 entropy_loss = entropy.mean()
-                loss = pg_loss - ent_coef_now * entropy_loss + v_loss * args.vf_coef
+                loss = pg_loss - ent_coef_now * entropy_loss + v_loss * args.vf_coef + v_loss_int * args.vf_coef
 
                 # Auxiliary kill prediction loss
                 if aux_pred is not None and b_aux_targets is not None:

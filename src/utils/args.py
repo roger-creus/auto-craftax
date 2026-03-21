@@ -143,6 +143,10 @@ class PPO_Args:
     """if toggled, only apply RND intrinsic reward when agent is in the dungeon (floor > 0)"""
     rnd_noveld: bool = False
     """if toggled, use NovelD: reward = max(rnd_error(s') - rnd_error(s), 0) instead of raw rnd_error(s')"""
+    rnd_dual_value: bool = False
+    """if toggled, use separate value heads for extrinsic and intrinsic rewards (original RND paper approach)"""
+    gamma_int: float = 0.99
+    """discount factor for intrinsic reward stream (used with --rnd-dual-value). Shorter horizon than gamma since novelty is transient."""
     rle: bool = False
     """if toggled, use RLE (Random Latent Exploration) intrinsic bonus — policy conditioned on random z"""
     rle_coef: float = 0.01

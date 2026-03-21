@@ -125,7 +125,7 @@ def compute_sil_loss(agent, sil_buffer, sil_batch_size, device):
     c0 = torch.zeros(num_layers, batch_size, hidden_size, device=device)
     lstm_state = (h0, c0)
 
-    _, logprobs, _, values, _, _ = agent.get_action_and_value(
+    _, logprobs, _, values, _, _, _ = agent.get_action_and_value(
         obs_seq.reshape(-1, obs.shape[-1]),
         lstm_state,
         dones_seq.reshape(-1),

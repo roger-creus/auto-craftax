@@ -163,8 +163,15 @@ class PPO_LSTM_Agent(nn.Module):
             self.critic_head = layer_init(nn.Linear(hidden_size, 1), std=1.0)
         self.actor_head = layer_init(nn.Linear(hidden_size, n_actions), std=0.01)
 
+        # Intrinsic value head for dual-value RND (separate V_int from V_ext)
+        self.critic_head_int = None
+
         # Auxiliary prediction head (e.g., predict kill count on current floor)
         self.aux_head = None
+
+    def init_intrinsic_value_head(self, hidden_size):
+        """Initialize separate value head for intrinsic rewards (dual-value RND)."""
+        self.critic_head_int = layer_init(nn.Linear(hidden_size, 1), std=1.0)
 
     def init_aux_head(self, hidden_size, n_targets=1):
         """Initialize auxiliary prediction head for kill count / combat state prediction."""
@@ -212,6 +219,9 @@ class PPO_LSTM_Agent(nn.Module):
         value = self.critic_head(critic_hidden)
         if denormalize and self.use_popart:
             value = self.critic_head.denormalize(value)
+        if self.critic_head_int is not None:
+            value_int = self.critic_head_int(critic_hidden)
+            return value, value_int
         return value
 
     def get_action_and_value(self, x, lstm_state, done, action=None, denormalize=False):
@@ -223,8 +233,9 @@ class PPO_LSTM_Agent(nn.Module):
         value = self.critic_head(critic_hidden)
         if denormalize and self.use_popart:
             value = self.critic_head.denormalize(value)
+        value_int = self.critic_head_int(critic_hidden) if self.critic_head_int is not None else None
         aux_pred = self.aux_head(actor_hidden) if self.aux_head is not None else None
-        return action, probs.log_prob(action), probs.entropy(), value, lstm_state, aux_pred
+        return action, probs.log_prob(action), probs.entropy(), value, lstm_state, aux_pred, value_int
 
     def sample_action(self, x, lstm_state, done):
         actor_hidden, _, lstm_state = self.get_states(x, lstm_state, done)
