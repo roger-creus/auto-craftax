@@ -7000,3 +7000,69 @@ IMPLICATIONS:
   - SCALAR's approach (skill decomposition) is the only method that reaches floor 2.
   - Our 30% target (44.04) would be NEW SOTA at 1B steps if achieved.
 
+
+---
+**[2026-03-21 15:47 UTC]**
+
+
+=== SESSION: Fix use_symlog bug — h127-1B-s1v3 CRASHED, resubmitted ===
+
+Triggered by: h127-1B-s1v3 (fir 28740403) SUCCESS notification.
+
+h127-1B-s1v3 CRASH DIAGNOSIS:
+  Completed in 171s (should take ~10h). Same use_symlog AttributeError as before.
+  Root cause: ppo_lstm.py references args.use_symlog (line 141, 629, 697), and
+  ppo_gtrxl.py references it (line 91, 265). But use_symlog was ONLY defined in
+  GTrXL_Args (args.py line 208), NOT in PPO_Args (the parent class used by ppo_lstm.py).
+  The __pycache__ cleanup from last session was a RED HERRING — the actual bug was
+  a missing field definition in the dataclass.
+
+FIX: Added 'use_symlog: bool = False' to PPO_Args in src/utils/args.py (line 83).
+  Synced fix to all 4 clusters (fir, narval, rorqual, nibi).
+  All 12 pending jobs will automatically pick up the fix since SBATCH template
+  binds CODE_DIR at runtime (code is not baked into the job script).
+
+NEW SUBMISSIONS:
+  h127-1B-s1v4 (fir 28743204): seed 1, 1B steps — queued behind h129-1B-s1
+  h145-pilot-s1v3 (fir 28743250): BN+ent+RND 0.005 pilot — v2 disappeared from SLURM
+
+PARSED NEW RESULTS:
+  h126-pilot-s1v4 (narval, DeepMind full config): avg_return=19.7 CATASTROPHIC -36.2% vs h040.
+    0% dungeon entry. Full DeepMind MFRL config (ac=2048+LN+lr=0.00045+grad=0.5) is
+    completely wrong for our GRU setup. Their architecture was fundamentally different.
+    STATUS → CLOSED.
+
+  h092-pilot-s1v4 (rorqual, RLE exploration): avg_return=17.98 CATASTROPHIC -41.7% vs h040.
+    0% dungeon entry. Random latent conditioning disrupts learning entirely.
+    STATUS → CLOSED.
+
+CURRENTLY RUNNING (1):
+  fir: h129-1B-s1 (28729510) — RND 0.015, ~2.5h elapsed, ~7.5h remaining
+
+PENDING (13 jobs across 4 clusters):
+  h127-1B: s1v4 (fir), s2v3 (narval), s3v4 (rorqual) — CRITICAL 1B seeds
+  h085-1B-s2v3 (narval) — final RND 0.01 baseline seed
+  BN combo pilots: h143 (narval), h144 (rorqual), h145 (fir), h146 (nibi),
+    h147 (rorqual), h148 (nibi), h149 (narval), h150 (nibi), h151 (rorqual)
+
+1B LEADERBOARD (unchanged):
+  h085 s1: 41.38 (BEST SINGLE SEED — RND 0.01)
+  h096 mean: 40.50 (2 seeds — RND 0.005)
+  h040 mean: 39.55 ± 2.33 (3 seeds — no RND)
+  h085 mean: 39.38 (2 seeds — s1=41.38, s3=37.38, HIGH VARIANCE)
+  30% TARGET: 44.04
+
+  h127 (BN+RND 0.01): estimated 42-45 at 1B. PENDING — first seed ETA ~12-18h.
+
+STRATEGY:
+  1. Wait for h127-1B results — this is still our primary hope
+  2. BN combo pilots will start running as clusters process queue
+  3. If any combo pilot > 37 at 200M → submit 1B x3 immediately
+  4. h129-1B-s1 (RND 0.015) provides data on higher RND coefficient at 1B
+
+NEXT SESSION PRIORITIES:
+  1. Parse h129-1B-s1 (RND 0.015 at 1B) — should be done in ~8h
+  2. Check h127-1B seed progress — first results expected in ~12-18h
+  3. Parse BN combo pilot results as they complete
+  4. If h127-1B-s1v4 or any BN combo is promising → plan final 1B runs
+

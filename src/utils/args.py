@@ -81,6 +81,8 @@ class PPO_Args:
     """if toggled, use CNN+MLP structured observation encoder instead of flat MLP"""
     use_popart: bool = False
     """if toggled, use PopArt adaptive value normalization"""
+    use_symlog: bool = False
+    """if toggled, use symlog two-hot distributional value head (DreamerV3-style)"""
     use_gru: bool = False
     """if toggled, use GRU instead of LSTM in recurrent agent"""
     obs_norm: bool = False
