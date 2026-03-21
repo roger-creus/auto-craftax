@@ -6313,3 +6313,82 @@ PLAN FOR NEXT SESSION:
   5. Parse h085-1B-s3 + h096-1B-s3 when they complete (~11h)
   6. If h085 mean (with s3) confirms 41+: consider h085 at 1B as current best method
   7. Architecture improvements are the best remaining lever to close the 6.4% gap
+
+---
+**[2026-03-21 11:41 UTC]**
+
+=== SESSION: h119 result parsed + cleanup + new experiments (h125-h126) ===
+
+Triggered by: h119-pilot-s1 (narval 58075140) SUCCESS.
+
+h119 RESULT (hidden=1024 + RND 0.005):
+  avg_return=20.34 CATASTROPHIC -34.1% vs h040 (30.86).
+  Only 4% dungeon entry. 1024-dim GRU is FAR too large for 200M steps.
+  Confirms: Path A (uniform model scaling) is DEAD.
+  This matches h097 (hidden=768+RND, 19.46). Larger GRU = slower learning = worse at 200M.
+
+CANCELLED EXPERIMENTS (Path A dead + dead-end hypotheses):
+  h120 (rorqual 8707138): 1024+256steps — cancelled, Path A dead
+  h121 (rorqual 8707154): 1024+cosine LR — cancelled, Path A dead
+  h113 (nibi 10671726): dual value heads — cancelled, h114 already showed negative
+  h117 (nibi 10673981): update_epochs=2 — cancelled, low priority + nibi nodes unavailable
+
+NEW EXPERIMENTS SUBMITTED:
+  h125 (narval 58077088): ac=2048 + LN + RND 0.01 — combines DeepMind-style wide AC
+    with our best 1B RND coefficient. If architecture helps, this is our 1B config.
+  h126 (rorqual 8720784): ac=2048 + LN + RND 0.01 + lr=0.00045 + grad_norm=0.5 —
+    full DeepMind MFRL hyperparams. Tests whether their LR+grad_norm helps.
+  h126-v2 (nibi 10697947): same as h126 for redundancy on nibi.
+
+CURRENTLY RUNNING/PENDING:
+  1B runs (critical, ~11h remaining):
+    h085-1B-s3 (narval) — RND 0.01
+    h096-1B-s3 (narval) — RND 0.005
+  Architecture pilots (Path B — MOST IMPORTANT):
+    h122 (rorqual, pending) — ac=2048 + LN (pure architecture test)
+    h123 (fir, running ~1h) — ac=2048 + LN + RND 0.005
+    h124 (narval, running ~2.5h/6h) — ac=2048 + LN + residual MLP
+    h125 (narval, just submitted) — ac=2048 + LN + RND 0.01
+    h126 (rorqual, pending) — ac=2048 + LN + RND 0.01 + DeepMind hyperparams
+    h126-v2 (nibi, pending) — same as h126 for redundancy
+  Other:
+    h118 (fir, running ~1h) — hidden=1024 (Path A, expect bad but let it finish)
+    h113-v2 (fir, running ~1h) — dual value heads (expect bad)
+
+PILOT LEADERBOARD (200M, h040=30.86 baseline):
+  h096 RND 0.005:      33.54 (+8.7%) — BEST PILOT
+  h085 RND 0.01:       32.46 (+5.2%)
+  h040 no exploration:  30.86 (baseline)
+  h119 hidden=1024+RND: 20.34 (-34.1%) CATASTROPHIC
+
+1B LEADERBOARD:
+  h085-1B-s1 (RND 0.01):   41.38 — CURRENT BEST (1 seed, s3 running)
+  h096-1B-s2 (RND 0.005):  40.02 (1 seed, s3 running)
+  h040 (no RND):            39.55 ± 2.25 (3 seeds, FINAL)
+  30% TARGET:               44.04
+
+STRATEGY:
+  Path A (uniform GRU scaling) is DEAD: h119=20.34, h097=19.46.
+  Path B (wide AC heads, GRU stays at 512) is our ONLY remaining lever.
+  Testing 6 variants: h122 (pure), h123 (+RND 0.005), h124 (+residual),
+    h125 (+RND 0.01), h126 (+DeepMind hyperparams), h126-v2 (redundancy).
+  
+  If ANY wide AC pilot scores >35 at 200M (>+13% vs h040):
+    → Submit 1B x3 seeds immediately on best config
+    → Expected 1B return: 35 * 1.2x = 42, possibly higher with RND 0.01 scaling
+  
+  If best wide AC pilot scores 33-35 (moderate improvement):
+    → Combine with additional tweaks (PopArt, GAE standardization)
+    → May still reach target at 1B with RND 0.01 boost
+
+  If ALL wide AC pilots fail (<30):
+    → Architecture gap doesn't matter for symbolic obs (vs image obs in paper)
+    → Consider paradigm shift: DreamerV3, hierarchical RL, or longer training
+
+NEXT SESSION PRIORITIES:
+  1. Parse h124 (ac=2048+LN+residual) result — narval, ~3.5h from now
+  2. Parse h113-v2, h118 results — fir, ~3-5h
+  3. Parse h123 (ac=2048+LN+RND 0.005) — fir, ~5h
+  4. Parse h125 (ac=2048+LN+RND 0.01) — narval, ~4-5h
+  5. Parse h085-1B-s3 and h096-1B-s3 — ~11h from now
+  6. If any architecture pilot >35: submit 1B x3 IMMEDIATELY
