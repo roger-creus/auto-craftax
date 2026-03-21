@@ -49,6 +49,8 @@ class PPO_Args:
     """the number of mini-batches"""
     update_epochs: int = 4
     """the K epochs to update the policy"""
+    extra_value_epochs: int = 0
+    """additional value-only training epochs after PPO updates (simplified PPG)"""
     norm_adv: bool = True
     """Toggles advantages normalization"""
     clip_coef: float = 0.2

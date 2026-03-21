@@ -677,6 +677,35 @@ if __name__ == "__main__":
             if args.target_kl is not None and approx_kl > args.target_kl:
                 break
 
+        # Extra value-only epochs (simplified PPG: more value training without policy drift)
+        if args.extra_value_epochs > 0:
+            for _ in range(args.extra_value_epochs):
+                envinds = np.arange(args.num_envs)
+                np.random.shuffle(envinds)
+                for start in range(0, args.num_envs, envsperbatch):
+                    end = start + envsperbatch
+                    mbenvinds = envinds[start:end]
+                    mb_inds = flatinds[:, mbenvinds].ravel()
+
+                    _, _, _, newvalue, _, _, _, critic_feats_v = agent.get_action_and_value(
+                        b_obs[mb_inds],
+                        (initial_lstm_state[0][:, mbenvinds], initial_lstm_state[1][:, mbenvinds]),
+                        b_dones[mb_inds],
+                        b_actions.long()[mb_inds],
+                    )
+                    newvalue = newvalue.view(-1)
+                    if args.use_symlog:
+                        ev_loss = agent.critic_head.loss(critic_feats_v, b_returns[mb_inds])
+                    elif args.use_popart:
+                        mb_returns_norm = agent.critic_head.normalize(b_returns[mb_inds].unsqueeze(-1)).squeeze(-1)
+                        ev_loss = 0.5 * ((newvalue - mb_returns_norm) ** 2).mean()
+                    else:
+                        ev_loss = 0.5 * ((newvalue - b_returns[mb_inds]) ** 2).mean()
+                    optimizer.zero_grad()
+                    (ev_loss * args.vf_coef).backward()
+                    nn.utils.clip_grad_norm_(agent.parameters(), args.max_grad_norm)
+                    optimizer.step()
+
         # SIL update: learn from high-return transitions in replay buffer
         sil_pg_loss_val = 0.0
         sil_vf_loss_val = 0.0
