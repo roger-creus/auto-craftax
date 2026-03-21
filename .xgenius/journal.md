@@ -7565,3 +7565,78 @@ NEXT SESSION PRIORITIES:
      - AGaLiTe architecture (gated linear attention)
      - Gradient accumulation for effective larger batch
      - Cosine LR schedule
+
+---
+**[2026-03-21 23:10 UTC]**
+
+=== SESSION: Parse h155 (CATASTROPHIC), submit h162-h164 pilots ===
+
+Triggered by: h155-pilot-s1 (narval 58083364) SUCCESS notification.
+
+h155 RESULT (BN + full proper RND: coef=0.5, obs_norm, dual_value, non_episodic, update_prop=0.25):
+  avg_return=3.22 at 200M — CATASTROPHIC (-90.8% vs h127 34.86)
+  0% dungeon, 0% combat. Agent barely learns anything.
+  Wall 15749s (4.4h). The standard RND bells and whistles completely destroy learning.
+  STATUS → CLOSED.
+
+BN COMBO SCORECARD UPDATE (all vs h127=34.86 at 200M):
+  h127: BN + RND 0.01 = 34.86 (BASELINE, BEST)
+  h128: + wide AC 2048 = 27.42 (-21.3%) ← DEAD
+  h143: + ent anneal 0.03→0.005 = 19.62 (-43.7%) ← DEAD
+  h144: + RND 0.005 = 32.82 (-5.9%) ← below optimal
+  h145: + ent anneal + RND 0.005 = 22.1 (-36.6%) ← DEAD
+  h147: + 3x LR = 18.58 (-46.7%) ← DEAD
+  h149: + reward shaping = 2.06 (-94.1%) ← DEAD
+  h150: + 2048 envs = OOM CRASH ← DEAD
+  h151: + hidden 768 = TIMED OUT ~22 (-36.9%) ← DEAD
+  h153: + obs whitening = 24.18 (-30.6%) ← DEAD
+  h154: + obs whitening + 25% pred = 18.90 (-45.8%) ← DEAD
+  h155: + full proper RND (0.5 coef etc) = 3.22 (-90.8%) ← DEAD
+  h156: + ent=0.02 (higher) = RUNNING (narval, ~2h remaining)
+  h159: + RND 0.02 = RUNNING (narval, ~2h remaining)
+  h160: + RND 0.03 = PENDING (rorqual, after h127-1B-s3)
+  h161: + RND 0.015 = PENDING (fir, after h129-1B)
+  h157: + 256 steps = PENDING (narval, in queue)
+  h158: + curriculum = PENDING (narval, in queue)
+  h162: + cosine LR = SUBMITTED (narval 58090054) ← NEW
+  h163: + num_minibatches=4 = SUBMITTED (rorqual 8791178) ← NEW
+  h164: + VC-PPO (lambda_critic=1.0) = SUBMITTED (fir 28840865) ← NEW
+
+NEW PILOTS SUBMITTED:
+  h162 (BN + cosine LR): Cosine decay maintains higher LR for most of training vs linear.
+    Motivation: BN stabilizes optimization → may benefit from sustained higher LR.
+  h163 (BN + num_minibatches=4): Larger minibatches → more accurate BN statistics.
+    Motivation: BN accuracy improves with batch size. 32K vs 16K per minibatch.
+  h164 (BN + VC-PPO): gae_lambda=0.95 for actor + gae_lambda_critic=1.0 for critic.
+    Motivation: Reduce value function bias while maintaining low-variance policy gradient.
+
+CURRENTLY RUNNING (7 + 7 pending):
+  1B runs:
+    h129-1B-s1 (fir): 9h52m elapsed — SHOULD FINISH IN 0-3h ← NEXT TO COMPLETE
+    h127-1B-s1v4 (fir): 6h52m elapsed — ~3-5h remaining
+    h127-1B-s3v4 (rorqual): 7h15m elapsed — ~3-5h remaining
+    h127-1B-s2v3 (narval): 7h09m elapsed — ~5-8h remaining
+    h085-1B-s2v3 (narval): 7h09m elapsed — ~5-8h remaining
+  Pilots:
+    h156-pilot-s1v2 (narval): BN + ent=0.02 — 2h15m, ~2h remaining
+    h159-pilot-s1 (narval): BN + RND 0.02 — 1h56m, ~2h remaining
+  Pending:
+    h161 (fir), h160 (rorqual), h158 (narval), h157 (narval)
+    h162 (narval), h163 (rorqual), h164 (fir)
+
+1B LEADERBOARD (unchanged):
+  h085 s1: 41.38 (BEST SINGLE SEED — RND 0.01 no BN)
+  h096 mean: 40.50 (2 seeds — RND 0.005 no BN)
+  h040 mean: 39.55 ± 2.33 (3 seeds — no RND no BN)
+  30% TARGET: 44.04
+  h127 (BN+RND 0.01) pilot: 34.86 → projected 1B: 42-45
+
+NEXT SESSION PRIORITIES:
+  1. Parse h129-1B-s1 (RND 0.015 at 1B) — SHOULD BE DONE FIRST
+  2. Parse h156/h159 pilots — running, ~2h remaining
+  3. Parse h127-1B seeds as they complete — THIS IS THE CRITICAL MOMENT
+  4. Parse h085-1B-s2 — completes h085 3-seed evaluation
+  5. Parse remaining pilots: h160/h161/h157/h158/h162/h163/h164
+  6. If h127-1B mean ≥ 44: CELEBRATE. Submit confirmatory runs.
+  7. If h127-1B mean < 44: evaluate cosine LR / larger minibatch / VC-PPO pilots
+  8. CONTINGENCY: If nothing works, consider implementing AGaLiTe architecture
