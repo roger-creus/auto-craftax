@@ -6810,3 +6810,76 @@ NEXT SESSION PRIORITIES:
   3. Check h127-1B progress across all clusters
   4. If h143 > 37 at 200M: submit h143-1B x3 seeds IMMEDIATELY
   5. Check rorqual/nibi pending jobs
+
+---
+**[2026-03-21 15:07 UTC]**
+
+
+=== SESSION: h127-1B-s1 CRASHED — stale sync, resubmitted + BN+LR pilots ===
+
+Triggered by: h127-1B-s1 (fir 28732856) SUCCESS notification (but actually crashed).
+
+h127-1B-s1 CRASH DIAGNOSIS:
+  Job completed in 171s (should take ~10h) with exit code 0.
+  Error: AttributeError: 'PPO_Args' object has no attribute 'use_symlog'
+  Root cause: Previous session added symlog code to ppo_lstm.py (line 141: use_symlog=args.use_symlog)
+  but synced to fir BEFORE args.py was properly committed with the use_symlog field.
+  The code on fir had the reference but not the definition.
+  FIX: Synced all 4 clusters with correct code. Resubmitted h127-1B-s1v2 (fir 28735691).
+
+h144-pilot-s1 DISAPPEARED:
+  narval 58079667 was killed by scheduler (Priority). Backup h144-pilot-s1v2 still pending on nibi.
+
+h143 RESUBMITTED:
+  narval version (58079665) likely dead. Submitted h143-pilot-s1v3 (narval 58080106).
+
+NEW HYPOTHESES — BN + Higher Learning Rate:
+  BN is known to enable 2-5x higher learning rates in deep learning.
+  Our default lr=0.0002 may be too conservative with BN normalization.
+  PQN paper confirms BN as input normalization is the right approach for sparse Craftax obs.
+  h146 (narval 58080164): BN + RND 0.01 + lr=0.0004 (2x default)
+  h147 (rorqual 8752617): BN + RND 0.01 + lr=0.0006 (3x default)
+  h148 (nibi 10703745): BN + RND 0.01 + ent annealing + lr=0.0004 (triple combo)
+
+CURRENTLY RUNNING (2):
+  fir: h129-1B-s1 (RND 0.015, ~8h left)
+  narval: h126-pilot-s1v4 (DeepMind config, ~3h left)
+
+PENDING CRITICAL (h127-1B seeds):
+  fir: h127-1B-s1v2 (behind h129 + h145 = ~11h wait)
+  narval: h127-1B-s2v2 (behind h126 = ~3h wait), h127-1B-s3v2
+  rorqual: h127-1B-s2v3
+  nibi: h127-1B-s3v3
+  Rorqual/nibi have been stuck on Priority for 4+ hours.
+
+PENDING COMBO PILOTS:
+  h143 (BN+ent+RND): narval 58080106, rorqual 8751789
+  h144 (BN+RND 0.005): nibi 10703461
+  h145 (BN+ent+RND 0.005): fir 28733257
+  h140 (BN+symlog): rorqual 8750952
+  h141 (BN+bonus): rorqual 8750953
+  h142 (BN+PPG): nibi 10703366
+  h146 (BN+lr=0.0004): narval 58080164
+  h147 (BN+lr=0.0006): rorqual 8752617
+  h148 (BN+ent+lr=0.0004): nibi 10703745
+
+1B LEADERBOARD:
+  h127 (BN+RND 0.01): PENDING — estimated 42-45 at 1B (POTENTIAL TARGET HIT)
+  h096 (RND 0.005): 40.50 (2 seeds)
+  h040 (baseline): 39.55 ± 2.33 (3 seeds)
+  h085 (RND 0.01): 39.38 (2 seeds)
+  30% TARGET: 44.04
+
+STRATEGY:
+  1. h127-1B is still our PRIMARY hope — first seed should start within 3-11h
+  2. BN combo pilots (h143, h146, h148) provide insurance and next-gen candidates
+  3. If h143 (BN+ent+RND) or h148 (BN+ent+lr) pilot >37 → submit 1B x3 immediately
+  4. Higher LR experiments (h146/h147) could be transformative — BN's main benefit is enabling faster learning
+
+NEXT SESSION:
+  1. Parse h126 pilot (DeepMind config) — should be done
+  2. Parse h129-1B-s1 (RND 0.015 at 1B) — should be done
+  3. Check h127-1B seed progress
+  4. Parse any completed combo pilots (h143, h144, h145, h146, h147, h148)
+  5. If h127-1B-s1v2 has results → CRITICAL scoring
+
