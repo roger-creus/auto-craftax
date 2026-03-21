@@ -7205,3 +7205,94 @@ NEXT SESSION PRIORITIES:
   6. Monitor h127-1B seeds
   7. Submit 1B runs for best pilot(s)
 
+
+---
+**[2026-03-21 19:46 UTC]**
+
+=== SESSION: Parse h143/h149 results, resubmit stuck jobs, submit new pilots ===
+
+Triggered by: h149-pilot-s1 (narval 58080829) SUCCESS notification.
+
+PARSED NEW RESULTS:
+
+h149 (BN + RND 0.01 + kill bonus 0.5 + floor bonus 10.0):
+  avg_return=2.06 — CATASTROPHIC (-93.3% vs h040 30.86, -94.1% vs h127 34.86)
+  Only 4% dungeon entry. Agent barely learns anything.
+  Reward shaping completely destroyed learning. Kill/floor bonuses drown out real reward signal.
+  STATUS → CLOSED.
+
+h143 (BN + ent anneal 0.03→0.005 + RND 0.01):
+  avg_return=19.62 — VERY POOR (-36.5% vs h040, -43.7% vs h127)
+  28% dungeon, 8% orc_soldier. Agent stays on surface.
+  Entropy annealing is TERRIBLE with BN. BN already provides sufficient regularization.
+  Reducing entropy prematurely kills exploration when BN is stabilizing training.
+  STATUS → CLOSED.
+
+KEY FINDING — BN CONFIG IS FRAGILE:
+  h127 (BN + RND 0.01) = 34.86 (BEST PILOT)
+  h128 (BN + wide AC 2048): 27.42 (-21.3%) ← DEAD
+  h143 (BN + ent anneal): 19.62 (-43.7%) ← DEAD
+  h144 (BN + RND 0.005): 32.82 (-5.9%) ← below optimal
+  h147 (BN + 3x LR): 18.58 (-46.7%) ← DEAD
+  h149 (BN + reward shaping): 2.06 (-94.1%) ← DEAD
+
+  CONCLUSION: h127 config (BN + RND 0.01 + default settings) is very sensitive.
+  Most modifications HURT catastrophically. The default hyperparameters are already
+  well-tuned for BN. Only proper RND improvements (h152-h155) and architectural
+  changes (h151 larger model) remain as plausible improvement vectors.
+
+ALSO CLOSED:
+  h145 (BN + ent anneal + RND 0.005): Cancelled without running. h143 proved ent anneal + BN is dead.
+
+JOB MANAGEMENT:
+  Cancelled h152-pilot-s1 (nibi 10707540): stuck pending for 5h. Resubmitted v2 on rorqual (8778179).
+  Resubmitted h150-pilot-s1v3 (nibi 10709901): BN + 2048 envs. Previous versions disappeared.
+
+NEW HYPOTHESES SUBMITTED:
+  h156-pilot-s1 (nibi 10709905): BN + RND 0.01 + ent_coef=0.02 (higher constant entropy)
+    Since reducing entropy is catastrophic, test if MORE entropy helps. 2x default.
+  h157-pilot-s1 (rorqual 8778395): BN + RND 0.01 + num_steps=256 (longer rollouts)
+    Longer rollouts may help credit assignment in dungeon.
+
+CURRENTLY RUNNING (9 + 4 pending/queued):
+  Pilots finishing soon (~1-2h):
+    h151-pilot-s1 (rorqual): BN + hidden 768 — 4h elapsed, ~2h remaining
+    h153-pilot-s1 (narval): BN + obs whitening — 1.3h elapsed
+    h154-pilot-s1 (fir): BN + obs whitening + 25% update — 1.3h elapsed
+    h155-pilot-s1 (narval): Full proper RND (coef 0.5) — 1.3h elapsed
+  1B runs:
+    h127-1B-s1v4 (fir): seed 1, ~3.5h elapsed, ~6.5h remaining
+    h127-1B-s2v3 (narval): seed 2, ~4h elapsed, ~9h remaining
+    h127-1B-s3v4 (rorqual): seed 3, ~4h elapsed, ~6h remaining
+    h085-1B-s2v3 (narval): seed 2, ~4h elapsed, ~9h remaining
+    h129-1B-s1 (fir): RND 0.015, ~6.5h elapsed, ~3.5h remaining
+  Queued:
+    h152-pilot-s1v2 (rorqual): Full proper RND (coef 0.01)
+    h150-pilot-s1v3 (nibi): BN + 2048 envs
+    h156-pilot-s1 (nibi): BN + higher entropy
+    h157-pilot-s1 (rorqual): BN + 256 steps
+
+1B LEADERBOARD (unchanged):
+  h085 s1: 41.38 (BEST SINGLE SEED — RND 0.01)
+  h096 mean: 40.50 (2 seeds — RND 0.005)
+  h040 mean: 39.55 ± 2.33 (3 seeds — no RND)
+  30% TARGET: 44.04
+  h127 (BN+RND 0.01) pilot: 34.86 → projected 1B: 42-45
+
+STRATEGY:
+  Two tracks running in parallel:
+  1. h127-1B (BN+RND 0.01) x3 seeds — our main bet for 30% target
+  2. Proper RND pilots (h152-h155) — could be transformative improvement over h127
+  If any proper RND pilot > 36 → submit 1B x3 immediately
+  If h127-1B mean > 44 → we've hit 30% target!
+
+NEXT SESSION PRIORITIES:
+  1. Parse h151 (BN+hidden 768) — can BN enable larger models?
+  2. Parse h153 (BN+obs whitening) — does RND obs norm help with BN?
+  3. Parse h154 (BN+obs whitening+25% update)
+  4. Parse h155 (full proper RND, coef 0.5)
+  5. Parse h152 (full proper RND, coef 0.01) — resubmitted
+  6. Parse h129-1B-s1 (RND 0.015 at 1B) — should finish ~3.5h
+  7. Monitor h127-1B seeds — CRITICAL, first results in ~6-10h
+  8. Parse h150/h156/h157 pilots if completed
+  9. If proper RND pilot > 36: submit 1B x3 IMMEDIATELY
