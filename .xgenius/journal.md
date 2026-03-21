@@ -6968,3 +6968,35 @@ NEXT SESSION PRIORITIES:
   8. If any BN combo pilot > 37: submit 1B x3 seeds immediately
   9. If h149 (reward shaping) shows >2% gnomish_mines entry: CRITICAL SUCCESS — submit 1B
 
+
+---
+**[2026-03-21 15:36 UTC]**
+
+
+RESEARCH UPDATE — Published SOTA context (from web search):
+
+CRAFTAX-1B LEADERBOARD (max=226):
+  PPO-GTrXL: 18.3% (~41.4) — PUBLISHED SOTA
+  PQN-RNN: 16.0% (~36.2)
+  PPO-RNN: 15.3% (~34.6)
+
+OUR POSITION:
+  h040 baseline (1B): 39.55 = 17.5% of max — ALREADY 95% OF PUBLISHED SOTA!
+  h127 pilot (200M): 34.86 = 15.4% — matches PPO-RNN at 1B
+  30% target: 44.04 = 19.5% — would BEAT all published 1B results
+
+KEY METHODS TO CONSIDER:
+  1. AGaLiTe (gated linear attention): Better than GTrXL, 40% cheaper. Code available.
+     github.com/subho406/agalite — TMLR paper
+  2. SCALAR (March 2026): LLM-guided skill decomposition. FIRST method to reach floor 2 (9.1%)!
+     Uses hierarchical RL with LLM-proposed skills. arxiv 2603.09036
+  3. Published RND/ICM/E3B generally HURT overall reward in original Craftax paper.
+     But our RND configs show improvement — possibly because we combine with BN.
+
+IMPLICATIONS:
+  - We're MUCH closer to SOTA than expected. h127 at 1B could match/beat published GTrXL.
+  - If BN combo experiments (h143-h148) produce >37 at pilot, 1B projection could be 45-48.
+  - AGaLiTe architecture is the next big lever if BN combos plateau.
+  - SCALAR's approach (skill decomposition) is the only method that reaches floor 2.
+  - Our 30% target (44.04) would be NEW SOTA at 1B steps if achieved.
+
