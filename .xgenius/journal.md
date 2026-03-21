@@ -6249,3 +6249,67 @@ NEXT SESSION PRIORITIES:
   4. Parse h085-1B s1/s3 and h096-1B-s3 results (~12-14h from now)
   5. If any wide AC pilot >35 at 200M: submit 1B x3 seeds on ALL clusters
   6. If h096-1B mean with s3 > 41: target within reach with architecture improvement
+
+---
+**[2026-03-21 11:31 UTC]**
+
+=== SESSION: h085-1B-s1 result — NEW BEST 1B ===
+
+Triggered by: h085-1B-s1 (narval 58041541) SUCCESS.
+
+CRITICAL RESULT — h085-1B-s1: avg_return=41.38 NEW BEST 1B (+4.6% vs h040 39.55)
+  RND 0.01 at 1B OUTPERFORMS RND 0.005 (h096-1B-s2=40.02).
+  This is a REVERSAL from 200M pilots where h096 (0.005) > h085 (0.01): 33.54 vs 32.46.
+  
+  Explanation: At 1B, RND predictor catches up faster, so higher coef (0.01) maintains
+  exploration pressure longer. At 200M, 0.01 is slightly too strong and interferes with
+  early learning. At 1B, the extra exploration pays off in later training.
+
+  Achievement breakdown (h085-1B-s1):
+    96% dungeon, 84% orc_soldier, 64% orc_mage
+    44% make_iron_sword, 36% make_iron_pickaxe (BETTER IRON than h096-1B-s2: 24%)
+    16% collect_diamond, 20% collect_sapphire, 96% find_bow
+    0% gnomish_mines, 0% enchant, 0% defeat_necromancer
+
+1B LEADERBOARD (updated):
+  h085-1B-s1 (RND 0.01):   41.38 — NEW BEST (1 seed, s3 running)
+  h096-1B-s2 (RND 0.005):  40.02 (1 seed, s3 running)
+  h040 (no RND):            39.55 ± 2.25 (3 seeds, FINAL)
+  30% TARGET:               44.04
+
+Gap to target: 44.04 - 41.38 = 2.66 (+6.4% improvement needed)
+
+STRATEGIC IMPLICATION:
+  RND 0.01 is likely optimal at 1B scale, not 0.005.
+  Future 1B runs should use RND 0.01 unless architecture changes shift the optimum.
+  Plan: test ac=2048 + LN + RND 0.01 (not just 0.005 as in h123) once wide AC pilot results are in.
+
+CURRENTLY RUNNING (7 jobs):
+  1B runs (critical):
+    h085-1B-s3 (narval, 13h/24h) — completes ~11h from now
+    h096-1B-s3 (narval, 12.7h/24h) — completes ~11h from now
+  Architecture pilots (MOST IMPORTANT):
+    h118 (hidden=1024, fir, 39min/6h) — ~5h remaining
+    h119 (hidden=1024+RND, narval, 2.6h/6h) — ~3.5h remaining
+    h113-v2 (dual value, fir, 38min/4h) — ~3h remaining
+    h123 (ac=2048+LN+RND, fir, 38min/6h) — ~5h remaining
+    h124 (ac=2048+LN+residual, narval, 2.4h/6h) — ~3.5h remaining
+
+PENDING (6 jobs):
+  h120 (rorqual, Priority) — 1024+256steps
+  h121 (rorqual, Priority) — 1024+cosine LR
+  h122 (rorqual, Priority) — ac=2048+LN
+  h122-v2 (nibi, Priority) — ac=2048+LN
+  h113 (nibi, UnavailableNodes) — dual value
+  h117 (nibi, UnavailableNodes) — update_epochs=2
+
+PLAN FOR NEXT SESSION:
+  1. Parse h119 + h124 results (first to complete, ~3.5h) — CRITICAL
+  2. Parse h113-v2 result (~3h)
+  3. Parse h118 + h123 results (~5h)
+  4. Based on results, submit:
+     - If any wide AC pilot >35: ac=2048+LN+RND 0.01 pilot (h125)
+     - If h119 (1024+RND) is strong: hidden=1024+RND 0.01 pilot
+  5. Parse h085-1B-s3 + h096-1B-s3 when they complete (~11h)
+  6. If h085 mean (with s3) confirms 41+: consider h085 at 1B as current best method
+  7. Architecture improvements are the best remaining lever to close the 6.4% gap
