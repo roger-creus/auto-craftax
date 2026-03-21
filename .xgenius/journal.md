@@ -5776,3 +5776,100 @@ NEXT SESSION PRIORITIES:
   3. If h110 (NovelD) beats h096 (33.54): submit 1B × 3 seeds immediately
   4. Parse h096-1B results as seeds complete
   5. If nothing crosses 44: consider DreamerV3 or SCALAR-style hierarchical RL
+
+---
+**[2026-03-21 02:32 UTC]**
+
+
+=== SESSION: h105/h112 results + dual value heads implementation (h113/h114) ===
+
+Triggered by: h105-pilot-s1 (narval 58050131) SUCCESS.
+
+NEW RESULTS PARSED THIS SESSION (200M):
+  h105 (RND upward anneal 0→0.02): 27.74 (-10.1% vs h040) — CLOSED. Agent needs RND from the start.
+  h112 (NovelD 0.01):              29.22 (-5.3% vs h040) — CLOSED. 80% dungeon but 0% orc kills.
+    INSIGHT: NovelD penalizes staying in familiar combat states → agent enters dungeon but avoids fighting.
+  h069-1B-s1:                      37.5 (mean with s2=37.98, n=2). Below h040 (39.55). CLOSED.
+
+DISAPPEARED JOBS:
+  h111-pilot-s1 (fir 28680076): disappeared after 45min. Resubmitted narval 58066885.
+  h103-pilot-s1v2 (narval 58050045): disappeared after ~3h. NOT resubmitted (SIL+RND pattern bad).
+  h108-pilot-s1 (narval 58058577): disappeared. SIL+RND 0.005 — SIL+RND uniformly bad. NOT resubmitting.
+
+NEW CODE: Implemented dual value heads for RND (h113).
+  Original RND paper (Burda et al. 2019) uses separate V_ext and V_int with different discount factors:
+    - V_ext with gamma=0.999 (long horizon for game progress)
+    - V_int with gamma_int=0.99 (shorter horizon since novelty is transient)
+  This prevents non-stationary intrinsic rewards from corrupting extrinsic value estimates.
+  Currently we add rnd_coef * rnd_bonus directly to the reward → single value head must track
+  the combined non-stationary signal. This explains why only tiny coefficients (0.005) work —
+  higher coefficients corrupt the value function.
+  With dual heads, we can potentially use higher coefficients effectively.
+  New flags: --rnd-dual-value, --gamma-int
+
+NEW HYPOTHESES SUBMITTED:
+  h113 (RND 0.005 + dual value heads): nibi 10671726 — testing if dual heads improve over h096
+  h114 (RND 0.01 + dual value heads): rorqual 8685495 — higher coef possible with dual heads
+  h111-v2 (RND 0.005 decay to 0): narval 58066885 — resubmitted
+
+FIR CLUSTER ISSUES:
+  SSH to fir is very slow/timing out. Could not pull h070-1B-s1 results (disappeared after ~22h).
+  Fir sync eventually succeeded after retries. h085-1B-s2 and h096-1B-s1 still running there.
+
+CURRENTLY RUNNING (12 jobs):
+  1B runs:
+    h096-1B-s2 (rorqual, 5.4h/24h)
+    h096-1B-s3 (narval, 3.7h/24h)
+    h096-1B-s1v2 (nibi, PENDING — starts ~Mar 22)
+    h085-1B-s1 (narval, 4h/24h)
+    h085-1B-s3 (narval, 4h/24h)
+    h085-1B-s2 (fir, ~10h/24h)
+    h096-1B-s1 (fir, ~4h/24h)
+  Pilots:
+    h110 NovelD 0.005 (rorqual, 1.7h/4h) — most interesting remaining pilot
+    h106 RND 0.003 (rorqual, 1.7h/4h)
+    h111-v2 RND decay (narval, 0.25h/4h)
+    h113 RND dual value (nibi, PENDING)
+    h114 RND 0.01 dual value (rorqual, PENDING)
+
+UPDATED PILOT LEADERBOARD (200M, h040 base=30.86):
+  h096 RND 0.005:      33.54 (+8.7%) — BEST
+  h085 RND 0.01:       32.46 (+5.2%)
+  h107 RND 0.007:      31.86 (+3.2%)
+  h040 no exploration:  30.86 (baseline)
+  h112 NovelD 0.01:    29.22 (-5.3%)
+  h105 RND up anneal:  27.74 (-10.1%)
+
+EXPLORATION METHOD SUMMARY:
+  WORKS: Only standard RND at mild coefficients (0.005 optimal)
+  FAILS: NovelD (punishes combat), SIL+RND (interference), RLE, reward norm,
+         upward annealing, downward annealing, curriculum+RND, ent anneal+RND,
+         larger model+RND, dungeon-only RND, RND 0.01+ (too aggressive)
+
+1B LEADERBOARD (unchanged):
+  h040 GRU+128+grad:     mean=39.55±2.25 (n=3, FINAL) — CURRENT BEST
+  h070 curriculum k3-5:  s3=39.38 (n=1, s1 disappeared on fir)
+  h044 GRU+ent+128+grad: mean=39.0 (n=3, FINAL)
+  h069 curriculum k5-7:  mean=37.98 (n=2, CLOSED)
+  30% TARGET: 44.04
+
+EXPECTED h096-1B: ~33.54 * 1.28 = ~42.9 (18-20h until results)
+
+STRATEGY:
+  Primary path: h096-1B (pure RND 0.005) → expected ~42.9
+  Improvement paths (to close 42.9 → 44.04 gap):
+    1. Dual value heads (h113) could improve RND effectiveness by ~5-10%
+    2. If h113 pilot > 33.54: submit 1B immediately
+    3. If h114 (higher coef + dual value) > 33.54: even better, submit 1B
+  Backup: if nothing crosses 44, consider larger architectural changes or DreamerV3
+
+NEXT SESSION PRIORITIES:
+  1. Parse h110 (NovelD 0.005) result — rorqual, ~2h from now
+  2. Parse h106 (RND 0.003) result — rorqual, ~2h from now
+  3. Parse h113/h114 dual value results — when they start and complete
+  4. Parse h111-v2 (RND decay) result — narval, ~3.5h from now
+  5. Parse h085-1B results when available (~18h from now)
+  6. Parse h096-1B results when available (~18-20h from now)
+  7. If h113 beats h096 (33.54): submit 1B × 3 seeds immediately
+  8. Retry pulling h070-1B-s1 from fir when connectivity improves
+
