@@ -7640,3 +7640,79 @@ NEXT SESSION PRIORITIES:
   6. If h127-1B mean ≥ 44: CELEBRATE. Submit confirmatory runs.
   7. If h127-1B mean < 44: evaluate cosine LR / larger minibatch / VC-PPO pilots
   8. CONTINGENCY: If nothing works, consider implementing AGaLiTe architecture
+
+---
+**[2026-03-21 23:40 UTC]**
+
+=== SESSION: Parse h127-1B-s3v4 (OOM at 643M), resubmit with more memory ===
+
+Triggered by: h127-1B-s3v4 (rorqual 8753171) notification — reported SUCCESS but actually OOM KILLED.
+
+h127-1B-s3v4 RESULT (BN + RND 0.01, seed 3, rorqual H100 3g.40gb):
+  OOM killed at 643M/1B steps (64.3%). System RAM OOM (32G insufficient), NOT CUDA OOM.
+  Trajectory (50M windows of mean episodic return):
+    0-50M: 13.29   250-300M: 19.35   500-550M: 28.80
+    50-100M: 18.03  300-350M: 22.57   550-600M: 30.92 (PEAK)
+    100-150M: 18.41 350-400M: 23.95   600-650M: 30.30
+    150-200M: 18.51 400-450M: 27.01
+    200-250M: 18.52 450-500M: 30.13
+  Max single episode return: 50.10 (deep floor penetration)
+  Still climbing at ~2.5 pts per 100M steps at time of OOM.
+  Projected 1B if extrapolated: ~38-42 (competitive with h040/h085 but not clearly better).
+
+IMPORTANT DISCREPANCY: h127 pilot (200M) got 34.86, but 1B run at 200M only got ~18.5.
+  Explanation: Linear LR schedule. Pilot LR=0 at 200M (fully decayed). 1B run LR=0.8*initial at 200M.
+  The 1B run is still actively learning at 200M, hasn't converged. Pilot comparison is NOT valid.
+
+OOM ROOT CAUSE: System RAM (32G requested) insufficient for BN+RND at 1B scale.
+  - Not a code memory leak (go_explore/FrontierBuffer not used in h127)
+  - Just base memory accumulation over 643M steps of JAX training
+  - narval (48G) h127-1B-s2v3 has been running 7.6h without issue → 48G is sufficient
+
+ACTIONS TAKEN:
+  1. Resubmitted h127-1B-s3v5 on narval (48G): job 58090899
+  2. Submitted backup h127-1B-s1v5 on rorqual (48G): job 8792805
+     (in case h127-1B-s1v4 on fir also OOMs — same 32G limit)
+  3. Updated h127-1B-s3v4 job with OOM notes
+  4. Added partial result to experiments.csv (NOT a valid final result)
+
+h127-1B EARLIER FAILURES:
+  - h127-1B-s1 (28732856): use_symlog attribute error (old code bug)
+  - h127-1B-s1v3 (28740403): same use_symlog error
+  - h127-1B-s3v4 (8753171): OOM at 643M steps (this session)
+
+CURRENTLY RUNNING (6 jobs):
+  1B runs:
+    h129-1B-s1 (fir 28729510): RND 0.015, 10h19m elapsed — should finish in ~1-2h
+    h127-1B-s1v4 (fir 28743204): BN+RND seed 1, 7h18m — might OOM at ~10h (32G limit!)
+    h127-1B-s2v3 (narval 58080786): BN+RND seed 2, 7h36m — should be OK (48G)
+    h085-1B-s2v3 (narval 58080802): RND 0.01 seed 2, 7h36m — should complete
+  Pilots:
+    h156-pilot-s1v2 (narval 58086154): BN + ent=0.02, 2h42m running
+    h159-pilot-s1 (narval 58086618): BN + RND 0.02, 2h23m running
+
+PENDING (9 jobs):
+  rorqual: h160 (BN+RND 0.03), h163 (BN+4 minibatches), h127-1B-s1v5 (backup seed 1 48G)
+  narval: h158 (BN+curriculum, ~01:00), h157 (BN+256 steps, ~01:00), h162 (BN+cosine LR, ~01:11), h127-1B-s3v5 (seed 3 48G, ~01:24)
+  fir: h161 (BN+RND 0.015), h164 (BN+VC-PPO)
+
+1B LEADERBOARD (unchanged):
+  h085 s1: 41.38 (BEST SINGLE SEED — RND 0.01 no BN)
+  h096 mean: 40.50 (2 seeds — RND 0.005 no BN)
+  h040 mean: 39.55 ± 2.33 (3 seeds — no RND no BN)
+  30% TARGET: 44.04
+  h127 (BN+RND 0.01) 1B: UNKNOWN (s3 OOM'd at ~30, s1+s2 still running)
+
+CRITICAL CONTEXT: Our h040 (39.55) already matches ~95% of published GTrXL SOTA (41.4).
+  The 30% target (44.04) is ABOVE published SOTA. Achieving it requires going beyond known methods.
+
+NEXT SESSION PRIORITIES:
+  1. Parse h129-1B-s1 (RND 0.015 at 1B) — should be done FIRST
+  2. Parse h156/h159 pilots
+  3. Check if h127-1B-s1v4 (fir) OOM'd — if so, h127-1B-s1v5 (rorqual 48G) takes over
+  4. Monitor h127-1B-s2v3 (narval) — first VALID h127 1B result expected
+  5. Parse h085-1B-s2v3 (narval) — completes h085 3-seed evaluation
+  6. Parse remaining pilots: h160/h163/h158/h157/h162/h161/h164
+  7. When h127-1B-s2 completes: FIRST VALID h127-1B DATA POINT
+  8. If h127-1B is promising, wait for s1v5 and s3v5 for 3-seed mean
+  9. If nothing hits 44: consider AGaLiTe architecture or two-phase training
