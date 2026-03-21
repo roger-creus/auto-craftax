@@ -7296,3 +7296,107 @@ NEXT SESSION PRIORITIES:
   7. Monitor h127-1B seeds — CRITICAL, first results in ~6-10h
   8. Parse h150/h156/h157 pilots if completed
   9. If proper RND pilot > 36: submit 1B x3 IMMEDIATELY
+
+---
+**[2026-03-21 20:49 UTC]**
+
+
+=== SESSION: Parse h154/h145, cancel stuck jobs, resubmit and submit new pilots ===
+
+Triggered by: h154-pilot-s1 (fir 28767020) SUCCESS notification.
+
+PARSED NEW RESULTS:
+
+h154 (BN + RND obs whitening + 25% predictor update):
+  avg_return=18.90 at 200M — CATASTROPHIC (-45.8% vs h127 34.86)
+  avg_length=5129.8 — extreme survival focus (longest episodes ever seen)
+  Only 4% dungeon entry. Agent survives but doesn't progress at all.
+  Obs whitening + predictor regularization KILLS performance when combined with BN.
+  STATUS → CLOSED.
+
+h145 (BN + ent anneal + RND 0.005):
+  avg_return=22.1 at 200M — POOR (-36.6% vs h127 34.86)
+  40% dungeon, 8% orc_soldier. Better than h143 (19.62) but still terrible.
+  Ent annealing + BN confirmed harmful at ANY RND coefficient.
+  STATUS → CLOSED (updated from 'CLOSED without result' — v3 job completed via disappearance but CSV was produced).
+
+KEY FINDING — 'PROPER RND' IMPROVEMENTS ARE ALL CATASTROPHIC:
+  h127 (BN + RND 0.01, our simple impl) = 34.86 (BEST PILOT)
+  h154 (+ obs whitening + 25% predictor update) = 18.90 (-45.8%) ← DEAD
+  h153 (+ obs whitening only) — RUNNING on narval, likely to fail
+  h155 (+ full proper RND, coef=0.5) — RUNNING on narval, likely to fail
+  h152 (+ full proper RND, coef=0.01) — CANCELLED (h154 proved the approach is dead)
+
+  CONCLUSION: Our simple RND implementation (without obs whitening, training predictor on 100%
+  of data, episodic intrinsic returns) actually works BETTER than the 'proper' Burda et al. setup.
+  Reasoning:
+  1. BN already normalizes observations → obs whitening creates double-normalization
+  2. Training on 100% of data keeps novelty signal strong for sparse-reward exploration
+  3. Episodic intrinsic returns are fine when agent dies frequently (environment resets completely)
+
+JOB MANAGEMENT:
+  Cancelled stuck/redundant jobs:
+    h145-pilot-s1v2 (fir 28740528): already have v3 results
+    h150-pilot-s1v3 (nibi 10709901): stuck until Mar 25
+    h156-pilot-s1 (nibi 10709905): stuck until Mar 25
+    h152-pilot-s1v2 (rorqual 8778179): h154 proved proper RND is dead
+
+  Resubmitted on narval:
+    h150-pilot-s1v4 (narval 58086151): BN + 2048 envs
+    h156-pilot-s1v2 (narval 58086154): BN + higher entropy (ent=0.02)
+
+  New hypothesis:
+    h158-pilot-s1 (fir 28829021): BN + RND 0.01 + floor 0 curriculum (kills=3-5)
+    Combines best pilot config (h127=34.86) with best curriculum (h070=34.58).
+    Both independently give ~35 at pilot. If they synergize, could break floor 1 ceiling.
+
+BN COMBO SCORECARD (all vs h127=34.86 at 200M):
+  h127: BN + RND 0.01 = 34.86 (BASELINE, BEST)
+  h128: + wide AC 2048 = 27.42 (-21.3%) ← DEAD
+  h143: + ent anneal 0.03→0.005 = 19.62 (-43.7%) ← DEAD
+  h144: + RND 0.005 = 32.82 (-5.9%) ← below optimal
+  h145: + ent anneal + RND 0.005 = 22.1 (-36.6%) ← DEAD
+  h147: + 3x LR = 18.58 (-46.7%) ← DEAD
+  h149: + reward shaping = 2.06 (-94.1%) ← DEAD
+  h154: + obs whitening + 25% pred update = 18.90 (-45.8%) ← DEAD
+  h151: + hidden 768 = RUNNING (rorqual, ~1h remaining)
+  h153: + obs whitening only = RUNNING (narval, ~2h remaining)
+  h155: + full proper RND coef=0.5 = RUNNING (narval, ~2h remaining)
+  h157: + 256 steps = PENDING (rorqual)
+  h150: + 2048 envs = PENDING (narval, resubmitted)
+  h156: + ent=0.02 (higher) = PENDING (narval, resubmitted)
+  h158: + curriculum kills=3-5 = PENDING (fir, NEW)
+
+CURRENTLY RUNNING (8 + 5 pending):
+  1B runs:
+    h127-1B-s1v4 (fir): seed 1, ~5h elapsed — CRITICAL, expected ~5h more
+    h127-1B-s2v3 (narval): seed 2, ~5h elapsed — expected ~8h more (A100)
+    h127-1B-s3v4 (rorqual): seed 3, ~5h elapsed — expected ~5h more
+    h085-1B-s2v3 (narval): RND 0.01 s2, ~5h elapsed
+    h129-1B-s1 (fir): RND 0.015 s1, ~7.5h elapsed — should finish ~3h
+  Pilots:
+    h151-pilot-s1 (rorqual): BN+hidden 768, ~5h of 6h walltime — ALMOST DONE
+    h153-pilot-s1 (narval): BN+obs whitening, ~2.3h elapsed
+    h155-pilot-s1 (narval): Full proper RND coef=0.5, ~2.3h elapsed
+  Pending/queued:
+    h157-pilot-s1 (rorqual): BN+256 steps
+    h150-pilot-s1v4 (narval 58086151): BN+2048 envs
+    h156-pilot-s1v2 (narval 58086154): BN+ent=0.02
+    h158-pilot-s1 (fir 28829021): BN+RND+curriculum
+
+1B LEADERBOARD (unchanged):
+  h085 s1: 41.38 (BEST SINGLE SEED — RND 0.01 no BN)
+  h096 mean: 40.50 (2 seeds — RND 0.005 no BN)
+  h040 mean: 39.55 ± 2.33 (3 seeds — no RND no BN)
+  30% TARGET: 44.04
+  h127 (BN+RND 0.01) pilot: 34.86 → projected 1B: 42-45
+
+NEXT SESSION PRIORITIES:
+  1. Parse h151 (BN+hidden 768) — should be done first (~1h)
+  2. Parse h129-1B (RND 0.015 at 1B) — expected ~3h
+  3. Parse h153/h155 (likely to fail based on h154 result)
+  4. Monitor h127-1B seeds — CRITICAL, first results in ~5h (fir s1)
+  5. Parse h150/h156/h157/h158 pilots when done
+  6. If any pilot > 36: submit 1B x3 IMMEDIATELY
+  7. When h127-1B seeds complete: ANALYZE vs 30% target
+
