@@ -6574,3 +6574,87 @@ NEXT SESSION:
   4. Parse h127, h128 BatchNorm results
   5. Parse h126-v4 DeepMind config result
   6. If any arch pilot >35 at 200M: submit 1B x3 on ALL clusters
+
+---
+**[2026-03-21 13:23 UTC]**
+
+
+=== SESSION: h113/h118/h123 parsed, h085-1B-s3 DISAPPOINTING, paradigm shift needed ===
+
+Triggered by: h113-pilot-s1v2 (fir 28723312) SUCCESS.
+
+RESULTS PARSED THIS SESSION:
+  h113-pilot-s1v2 (dual value + RND 0.005): avg_return=31.02 — NEUTRAL (+0.5% vs h040)
+    Dual value heads don't help. Confirmed by h114 at RND 0.01 coef too. CLOSED.
+  h118-pilot-s1 (hidden=1024): avg_return=20.02 — CATASTROPHIC (-35.1% vs h040)
+    Uniform model scaling is DEAD at this step budget. CLOSED.
+  h123-pilot-s1 (ac=2048+LN+RND 0.005): avg_return=30.46 — WORSE (-9.2% vs h096 at same RND)
+    Wide AC architecture HURTS with RND. Architecture changes are consistently failing.
+  h085-1B-s3: avg_return=37.38 — DISAPPOINTING
+    h085-1B mean (2 seeds): (41.38 + 37.38) / 2 = 39.38 — NOT BETTER THAN h040 (39.55±2.33)
+
+CRITICAL REALIZATION: RND 0.01 does NOT reliably improve at 1B.
+  h040 (no RND): 39.55 ± 2.33 (3 seeds: 40.14, 41.46, 37.06)
+  h096 (RND 0.005): 40.50 (2 seeds: 40.02, 40.98) — possibly marginal improvement
+  h085 (RND 0.01): 39.38 (2 seeds: 41.38, 37.38) — WITHIN NOISE
+  Seed variance (~4 pts) dominates all incremental effects.
+  We need improvements >> 4 points to reliably detect.
+
+ARCHITECTURE EXPERIMENTS SUMMARY (ALL FAILED):
+  h097 (hidden=768+RND): 19.46
+  h118 (hidden=1024): 20.02
+  h119 (hidden=1024+RND): 20.34
+  h122 (ac=2048+LN): RUNNING on narval
+  h123 (ac=2048+LN+RND 0.005): 30.46 (WORSE)
+  h124 (ac=2048+LN+residual): 23.82 (MUCH WORSE)
+  h125 (ac=2048+LN+RND 0.01): RUNNING on narval
+  h126 (DeepMind full): RUNNING on narval
+
+NEW IMPLEMENTATIONS:
+  1. Symlog two-hot value head (--use-symlog) — DreamerV3-style distributional value
+  2. Extra value-only epochs (--extra-value-epochs N) — simplified PPG
+  Both wired up in PPO-LSTM training loop.
+
+NEW HYPOTHESES SUBMITTED:
+  h129: RND 0.015 (rorqual pilot + fir 1B)
+  h130: PopArt + RND 0.01 (nibi pilot)
+  h131: RND 0.02 (rorqual pilot)
+  h132: lr=0.0003 + RND 0.01 (nibi pilot)
+  h133: Symlog + RND 0.01 (rorqual pilot) — NEW IMPLEMENTATION
+  h134: RND slow predictor lr=0.00005 (nibi pilot)
+  h135: RND 0.01 + kill bonus 0.5 + floor bonus 10.0 (rorqual pilot)
+  h136: RND 0.01 + kill bonus 0.3 + floor bonus 20.0 (nibi pilot)
+  h137: Extra value epochs 4 (simplified PPG, no RND) (rorqual pilot)
+  h138: RND 0.01 + extra value epochs 4 (nibi pilot)
+  h139: RND 0.005 + kill bonus 0.5 + floor bonus 10.0 (rorqual pilot) — MOST PROMISING COMBINATION
+
+STRATEGY SHIFT:
+  Individual modifications give at most +8.7% at pilot (h096 RND 0.005).
+  At 1B, this scales to ~+2.4% — within noise.
+  Need COMBINATIONS that synergize to get >15% at pilot → >11% at 1B.
+  Most promising: RND + floor bonus + extra value epochs (h139 tests two of three).
+
+CURRENTLY RUNNING (6):
+  fir: h127 (BN+RND, ~1h left), h128 (BN+wideAC+RND, ~1h left), h129-1B (RND 0.015, ~10h)
+  narval: h125 (wideAC+RND 0.01, ~2h), h122 (pure wideAC, ~2.5h), h126 (DeepMind, ~3h)
+
+CURRENTLY PENDING (12):
+  narval: h085-1B-s2v2 (last h085 seed)
+  rorqual: h129-pilot, h131, h133, h135, h137, h139
+  nibi: h130, h132, h134, h136, h138
+
+1B LEADERBOARD:
+  h096 (RND 0.005): 40.50 (2 seeds) — possibly BEST but within noise
+  h040 (baseline): 39.55 ± 2.33 (3 seeds)
+  h085 (RND 0.01): 39.38 (2 seeds, s2 pending)
+  30% TARGET: 44.04 — gap: 3.54 pts (8.8% from h096)
+
+NEXT SESSION PRIORITIES:
+  1. Parse h127/h128 BatchNorm results (fir, ~1h)
+  2. Parse h122/h125/h126 architecture results (narval, 2-3h)
+  3. Check if any rorqual/nibi pilots started and completed
+  4. Parse h129-1B-s1 (fir, ~10h) — RND 0.015 at 1B, critical scaling test
+  5. If h139 (RND 0.005 + floor bonus) shows >35 at pilot → SUBMIT 1B x3 IMMEDIATELY
+  6. If combination approaches show promise, submit 1B runs with best combo
+  7. Consider implementing full PPG if simplified version (h137/h138) works
+
