@@ -157,6 +157,8 @@ class PPO_Args:
     """if toggled, use separate value heads for extrinsic and intrinsic rewards (original RND paper approach)"""
     rnd_non_episodic: bool = False
     """if toggled, intrinsic value function ignores episode boundaries (non-episodic, per Burda et al. 2018). Requires --rnd-dual-value."""
+    rnd_update_proportion: float = 1.0
+    """proportion of experience used to train RND predictor (0.25 = only 25% per minibatch, per CleanRL reference). 1.0 = use all."""
     gamma_int: float = 0.99
     """discount factor for intrinsic reward stream (used with --rnd-dual-value). Shorter horizon than gamma since novelty is transient."""
     rle: bool = False

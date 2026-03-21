@@ -685,7 +685,13 @@ if __name__ == "__main__":
                     with torch.no_grad():
                         rnd_tgt = rnd_target(obs_flat_rnd_train)
                     rnd_pred = rnd_predictor(obs_flat_rnd_train)
-                    rnd_loss = (rnd_tgt - rnd_pred).pow(2).mean()
+                    rnd_loss_per_sample = (rnd_tgt - rnd_pred).pow(2).mean(dim=-1)
+                    # Optionally mask a proportion of samples (prevents predictor overfitting)
+                    if args.rnd_update_proportion < 1.0:
+                        mask = (torch.rand(len(rnd_loss_per_sample), device=device) < args.rnd_update_proportion).float()
+                        rnd_loss = (rnd_loss_per_sample * mask).sum() / mask.sum().clamp(min=1.0)
+                    else:
+                        rnd_loss = rnd_loss_per_sample.mean()
                     rnd_optimizer.zero_grad()
                     rnd_loss.backward()
                     rnd_optimizer.step()
