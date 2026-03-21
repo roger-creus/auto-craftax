@@ -5685,3 +5685,94 @@ NEXT SESSION PRIORITIES:
   6. If h108 (SIL+RND 0.005) beats h096 (33.54): submit 1B × 3 seeds
   7. If h096-1B hits ~43+: we're close to target, look for final +2-3% boost
   8. If nothing crosses 44: consider hierarchical RL or DreamerV3 paradigm shift
+
+---
+**[2026-03-21 00:19 UTC]**
+
+=== SESSION: h107/h102/h104 results + NovelD implementation + h110-h112 submitted ===
+
+Triggered by: h107-pilot-s1 (rorqual 8670016) SUCCESS.
+
+NEW PILOT RESULTS PARSED THIS SESSION (200M):
+  h107 (RND 0.007):        31.86 (+3.2% vs h040, -5.0% vs h096) — confirms 0.005 optimal
+  h102 (SIL 0.1 + RND 0.01): 23.58 (-23.6% vs h040) — CATASTROPHIC. SIL + RND interfere.
+  h104 (SIL 0.5 + RND 0.01): 30.78 (-0.3% vs h040) — neutral. Strong SIL prevents h102 failure but no synergy.
+
+RND COEFFICIENT RANKING (200M):
+  0.005: 33.54 (h096) — BEST
+  0.01:  32.46 (h085)
+  0.007: 31.86 (h107)
+  0.003: pending (h106, resubmitted rorqual 8678284)
+
+SIL + RND SUMMARY:
+  SIL 0.1 alone:    30.70 (neutral)
+  SIL 0.1 + RND 0.01: 23.58 (CATASTROPHIC — weak SIL destabilizes with RND)
+  SIL 0.5 + RND 0.01: 30.78 (neutral — strong SIL compensates but no synergy)
+  SIL 0.1 + RND 0.005: running (h108 on narval) — last hope for SIL+RND
+
+DISAPPEARED JOBS:
+  h096-1B-s1 (fir 28614738): crashed after ~2h (1B job needs ~12h). Resubmitted on nibi 10667579.
+  h106 (fir 28615020): no output CSV despite 2.4h runtime. Likely preempted. Resubmitted rorqual 8678284.
+  h109 (fir 28616004): OOM on 3g.40gb GPU. num_steps=256 + RND too memory-intensive. CLOSED.
+
+NEW CODE: Implemented NovelD exploration mode.
+  NovelD refines RND: bonus = max(rnd_error(s') - rnd_error(s), 0).
+  Rewards TRANSITIONS to novel states, not just being in novel states.
+  Added --rnd-noveld flag to ppo_lstm.py.
+  Motivation: standard RND may give bonus for staying in a novel area without progressing.
+  NovelD should better encourage floor progression in Craftax.
+
+NEW HYPOTHESES SUBMITTED:
+  h110 (NovelD 0.005): rorqual 8678195 — NovelD at optimal RND coef
+  h111 (RND 0.005→0.0): fir 28680076 — decay RND to zero over training
+  h112 (NovelD 0.01): nibi 10667767 — stronger NovelD coefficient
+
+CURRENTLY RUNNING (12 jobs):
+  1B runs (need ~10-20h more):
+    h085-1B-s1 (narval a100, started 22:25)
+    h085-1B-s3 (narval a100, started 22:25)
+    h096-1B-s2 (rorqual h100, started 21:09)
+    h096-1B-s3 (narval a100, started 22:45)
+    h096-1B-s1v2 (nibi, just submitted)
+  Pilots (need ~2-3h):
+    h103 (SIL+RND+ent, narval, started 22:28)
+    h105 (RND 0→0.02, narval, started 22:35)
+    h108 (SIL+RND 0.005, narval, started 22:45)
+    h106-v2 (RND 0.003, rorqual, just submitted)
+    h110 (NovelD 0.005, rorqual, just submitted)
+    h111 (RND decay, fir, just submitted)
+    h112 (NovelD 0.01, nibi, just submitted)
+
+UPDATED PILOT LEADERBOARD (200M, h040 base=30.86):
+  h096 RND 0.005:     33.54 (+8.7%) — BEST
+  h085 RND 0.01:      32.46 (+5.2%)
+  h107 RND 0.007:     31.86 (+3.2%)
+  h040 no exploration: 30.86 (baseline)
+  h104 SIL 0.5+RND:   30.78 (-0.3%)
+  h101 SIL 0.1:       30.70 (-0.5%)
+  h102 SIL 0.1+RND:   23.58 (-23.6%)
+
+1B LEADERBOARD (unchanged):
+  h040 GRU+128+grad:     mean=39.55±2.25 (n=3, FINAL) — CURRENT BEST
+  h070 curriculum k3-5:  s3=39.38 (n=1)
+  h044 GRU+ent+128+grad: mean=39.0 (n=3, FINAL)
+  30% TARGET: 44.04
+
+EXPECTED h096-1B: ~33.54 * 1.28 = ~42.9 (based on h040 pilot→1B scaling)
+
+STRATEGY:
+  Two paths to beat 44.04:
+  Path 1: h096-1B achieves ~42.9, then find +2.6% improvement via NovelD/h110
+  Path 2: NovelD or RND decay dramatically outperforms pure RND at 200M, then submit 1B
+
+CRITICAL INSIGHT: SIL does NOT synergize with RND at any coefficient combo tested.
+  The only working exploration method remains pure mild RND (0.005 optimal).
+  NovelD (h110) is the most promising remaining idea — theoretically motivated to better
+  encourage floor PROGRESSION vs just novel state VISITATION.
+
+NEXT SESSION PRIORITIES:
+  1. Parse pilot results: h103, h105, h108, h106-v2, h110, h111, h112 (~2-3h from now)
+  2. Parse h085-1B-s1/s3 results when complete (~10-20h from now)
+  3. If h110 (NovelD) beats h096 (33.54): submit 1B × 3 seeds immediately
+  4. Parse h096-1B results as seeds complete
+  5. If nothing crosses 44: consider DreamerV3 or SCALAR-style hierarchical RL

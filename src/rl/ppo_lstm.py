@@ -184,7 +184,8 @@ if __name__ == "__main__":
         # Running stats for normalizing intrinsic rewards
         rnd_reward_rms = RunningMeanStd((1,), device)
         rnd_anneal_str = f" -> {args.rnd_coef_end}" if args.rnd_coef_end >= 0 else ""
-        print(f"RND exploration enabled: coef={args.rnd_coef}{rnd_anneal_str}, output_dim={args.rnd_output_dim}, hidden_dim={args.rnd_hidden_dim}")
+        noveld_str = " (NovelD mode)" if args.rnd_noveld else ""
+        print(f"RND exploration enabled: coef={args.rnd_coef}{rnd_anneal_str}, output_dim={args.rnd_output_dim}, hidden_dim={args.rnd_hidden_dim}{noveld_str}")
 
     # RLE (Random Latent Exploration) — simpler than RND, conditions policy on random z
     rle_phi = None
@@ -256,6 +257,7 @@ if __name__ == "__main__":
         next_obs = obs_rms.normalize(next_obs, args.obs_clip)
     next_obs = augment_obs(next_obs)
     next_done = torch.zeros(args.num_envs).to(device)
+    prev_rnd_error = torch.zeros(args.num_envs, device=device) if (args.rnd and args.rnd_noveld) else None
     start_time = time.time()
 
     # stats tracking
@@ -381,9 +383,18 @@ if __name__ == "__main__":
                     rnd_target_feat = rnd_target(obs_flat)
                     rnd_pred_feat = rnd_predictor(obs_flat)
                     rnd_error = (rnd_target_feat - rnd_pred_feat).pow(2).mean(dim=-1)  # (num_envs,)
+                    # NovelD: bonus = max(error(s') - error(s), 0) — reward transitions to MORE novel states
+                    if prev_rnd_error is not None:
+                        noveld_raw = (rnd_error - prev_rnd_error).clamp(min=0.0)
+                        # Update prev_rnd_error: reset to 0 for done envs
+                        prev_rnd_error = rnd_error.clone()
+                        prev_rnd_error[next_done.bool()] = 0.0
+                        rnd_error_for_reward = noveld_raw
+                    else:
+                        rnd_error_for_reward = rnd_error
                     # Normalize by running stats
-                    rnd_reward_rms.update(rnd_error.unsqueeze(-1))
-                    rnd_intrinsic = rnd_error / (rnd_reward_rms.var.squeeze().sqrt() + 1e-8)
+                    rnd_reward_rms.update(rnd_error_for_reward.unsqueeze(-1))
+                    rnd_intrinsic = rnd_error_for_reward / (rnd_reward_rms.var.squeeze().sqrt() + 1e-8)
                     # Optionally mask: only apply RND in dungeon (floor > 0)
                     if args.rnd_dungeon_only:
                         env_state_rnd = envs.env._state.env_state

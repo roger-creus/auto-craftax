@@ -141,6 +141,8 @@ class PPO_Args:
     """if >= 0, anneal RND coefficient from rnd_coef to rnd_coef_end over training"""
     rnd_dungeon_only: bool = False
     """if toggled, only apply RND intrinsic reward when agent is in the dungeon (floor > 0)"""
+    rnd_noveld: bool = False
+    """if toggled, use NovelD: reward = max(rnd_error(s') - rnd_error(s), 0) instead of raw rnd_error(s')"""
     rle: bool = False
     """if toggled, use RLE (Random Latent Exploration) intrinsic bonus — policy conditioned on random z"""
     rle_coef: float = 0.01
