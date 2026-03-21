@@ -5951,3 +5951,91 @@ NEXT SESSION PRIORITIES:
   4. Parse h115-h117 results — ~3-4h from now
   5. Monitor h096-1B progress — ~18h until first seed completes
   6. Parse h085-1B-s2 (fir) — should complete in ~12h
+
+---
+**[2026-03-21 03:28 UTC]**
+
+=== SESSION: h110 parsed, all clusters saturated ===
+
+Triggered by: h110-pilot-s1 (rorqual 8678195) SUCCESS.
+
+NEW RESULT PARSED:
+  h110 (NovelD 0.005): avg_return=29.42 (-4.7% vs h040 30.86). CLOSED.
+  68% dungeon entry but 0% orc kills — same failure as h112 (NovelD 0.01).
+  NovelD penalizes staying in familiar combat states → agent avoids fighting.
+  NovelD is fundamentally incompatible with Craftax combat mechanics.
+
+NOVELD SUMMARY (DEAD):
+  h110 NovelD 0.005: 29.42 (-4.7%)
+  h112 NovelD 0.01:  29.22 (-5.3%)
+  NovelD bonus = max(rnd(s') - rnd(s), 0) rewards transitions to novel states.
+  In Craftax, combat states are repeated (same orc over multiple timesteps),
+  so NovelD gives ZERO bonus during combat, effectively punishing the agent
+  for engaging enemies. Both coefficients show same pattern: enters dungeon
+  but refuses to fight.
+
+UPDATED PILOT LEADERBOARD (200M, h040 base=30.86):
+  h096 RND 0.005:      33.54 (+8.7%) — BEST
+  h085 RND 0.01:       32.46 (+5.2%)
+  h107 RND 0.007:      31.86 (+3.2%)
+  h040 no exploration:  30.86 (baseline)
+  h110 NovelD 0.005:   29.42 (-4.7%)
+  h112 NovelD 0.01:    29.22 (-5.3%)
+  h105 RND up anneal:  27.74 (-10.1%)
+  h106 RND 0.003:      19.38 (-37.2%) CATASTROPHIC
+
+CURRENTLY RUNNING (8 jobs, all clusters saturated):
+  1B runs (critical, ~12-18h remaining):
+    h085-1B-s1 (narval, 5h/24h)
+    h085-1B-s2 (fir, 12h/24h) — should complete first (~12h from now)
+    h085-1B-s3 (narval, 5h/24h)
+    h096-1B-s1 (fir, 6h/24h)
+    h096-1B-s2 (rorqual, 6h/24h)
+    h096-1B-s3 (narval, 4.5h/24h)
+  Pilots:
+    h111-pilot-s1 (fir, 2.5h/4h) — finishes ~1.5h
+    h111-pilot-s1v2 (narval, 1h/4h) — finishes ~3h
+
+PENDING (6 jobs):
+  h114 (rorqual) — starts soon (h110 freed GPU)
+  h116 (narval) — starts 03:36 UTC
+  h113 (nibi) — waiting for GPU (MOST IMPORTANT pilot: dual value heads)
+  h117 (nibi) — waiting for GPU
+  h115 (fir) — starts when h111-pilot-s1 finishes (~1.5h)
+  h096-1B-s1v2 (nibi) — insurance duplicate, blocking h113/h117 on nibi
+
+NOTE: h096-1B-s1v2 on nibi is insurance for h096-1B-s1 on fir. Both are running.
+Consider cancelling nibi duplicate if h113 (dual value heads) results are needed urgently.
+
+EXPECTED TIMELINE:
+  ~1.5h: h111-pilot-s1 (fir) completes → h115 starts
+  ~3h: h111-pilot-s1v2 (narval) completes (first result)
+  ~4-5h: h114 (rorqual) completes → rorqual free for new pilot
+  ~6-7h: h115 (fir) completes → fir free for new pilot
+  ~7-8h: h116 (narval) completes
+  ~12h: h085-1B-s2 (fir) completes — FIRST 1B RESULT
+  ~18h: h096-1B-s1/s2 complete — CRITICAL RND 1B RESULTS
+  ~19h: h085-1B-s1/s3, h096-1B-s3 complete
+
+1B LEADERBOARD (unchanged):
+  h040 GRU+128+grad:     mean=39.55±2.25 (n=3, FINAL) — CURRENT BEST
+  30% TARGET: 44.04
+
+EXPECTED h096-1B: ~33.54 * 1.28 = ~42.9 (gap: ~2.6% to target)
+
+STRATEGY:
+  Wait for dual value heads (h113) + other pending pilots.
+  If h113 scores >34.5 at 200M: submit 1B x3 seeds immediately.
+  If h096-1B hits >44: TARGET REACHED.
+  If h096-1B ~ 42-43 and h113 shows improvement: run h113 at 1B.
+  If nothing crosses 44: explore ICM, disagreement-based exploration,
+  or consider model-based RL paradigm shift (DreamerV3/TWM).
+
+NEXT SESSION PRIORITIES:
+  1. Parse h111 pilot (first of h111/h111v2 to complete, ~1.5-3h)
+  2. Parse h114 dual value + higher coef result (~4-5h)
+  3. Parse h115 slow predictor result (~6-7h)
+  4. Parse h116 larger predictor result (~7-8h)
+  5. Parse h085-1B-s2 (fir) — FIRST 1B RND RESULT (~12h)
+  6. Parse h096-1B results as seeds complete (~18h)
+  7. Parse h113/h117 when nibi GPUs become available
