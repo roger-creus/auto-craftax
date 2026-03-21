@@ -6514,3 +6514,63 @@ If h128 shows strong pilot results (>35 at 200M), this would be our best 1B cand
   PPO-GRU + BN + ac=2048 + LN + RND 0.01
   Combines all three architecture improvements with our best exploration method.
 
+
+---
+**[2026-03-21 12:42 UTC]**
+
+=== SESSION: h124 result parsed + h126 resubmitted + h085-1B-s2 queued ===
+
+Triggered by: h124-pilot-s1 (narval 58075458) SUCCESS.
+
+h124 RESULT (ac=2048 + LN + ResidualMLP):
+  avg_return=23.82 POOR -22.8% vs h040 (30.86).
+  44% dungeon, 0% gnomish_mines. Residual MLP HURTS learning.
+  Wall 12261s (3.4h). CLOSED.
+  
+  Architecture results so far:
+    h124 (ac=2048+LN+residual): 23.82 FAILED — residual adds overhead, slows learning
+    h119 (hidden=1024): 20.34 FAILED — GRU too large
+    h097 (hidden=768+RND): 19.46 FAILED — same issue
+    STILL WAITING: h122 (pure wide AC), h123 (+RND 0.005), h125 (+RND 0.01),
+      h126 (DeepMind full), h127 (BN+RND), h128 (BN+wideAC+RND)
+
+h126-pilot-s1v3 DISAPPEARED — crashed on narval due to --lr flag (should be --learning-rate).
+  Resubmitted as h126-pilot-s1v4 (narval 58077628) with correct flag.
+  h126-pilot-s1 (rorqual) and h126-pilot-s1v2 (nibi) use correct flag but still pending.
+
+h085-1B-s2v2 SUBMITTED on narval (58077701) — replacement for lost s2 seed.
+  Will queue behind current jobs. Need 3 seeds for statistical validity.
+
+CURRENTLY ACTIVE (14 jobs):
+  narval: h085-1B-s3 (14h+, near done), h125 (55min), h122 (27min), 
+          h126-v4 (pending), h085-1B-s2v2 (pending)
+  fir: h113-v2 (1h48m), h118 (1h49m), h123 (1h48m), h127 (19min), h128 (18min)
+  rorqual: h122 (pending hours), h126 (pending hours)
+  nibi: h122-v2 (pending hours), h126-v2 (pending hours)
+
+1B LEADERBOARD:
+  h085-1B-s1 (RND 0.01):   41.38 — BEST (s3 running, s2 queued)
+  h096-1B mean (RND 0.005): 40.50 (2 seeds FINAL)
+  h040 (no RND):            39.55 ± 2.25 (3 seeds FINAL)
+  30% TARGET:               44.04
+  Gap: 44.04 - 41.38 = 2.66 (6.4% improvement needed)
+
+WEB SEARCH INSIGHTS:
+  SCALAR (LLM-guided planning) achieves 88.2% diamond collection on Craftax — 
+    but uses LLM for skill planning, very different approach.
+  AGaLiTe code is in JAX+Flax (our stack) — could replace GRU. Outperforms GTrXL
+    on Craftax-Symbolic with 40% cheaper inference. Worth investigating if arch pilots fail.
+
+STRATEGY:
+  Priority 1: Architecture pilots (h122-h128) — our best lever to close 6.4% gap.
+  Priority 2: h085-1B-s3 completion — get 2-seed mean for current best.
+  Priority 3: If arch pilots show >35 at 200M → submit 1B x3 immediately.
+  Backup: AGaLiTe architecture swap, RND 0.02 at 1B, or paradigm shift.
+
+NEXT SESSION:
+  1. Parse h085-1B-s3 result (should be done)
+  2. Parse h122, h123, h125 architecture results (most critical)
+  3. Parse h113-v2, h118 (expect bad, close them)
+  4. Parse h127, h128 BatchNorm results
+  5. Parse h126-v4 DeepMind config result
+  6. If any arch pilot >35 at 200M: submit 1B x3 on ALL clusters

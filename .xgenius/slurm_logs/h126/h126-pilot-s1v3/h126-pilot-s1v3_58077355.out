@@ -1,0 +1,28 @@
+slurmstepd: error: couldn't chdir to `/home/rogercc/'/scratch/rogercc/auto-craftax'': No such file or directory: going to /tmp instead
+slurmstepd: error: couldn't chdir to `/home/rogercc/'/scratch/rogercc/auto-craftax'': No such file or directory: going to /tmp instead
+sending incremental file list
+auto-craftax.sif
+
+sent 19,797,219,387 bytes  received 35 bytes  127,313,308.18 bytes/sec
+total size is 19,808,600,064  speedup is 1.00
+WARNING: Environment variable PYTHONPATH already has value [/src], will not forward new value [/src:/cvmfs/soft.computecanada.ca/custom/python/site-packages] from parent process environment
+Failed to import warp: No module named 'warp'
+Failed to import mujoco_warp: No module named 'warp'
+/opt/conda/envs/skill/lib/python3.10/site-packages/tyro/_parsers.py:353: UserWarning: The field `target-kl` is annotated with type `<class 'float'>`, but the default value `None` has type `<class 'NoneType'>`. We'll try to handle this gracefully, but it may cause unexpected behavior.
+  warnings.warn(message)
+╭─ Unrecognized options ───────────────────────────────────────────────────────╮
+│ Unrecognized options: --lr, 0.00045                                          │
+│ ──────────────────────────────────────────────────────────────────────────── │
+│ Perhaps you meant:                                                           │
+│     --anneal-lr, --no-anneal-lr                                              │
+│         Toggle learning rate annealing for policy and value networks         │
+│         (default: True)                                                      │
+│     --lr-schedule STR                                                        │
+│         learning rate schedule: 'linear' (default) or 'cosine' (default:     │
+│         linear)                                                              │
+│     --rnd-lr FLOAT                                                           │
+│         learning rate for RND predictor network (default: 0.0001)            │
+│ ──────────────────────────────────────────────────────────────────────────── │
+│ For full helptext, run src/rl/ppo_lstm.py --help                             │
+╰──────────────────────────────────────────────────────────────────────────────╯
+slurmstepd: error: run_script_as_user: couldn't change working dir to /home/rogercc/'/scratch/rogercc/auto-craftax': No such file or directory
