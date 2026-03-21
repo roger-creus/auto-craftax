@@ -553,13 +553,18 @@ if __name__ == "__main__":
                 lastgaelam_int = 0
                 for t in reversed(range(args.num_steps)):
                     if t == args.num_steps - 1:
-                        nextnonterminal = 1.0 - next_done.float()
                         nextvalues_int = next_value_int
                     else:
-                        nextnonterminal = 1.0 - dones[t + 1]
                         nextvalues_int = values_int[t + 1]
-                    delta_int = rewards_int[t] + args.gamma_int * nextvalues_int * nextnonterminal - values_int[t]
-                    advantages_int[t] = lastgaelam_int = delta_int + args.gamma_int * args.gae_lambda * nextnonterminal * lastgaelam_int
+                    # Non-episodic: intrinsic value ignores episode boundaries (Burda et al. 2018)
+                    if args.rnd_non_episodic:
+                        nnt_int = 1.0  # never reset
+                    elif t == args.num_steps - 1:
+                        nnt_int = 1.0 - next_done.float()
+                    else:
+                        nnt_int = 1.0 - dones[t + 1]
+                    delta_int = rewards_int[t] + args.gamma_int * nextvalues_int * nnt_int - values_int[t]
+                    advantages_int[t] = lastgaelam_int = delta_int + args.gamma_int * args.gae_lambda * nnt_int * lastgaelam_int
                 returns_int = advantages_int + values_int
                 # Combined advantage for policy gradient
                 advantages = advantages + rnd_coef_now * advantages_int

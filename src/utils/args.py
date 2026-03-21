@@ -155,6 +155,8 @@ class PPO_Args:
     """if toggled, whiten observations before feeding to RND networks (standard practice from Burda et al. 2018)"""
     rnd_dual_value: bool = False
     """if toggled, use separate value heads for extrinsic and intrinsic rewards (original RND paper approach)"""
+    rnd_non_episodic: bool = False
+    """if toggled, intrinsic value function ignores episode boundaries (non-episodic, per Burda et al. 2018). Requires --rnd-dual-value."""
     gamma_int: float = 0.99
     """discount factor for intrinsic reward stream (used with --rnd-dual-value). Shorter horizon than gamma since novelty is transient."""
     rle: bool = False
