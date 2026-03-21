@@ -6732,3 +6732,81 @@ NEXT SESSION PRIORITIES:
   4. Monitor h127-1B progress
   5. If h140/h141/h142 complete and show >36: submit 1B with best BN combo
 
+
+---
+**[2026-03-21 14:55 UTC]**
+
+=== SESSION: h128/h125/h122 results + BN combo pilots submitted ===
+
+Triggered by: h128-pilot-s1 (fir 28728471) SUCCESS.
+
+RESULTS PARSED THIS SESSION:
+  h128-pilot-s1 (BN+wideAC 2048+LN+RND 0.01): avg_return=27.42 POOR -21.3% vs h127 (34.86)
+    Wide AC STILL hurts even with BatchNorm. BN cannot overcome wide AC penalty.
+  h125-pilot-s1 (ac=2048+LN+RND 0.01): avg_return=26.78 TERRIBLE -13.2% vs h040 (30.86)
+    Wide AC + RND 0.01 performs even worse than h123 (RND 0.005). CLOSED.
+  h122-pilot-s1v3 (pure ac=2048+LN): avg_return=25.5 POOR -17.4% vs h040 (30.86)
+    Pure wide AC without any augmentation is conclusively worse. CLOSED.
+
+WIDE AC ARCHITECTURE RESULTS (ALL FAILED — COMPREHENSIVE):
+  h122 (pure ac=2048+LN): 25.5 (-17.4%)
+  h123 (ac=2048+LN+RND 0.005): 30.46 (-1.3%)
+  h124 (ac=2048+LN+residual): 23.82 (-22.8%)
+  h125 (ac=2048+LN+RND 0.01): 26.78 (-13.2%)
+  h128 (BN+ac=2048+LN+RND 0.01): 27.42 (-11.2%)
+  CONCLUSION: Wide AC is DEAD at 200M step budget. Don't try again.
+
+CRITICAL ISSUE: h127-1B-s2/s3 on narval were killed by scheduler immediately.
+  Jobs 58079511 and 58079513 showed as running but were Priority-killed within minutes.
+  Resubmitted: h127-1B-s2v2 (narval 58079734), h127-1B-s3v2 (narval 58079743)
+  Backup: h127-1B-s2v3 (rorqual 8752502), h127-1B-s3v3 (nibi 10703589)
+  h127-1B-s1 still pending on fir (behind h129-1B-s1).
+
+NEW EXPERIMENTS SUBMITTED (BN combinations):
+  h143 (narval 58079665 + rorqual 8751789): BN + ent anneal (0.03→0.005) + RND 0.01
+    MOST PROMISING combo — two proven +8-13% effects combined
+    If multiplicative: 30.86 * 1.087 * 1.129 ≈ 37.9 at pilot → 46-49 at 1B
+    NARVAL IS RUNNING (just started)
+  h144 (narval 58079667 + nibi 10703461): BN + RND 0.005
+    Tests if BN shifts optimal RND coefficient
+    NARVAL IS RUNNING (just started)
+  h145 (fir 28733257): BN + ent anneal + RND 0.005
+    Different RND level with BN + ent annealing
+    FIR IS RUNNING (just started)
+
+CANCELLED 8 non-BN pilots (obsolete):
+  rorqual: h133, h135, h137, h139 (superseded by BN experiments)
+  nibi: h132, h134, h136, h138 (superseded by BN experiments)
+
+CURRENTLY RUNNING (5):
+  narval: h126-pilot-s1v4 (2h elapsed, DeepMind config)
+  narval: h143-pilot-s1 (BN+ent+RND, just started)
+  narval: h144-pilot-s1 (BN+RND 0.005, just started)
+  fir: h145-pilot-s1 (BN+ent+RND 0.005, just started)
+  fir: h129-1B-s1 (RND 0.015, 1h41m elapsed)
+
+PENDING (10):
+  h127-1B: s1 (fir), s2 (narval+rorqual), s3 (narval+nibi)
+  h140 (BN+symlog, rorqual), h141 (BN+bonus, rorqual)
+  h142 (BN+PPG, nibi), h143-v2 (rorqual)
+
+1B LEADERBOARD:
+  h127 (BN+RND 0.01): PENDING — estimated 42-45 at 1B (POTENTIAL TARGET HIT)
+  h096 (RND 0.005): 40.50 (2 seeds)
+  h040 (no RND): 39.55 ± 2.33 (3 seeds)
+  h085 (RND 0.01): 39.38 (2 seeds)
+  30% TARGET: 44.04
+
+STRATEGY:
+  1. Wait for h143/h144/h145 BN combo pilots (~4-5h on narval, ~3h on fir)
+  2. If h143 (BN+ent+RND) > 37: submit 1B x3 immediately — this becomes new best
+  3. h127-1B is still our primary hope — 3 seeds submitted across all clusters
+  4. h126 pilot (DeepMind config) will finish in ~4h on narval — data point only
+  5. If h143 fails, consider: BN + different ent schedule, BN + num_envs=2048
+
+NEXT SESSION PRIORITIES:
+  1. Parse h143/h144/h145 BN combo pilot results — MOST IMPORTANT
+  2. Parse h126 DeepMind config result
+  3. Check h127-1B progress across all clusters
+  4. If h143 > 37 at 200M: submit h143-1B x3 seeds IMMEDIATELY
+  5. Check rorqual/nibi pending jobs
