@@ -6039,3 +6039,213 @@ NEXT SESSION PRIORITIES:
   5. Parse h085-1B-s2 (fir) — FIRST 1B RND RESULT (~12h)
   6. Parse h096-1B results as seeds complete (~18h)
   7. Parse h113/h117 when nibi GPUs become available
+
+---
+**[2026-03-21 08:35 UTC]**
+
+
+=== SESSION: h096-1B-s2 result + larger model pivot (h118-h120) ===
+
+Triggered by: h096-1B-s2 (rorqual 8670014) SUCCESS.
+
+CRITICAL RESULT — h096-1B-s2: avg_return=40.02 (+1.2% vs h040 39.55)
+  Expected ~42.9 based on pilot scaling (33.54 * 1.28x), but got only 40.02 (1.19x scaling).
+  RND exploration bonus helps at 200M but washes out by 1B — exploration is NOT the bottleneck.
+  Agent CAN achieve returns >50 on individual episodes but averages 40 (high variance = policy quality issue).
+
+ACHIEVEMENT BOTTLENECK ANALYSIS (h096-1B-s2):
+  96% dungeon entry, 76% orc_soldier, 68% orc_mage — strong floor 1 combat
+  BUT: only 24% make_iron_sword, 24% make_iron_pickaxe — fails to craft iron equipment
+  0% gnomish_mines (floor 2), 0% enchant, 0% diamond gear, 0% magic
+  CONCLUSION: Agent enters dungeon with stone gear, fights OK but can't progress to floor 2 because
+  it doesn't craft iron equipment. The crafting chain (mine iron → smelt → craft) has poor credit assignment.
+
+NEW PILOT RESULTS PARSED:
+  h111 (RND decay 0.005→0): fir=29.1, narval=21.1. Wildly inconsistent. CLOSED.
+  h116 (larger RND predictor): 32.78 (+6.2% vs h040). Still below h096. CLOSED.
+  h108 (SIL 0.1 + RND 0.005): 26.58 (-13.9%). SIL+RND bad at ALL combos. CLOSED.
+  h103 (SIL 0.5 + RND): 27.82 (-9.9%). CLOSED.
+  h115 (slow predictor): cancelled at 192M/200M, avg ~29. No improvement. CLOSED.
+
+LOST JOBS ON FIR:
+  h096-1B-s1 (fir 28614738): disappeared, no logs, no CSV. LOST.
+  h085-1B-s2 (fir 28562821): disappeared, no logs, no CSV. LOST.
+  Fir continues to be unreliable for 1B runs. Only use for short pilots.
+
+STRATEGIC PIVOT — FROM EXPLORATION TO MODEL CAPACITY:
+  After 96+ experiments, ALL exploration methods have been exhausted:
+    WORKS: Only mild RND (0.005 optimal) at 200M, +1.2% at 1B
+    FAILS: NovelD, SIL, RLE, curriculum+RND, ent anneal+RND, larger/slower predictors,
+           decay schedules, upward annealing, dungeon-only RND, everything else
+
+  NEW HYPOTHESIS: The bottleneck is MODEL CAPACITY, not exploration.
+  Evidence: DeepMind TWM paper (arxiv 2502.01591) showed that expanding model size + GRU
+  increased Craftax-classic MFRL from 46.91% to 55.49% — a HUGE jump from model scaling alone.
+  Our hidden_size=512 may be insufficient for learning the complex crafting + combat strategies
+  needed for deep floor progression.
+
+NEW EXPERIMENTS SUBMITTED:
+  h118 (hidden=1024, no RND): fir 28723309, 200M pilot, 6h walltime
+  h119 (hidden=1024 + RND 0.005): narval 58075140, 200M pilot, 6h walltime
+  h113-v2 (dual value heads, RND 0.005): fir 28723312, 200M pilot, 4h walltime
+  h120 (hidden=1024 + num_steps=256): TO SUBMIT on rorqual when h114 finishes (~10:39 UTC)
+
+NIBI STATUS: All nodes unavailable (UnavailableNodes:g[7,26,37]). h113, h117 stuck pending.
+  Cancelled h096-1B-s1v2 to free slot for h113 when nodes return.
+
+CURRENTLY RUNNING:
+  1B runs:
+    h085-1B-s1 (narval, ~10h/24h)
+    h085-1B-s3 (narval, ~10h/24h)
+    h096-1B-s3 (narval, ~10h/24h)
+  Pilots:
+    h114 (dual value + RND 0.01, rorqual, ~2h/4h — finishes ~10:39 UTC)
+    h118 (hidden=1024, fir, just submitted)
+    h119 (hidden=1024 + RND, narval, just submitted)
+    h113-v2 (dual value, fir, just submitted)
+
+UPDATED PILOT LEADERBOARD (200M, h040 base=30.86):
+  h096 RND 0.005:      33.54 (+8.7%) — BEST PILOT
+  h085 RND 0.01:       32.46 (+5.2%)
+  h116 larger pred:    32.78 (+6.2%)
+  h107 RND 0.007:      31.86 (+3.2%)
+  h040 no exploration:  30.86 (baseline)
+  h111 RND decay:      29.1 / 21.1 (inconsistent)
+  h110 NovelD 0.005:   29.42 (-4.7%)
+  h112 NovelD 0.01:    29.22 (-5.3%)
+  h115 slow pred:      ~29 (incomplete)
+  h108 SIL+RND:        26.58 (-13.9%)
+  h103 SIL0.5+RND:     27.82 (-9.9%)
+  h105 RND up anneal:  27.74 (-10.1%)
+  h106 RND 0.003:      19.38 (-37.2%) CATASTROPHIC
+
+1B LEADERBOARD:
+  h096-1B-s2:          40.02 (1 seed, s3 running)
+  h040:                39.55 ± 2.25 (3 seeds, FINAL)
+  h070 curriculum:     39.38 (1 seed)
+  h044 ent anneal:     39.0 (3 seeds, FINAL)
+  30% TARGET:          44.04
+
+NEXT SESSION PRIORITIES:
+  1. Check h114 (dual value + higher coef) result — rorqual, ~10:39 UTC
+  2. Submit h120 on rorqual when h114 finishes
+  3. Parse h118, h119, h113-v2 results when they complete (~6h from now)
+  4. Parse h085-1B-s1/s3, h096-1B-s3 when they complete (~14h from now)
+  5. If any hidden=1024 pilot shows >35 at 200M: submit 1B x3 seeds immediately
+  6. If nibi recovers: h113 original will start
+  7. Consider even larger model (2048) if 1024 shows promising direction
+
+
+---
+**[2026-03-21 09:03 UTC]**
+
+=== SESSION: h114 parsed + ARCHITECTURE BREAKTHROUGH from DeepMind paper + h122-h124 submitted ===
+
+Triggered by: h114-pilot-s1 (rorqual 8685495) SUCCESS.
+
+h114 RESULT (RND 0.01 + dual value heads):
+  avg_return=31.94, 68% dungeon, 40% orc_soldier, 16% orc_mage.
+  +3.5% vs h040 (30.86) but -1.6% vs h085 (32.46, same coef without dual heads).
+  CLOSED. Dual value heads HURT — adding separate V_int head creates optimization conflicts.
+
+DUAL VALUE HEADS SUMMARY (DEAD):
+  h114 (RND 0.01 + dual value): 31.94 (-1.6% vs h085 at same coef)
+  h113 (RND 0.005 + dual value): still pending on nibi + fir (likely also negative)
+
+=== CRITICAL ARCHITECTURE INSIGHT FROM DEEPMIND PAPER ===
+
+Read DeepMind TWM paper (arxiv 2502.01591) Appendix A in detail.
+Their MFRL baseline architecture for Craftax-classic:
+  - GRU hidden = 256 (SMALL)
+  - Actor/Critic FC layers = 2048 (HUGE) with 2 residual blocks
+  - LayerNorm in actor/critic
+  - LR = 0.00045, max_grad_norm = 0.5
+  - 8 minibatches, 4 epochs
+  - GAE standardization (zero mean, unit variance)
+  - Value target normalization (PopArt-like, alpha=0.95)
+  Result: 46.91% → 55.49% on Craftax-classic (MFRL only)
+
+OUR ARCHITECTURE:
+  - GRU hidden = 512 (moderate)
+  - Actor/Critic FC layers = 512 (SMALL — 4x SMALLER THAN DEEPMIND)
+  - No LayerNorm, no residual blocks
+  - LR = 0.0002, max_grad_norm = 1.0 (for h040)
+  - 8 minibatches, 4 epochs
+  - Advantage normalization per minibatch (similar to their GAE standardization)
+
+THE KEY GAP: Our post-RNN FC layers are 512-dim, DeepMind uses 2048 with residual blocks.
+This is a 4x difference in capacity. The GRU can stay moderate — it's the actor/critic
+processing that needs more capacity to learn complex crafting strategies.
+
+IMPLEMENTATION: Added --ac-layer-size flag to decouple post-RNN FC width from GRU hidden.
+  When set, the post-LSTM MLP and actor/critic heads use ac_layer_size independently.
+  ac_layer_size=2048 gives 3x total params (8M vs 2.4M) while keeping GRU at 512.
+
+NEW HYPOTHESES SUBMITTED:
+  h122 (ac=2048 + LN): rorqual 8708265, nibi 10695441 — pure width + normalization
+  h123 (ac=2048 + LN + RND 0.005): fir 28723792 — wide AC + optimal exploration
+  h124 (ac=2048 + LN + ResidualMLP): narval 58075458 — full DeepMind-style architecture
+
+CURRENTLY RUNNING/PENDING:
+  1B runs (critical, ~12-14h remaining):
+    h085-1B-s1 (narval, ~10.5h elapsed)
+    h085-1B-s3 (narval, ~10.5h elapsed)
+    h096-1B-s3 (narval, ~10h elapsed)
+  Larger model pilots (h118-h121):
+    h119 (1024+RND, narval, just started ~2h ago)
+    h120 (1024+256steps, rorqual, pending)
+    h121 (1024+cosine LR, rorqual, pending)
+    h118 (1024 no RND, fir, pending)
+    h113-v2 (dual value, fir, pending)
+  Wide AC pilots (h122-h124, NEW):
+    h122 (ac=2048+LN, rorqual, pending behind h120/h121)
+    h122-v2 (ac=2048+LN, nibi, pending UnavailableNodes)
+    h123 (ac=2048+LN+RND, fir, pending behind h118/h113-v2)
+    h124 (ac=2048+LN+residual, narval, pending behind h119)
+  Stuck on nibi:
+    h113 (dual value, nibi, UnavailableNodes)
+    h117 (update_epochs=2, nibi, UnavailableNodes)
+
+UPDATED PILOT LEADERBOARD (200M, h040 base=30.86):
+  h096 RND 0.005:       33.54 (+8.7%) — BEST PILOT
+  h085 RND 0.01:        32.46 (+5.2%)
+  h114 RND+dual value:  31.94 (+3.5%)
+  h107 RND 0.007:       31.86 (+3.2%)
+  h040 no exploration:   30.86 (baseline)
+
+1B LEADERBOARD:
+  h096-1B-s2:            40.02 (1 seed so far)
+  h040:                  39.55 ± 2.25 (3 seeds, FINAL) — CURRENT BEST
+  h044:                  39.0 (3 seeds, FINAL)
+  30% TARGET:            44.04
+
+EXPECTED TIMELINE:
+  ~4-5h: h119 (1024+RND) completes → h124 (wide AC+residual) starts on narval
+  ~8-10h: h120 (1024+256s) completes → h121 starts → h122 starts on rorqual
+  ~12-14h: h085-1B s1/s3, h096-1B-s3 complete on narval
+  ~16-20h: h118 starts/completes on fir → h123 starts
+
+STRATEGY:
+  TWO PARALLEL SCALING PATHS being tested:
+  Path A: Uniform model scaling (hidden_size=1024) — h118-h121
+  Path B: Targeted AC scaling (ac_layer_size=2048) — h122-h124 (NEW, higher priority)
+
+  Path B is more aligned with DeepMind's approach:
+    - Keep GRU moderate (512) for memory efficiency
+    - Make actor/critic MUCH wider (2048) for decision-making capacity
+    - Add LayerNorm + residual blocks for training stability
+
+  If h122 beats h040 at 200M by >10%: submit 1B x3 seeds IMMEDIATELY
+  If h122 shows improvement but <10%: combine with RND (h123 already tests this)
+  If h122 fails: the architecture gap might not matter for symbolic obs (vs image obs)
+
+  The h096-1B results (s3 running, ~12h) will tell us if RND at 1B can exceed 40.
+  Combined with wide AC results, we may have a path to 44+.
+
+NEXT SESSION PRIORITIES:
+  1. Parse h119 (1024+RND) pilot result (~4-5h from now)
+  2. Parse h120/h121 larger model pilots when they complete
+  3. Parse h122-h124 wide AC pilots when they complete (MOST IMPORTANT)
+  4. Parse h085-1B s1/s3 and h096-1B-s3 results (~12-14h from now)
+  5. If any wide AC pilot >35 at 200M: submit 1B x3 seeds on ALL clusters
+  6. If h096-1B mean with s3 > 41: target within reach with architecture improvement
