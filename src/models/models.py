@@ -123,6 +123,7 @@ class PPO_LSTM_Agent(nn.Module):
         use_gru: bool = False,
         extra_stats_dim: int = 0,
         separate_critic: bool = False,
+        ac_layer_size: int = -1,
     ):
         super().__init__()
 
@@ -130,6 +131,9 @@ class PPO_LSTM_Agent(nn.Module):
         self.use_popart = use_popart
         self.use_gru = use_gru
         self.separate_critic = separate_critic
+
+        # ac_layer_size controls post-RNN FC width independently from GRU hidden
+        ac_size = ac_layer_size if ac_layer_size > 0 else hidden_size
 
         if use_structured_obs:
             pre_layers = max(num_layers // 2 - 1, 1)
@@ -150,18 +154,21 @@ class PPO_LSTM_Agent(nn.Module):
             elif "weight" in name:
                 nn.init.orthogonal_(param, 1.0)
 
-        self.shared_post_lstm = mlp_class(hidden_size, hidden_size, num_layers // 2, activation_fn, use_ln=use_ln)
+        self.shared_post_lstm = mlp_class(hidden_size, ac_size, num_layers // 2, activation_fn, use_ln=use_ln)
 
         # Separate critic trunk: independent post-RNN MLP for value estimation
         if separate_critic:
-            self.critic_post_lstm = mlp_class(hidden_size, hidden_size, num_layers // 2, activation_fn, use_ln=use_ln)
+            self.critic_post_lstm = mlp_class(hidden_size, ac_size, num_layers // 2, activation_fn, use_ln=use_ln)
 
         if use_popart:
             from src.models.gtrxl import PopArtLayer
-            self.critic_head = PopArtLayer(hidden_size, 1)
+            self.critic_head = PopArtLayer(ac_size, 1)
         else:
-            self.critic_head = layer_init(nn.Linear(hidden_size, 1), std=1.0)
-        self.actor_head = layer_init(nn.Linear(hidden_size, n_actions), std=0.01)
+            self.critic_head = layer_init(nn.Linear(ac_size, 1), std=1.0)
+        self.actor_head = layer_init(nn.Linear(ac_size, n_actions), std=0.01)
+
+        # Store ac_size for head initialization
+        self._ac_size = ac_size
 
         # Intrinsic value head for dual-value RND (separate V_int from V_ext)
         self.critic_head_int = None
@@ -169,14 +176,16 @@ class PPO_LSTM_Agent(nn.Module):
         # Auxiliary prediction head (e.g., predict kill count on current floor)
         self.aux_head = None
 
-    def init_intrinsic_value_head(self, hidden_size):
+    def init_intrinsic_value_head(self, hidden_size=None):
         """Initialize separate value head for intrinsic rewards (dual-value RND)."""
-        self.critic_head_int = layer_init(nn.Linear(hidden_size, 1), std=1.0)
+        size = self._ac_size if hasattr(self, '_ac_size') else (hidden_size or 512)
+        self.critic_head_int = layer_init(nn.Linear(size, 1), std=1.0)
 
-    def init_aux_head(self, hidden_size, n_targets=1):
+    def init_aux_head(self, hidden_size=None, n_targets=1):
         """Initialize auxiliary prediction head for kill count / combat state prediction."""
+        size = self._ac_size if hasattr(self, '_ac_size') else (hidden_size or 512)
         self.aux_head = nn.Sequential(
-            nn.Linear(hidden_size, 64),
+            nn.Linear(size, 64),
             nn.ReLU(),
             nn.Linear(64, n_targets),
             nn.Sigmoid(),

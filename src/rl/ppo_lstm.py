@@ -140,17 +140,18 @@ if __name__ == "__main__":
         use_gru=args.use_gru,
         extra_stats_dim=extra_stats_dim,
         separate_critic=args.separate_critic,
+        ac_layer_size=args.ac_layer_size,
     ).to(device)
 
     # Auxiliary kill-count prediction head
     if args.aux_kill_pred:
-        agent.init_aux_head(args.hidden_size, n_targets=1)
+        agent.init_aux_head(n_targets=1)
         agent.aux_head = agent.aux_head.to(device)
         print(f"Auxiliary kill prediction enabled: coef={args.aux_kill_coef}")
 
     # Dual value head for RND (separate V_ext and V_int)
     if args.rnd and args.rnd_dual_value:
-        agent.init_intrinsic_value_head(args.hidden_size)
+        agent.init_intrinsic_value_head()
         agent.critic_head_int = agent.critic_head_int.to(device)
         print(f"RND dual value heads enabled: gamma_int={args.gamma_int}")
 
