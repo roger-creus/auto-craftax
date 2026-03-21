@@ -7474,3 +7474,94 @@ NEXT SESSION PRIORITIES:
   6. If any pilot > 36: submit 1B x3 IMMEDIATELY
   7. When h127-1B seeds complete: ANALYZE vs 30% target
   8. IF h127-1B disappoints (<44): consider training longer (1.5B) or larger model (h151 if works)
+
+---
+**[2026-03-21 22:51 UTC]**
+
+=== SESSION: Parse h153/h151 results, submit pilots on fir/rorqual/narval ===
+
+Triggered by: h153-pilot-s1 (narval 58083356) SUCCESS notification.
+
+PARSED NEW RESULTS:
+
+h153 (BN + obs whitening only):
+  avg_return=24.18 at 200M — POOR (-30.6% vs h127 34.86)
+  avg_length=6715.4 — extreme survival focus (second longest episodes ever)
+  76% dungeon entry but 0% orc kills. Agent survives forever but doesn't fight.
+  Obs whitening double-normalizes with BN → exploration signal distorted.
+  STATUS → CLOSED.
+
+h151 (BN + hidden_size=768):
+  TIMED OUT at 187M/200M steps (93.5% complete, 6h walltime exceeded).
+  avg_reward ~22 from running logs — TERRIBLE compared to h127 (34.86).
+  768-dim GRU runs at only 8742 SPS (vs ~25000 for 512-dim).
+  Larger model still under-trains even with BN. 
+  STATUS → CLOSED.
+
+BN COMBO SCORECARD UPDATE (all vs h127=34.86 at 200M):
+  h127: BN + RND 0.01 = 34.86 (BASELINE, BEST)
+  h128: + wide AC 2048 = 27.42 (-21.3%) ← DEAD
+  h143: + ent anneal 0.03→0.005 = 19.62 (-43.7%) ← DEAD
+  h144: + RND 0.005 = 32.82 (-5.9%) ← below optimal
+  h145: + ent anneal + RND 0.005 = 22.1 (-36.6%) ← DEAD
+  h147: + 3x LR = 18.58 (-46.7%) ← DEAD
+  h149: + reward shaping = 2.06 (-94.1%) ← DEAD
+  h150: + 2048 envs = OOM CRASH ← DEAD
+  h151: + hidden 768 = TIMED OUT ~22 (-36.9%) ← DEAD
+  h153: + obs whitening = 24.18 (-30.6%) ← DEAD
+  h154: + obs whitening + 25% pred = 18.90 (-45.8%) ← DEAD
+  ALL COMBOS BELOW h127. NOTHING IMPROVES ON BN+RND 0.01 AT PILOT LEVEL.
+
+JOB MANAGEMENT:
+  Cancelled stuck pending jobs:
+    h157-pilot-s1 (rorqual 8778395): moved to narval
+    h158-pilot-s1 (fir 28829021): moved to narval
+    h160-pilot-s1 (rorqual 8788627): moved to rorqual v3
+    h157/h158/h160/h161 nibi versions: nibi won't start until Mar 25!
+
+  Submitted new queued pilots:
+    h161-pilot-s1 (fir 28837374): BN + RND 0.015 — starts after h129 finishes
+    h160-pilot-s1v3 (rorqual 8790871): BN + RND 0.03 — starts after h127-1B-s3
+    h158-pilot-s1v3 (narval 58089410): BN + curriculum — starts after h155
+    h157-pilot-s1v3 (narval 58089411): BN + 256 steps — queue after h158
+
+CURRENTLY RUNNING:
+  1B runs:
+    h129-1B-s1 (fir): 9h36m elapsed — should finish in ~1-3h ← FIRST TO FINISH
+    h127-1B-s1v4 (fir): 6h36m elapsed — ~3-5h remaining
+    h127-1B-s2v3 (narval): 6h54m elapsed — ~5-7h remaining
+    h127-1B-s3v4 (rorqual): 6h59m elapsed — ~3-5h remaining
+    h085-1B-s2v3 (narval): 6h54m elapsed — ~5-7h remaining
+  Pilots:
+    h155-pilot-s1 (narval): 4h22m elapsed — should be close to done
+    h156-pilot-s1v2 (narval): 2h elapsed — ~2h remaining
+    h159-pilot-s1 (narval): 1h41m elapsed — ~2.3h remaining
+
+KEY INSIGHT:
+  EVERY attempt to improve h127 at pilot level has failed. 12 experiments, 0 improvements.
+  h127 (BN + RND 0.01) appears to be a LOCAL OPTIMUM at the 200M pilot level.
+  The hope now rests entirely on h127 scaling well to 1B:
+  - h085 (RND 0.01, no BN): pilot=32.46 → 1B=41.38 (ratio 1.275, +27.5%)
+  - h127 (BN + RND 0.01): pilot=34.86 → 1B predicted: 34.86 × 1.275 = 44.45
+  - 30% TARGET = 44.04
+  - If h127-1B mean ≥ 44: WE HIT THE TARGET!
+
+1B LEADERBOARD (unchanged):
+  h085 s1: 41.38 (BEST SINGLE SEED — RND 0.01 no BN)
+  h096 mean: 40.50 (2 seeds — RND 0.005 no BN)
+  h040 mean: 39.55 ± 2.33 (3 seeds — no RND no BN)
+  30% TARGET: 44.04
+
+NEXT SESSION PRIORITIES:
+  1. Parse h129-1B-s1 (RND 0.015 at 1B) — should be done FIRST
+  2. Parse h155 (full proper RND) — likely to fail
+  3. Parse h127-1B seeds as they complete — THIS IS THE CRITICAL MOMENT
+  4. Parse h156 (BN + ent=0.02), h159 (BN + RND 0.02)
+  5. Parse h161 (BN + RND 0.015), h160 (BN + RND 0.03)
+  6. Parse h158 (BN + curriculum), h157 (BN + 256 steps)
+  7. If h127-1B mean ≥ 44: CELEBRATE. Submit ablations.
+  8. If h127-1B mean < 44: need new directions. Consider:
+     - Phase-based training (different config for first/second half)
+     - AGaLiTe architecture (gated linear attention)
+     - Gradient accumulation for effective larger batch
+     - Cosine LR schedule
