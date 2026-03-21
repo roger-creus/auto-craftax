@@ -6658,3 +6658,77 @@ NEXT SESSION PRIORITIES:
   6. If combination approaches show promise, submit 1B runs with best combo
   7. Consider implementing full PPG if simplified version (h137/h138) works
 
+
+---
+**[2026-03-21 14:40 UTC]**
+
+
+=== SESSION: h127 BEST PILOT — BatchNorm is a breakthrough ===
+
+Triggered by: h127-pilot-s1 (fir 28728463) SUCCESS.
+
+h127 RESULT (BN + RND 0.01):
+  avg_return=34.86 at 200M — BEST PILOT RESULT EVER.
+  +12.9% vs h040 (30.86 baseline)
+  +7.4% vs h085 (32.46, RND 0.01 no BN)
+  +3.9% vs h096 (33.54, RND 0.005 no BN)
+  BatchNorm adds ~2.4 points on top of RND 0.01.
+  96% dungeon, 48% orc_soldier, 24% skeleton.
+  36% iron_sword, 16% iron_pickaxe, 12% diamond.
+  Wall 7799s (2.2h).
+
+NARVAL UPDATE:
+  h122/h125/h126 are ACTUALLY RUNNING on narval (DB had stale disappeared status):
+    h122 (ac=2048+LN, 2:27 elapsed) — pure wide AC test
+    h125 (ac=2048+LN+RND 0.01, 2:55 elapsed) — wide AC + exploration
+    h126 (DeepMind full config, 1:42 elapsed) — lr=0.00045 + grad=0.5
+  These will complete in ~3-4h.
+
+h127-1B SUBMITTED (3 seeds):
+  s1: fir 28732856 (queued behind h128, ~4h start)
+  s2: narval 58079511 (queued behind h122/h125/h126, ~3-4h start)
+  s3: narval 58079513 (same queue)
+  
+  Estimated 1B return for h127:
+    Conservative (1.21x scaling): 34.86 * 1.21 = 42.2
+    Optimistic (1.28x scaling): 34.86 * 1.28 = 44.6
+    Our 30% target: 44.04
+    h127 COULD HIT THE TARGET if scaling is favorable.
+
+NEW BN COMBINATION HYPOTHESES:
+  h140 (rorqual 8750952): BN + symlog + RND 0.01
+  h141 (rorqual 8750953): BN + RND 0.01 + floor bonus 10 + kill bonus 0.5
+  h142 (nibi 10703366): BN + RND 0.01 + extra value epochs 4 (simplified PPG)
+  Cancelled: h129-pilot (rorqual, redundant with 1B), h131 (RND 0.02), h130 (PopArt no BN)
+
+CURRENTLY RUNNING/PENDING:
+  fir: h128-pilot (BN+wideAC+RND, ~3.75h left), h129-1B (RND 0.015, ~22h left),
+       h127-1B-s1 (queued)
+  narval: h122 (~3h left), h125 (~3h left), h126 (~4h left),
+          h085-1B-s2v2 (pending), h127-1B-s2 (pending), h127-1B-s3 (pending)
+  rorqual: h133 (symlog), h135 (floor bonus), h137 (extra value), h139 (RND+bonus),
+           h140 (BN+symlog), h141 (BN+floor bonus) — all PENDING Priority
+  nibi: h132 (lr=0.0003), h134 (slow RND lr), h136 (floor bonus),
+        h138 (extra value), h142 (BN+extra value) — all PENDING Priority
+
+1B LEADERBOARD:
+  h127 (BN+RND 0.01): SUBMITTED — estimated 42-45 at 1B (POTENTIAL TARGET HIT)
+  h096 (RND 0.005): 40.50 (2 seeds)
+  h040 (no RND): 39.55 ± 2.33 (3 seeds)
+  h085 (RND 0.01): 39.38 (2 seeds)
+  30% TARGET: 44.04
+
+STRATEGY:
+  1. CRITICAL: Wait for h127-1B results — if any seed >44, we may have hit the target
+  2. h128 (BN+wideAC+RND) could be even better — watch for results in ~4h
+  3. If h128 pilot >35: also submit 1B x3 seeds
+  4. BN combos (h140-h142) explore synergies with symlog/bonus/PPG
+  5. Architecture pilots h122/h125/h126 on narval provide additional data points
+
+NEXT SESSION PRIORITIES:
+  1. Parse h128 (BN+wideAC+RND) — CRITICAL to decide if combined arch is better
+  2. Parse h122/h125/h126 narval architecture results
+  3. Check if any rorqual/nibi pilots started
+  4. Monitor h127-1B progress
+  5. If h140/h141/h142 complete and show >36: submit 1B with best BN combo
+
