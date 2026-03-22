@@ -7901,3 +7901,85 @@ No published method breaks past ~20% at 1B. Our 44.04 target exceeds published S
 DeepMind insight: low-dimensional GRU hidden state works better — memory should focus on info not in obs.
 PQN paper confirms BN on input is effective (we already use this).
 Intrinsic exploration generally hurts overall reward in standard settings — consistent with our mixed RND results.
+
+---
+**[2026-03-22 03:08 UTC]**
+
+=== SESSION: Parse h158, submit new pilots on nibi ===
+
+Triggered by: h158-pilot-s1v3 (narval 58089410) SUCCESS notification.
+
+PARSED h158 RESULT (BN + curriculum kills 3-5):
+  avg_return=18.94 at 200M — POOR (-45.7% vs h127 34.86).
+  8% dungeon only. Curriculum + BN is catastrophic.
+  STATUS → CLOSED. 16th FAILED BN modification (16/16 worse than h127).
+
+BN COMBO SCORECARD FINAL: 16/16 modifications BELOW base h127 (34.86 at 200M).
+  BN is a confirmed dead end for further improvement at pilot level.
+
+h127-1B-s1v4 LIVE CHECK (fir, 32G, 10.8h elapsed):
+  At 626M steps: avg_reward=23.0 — TERRIBLE.
+  Trajectory: 50M=17.7, 100=18.6, 200=25.2, 300=21.9, 400=25.2, 500=26.3, 600=23.0
+  Oscillating wildly with no upward trend. Much worse than seed 3 at same point (~31).
+  Will likely OOM soon (same 32G limit as s3v4 which OOM'd at 643M).
+  BN at 1B has HIGH seed variance: s1≈23@626M, s3≈31@600M.
+
+CURRENT 1B LEADERBOARD (unchanged):
+  h085 s1: 41.38 (BEST SINGLE SEED — RND 0.01 no BN)
+  h040 mean: 39.55 ± 2.26 (3 seeds — s1=40.14, s2=41.46, s3=37.06)
+  h085 mean: 39.38 (2 seeds — s1=41.38, s3=37.38, s2=RUNNING)
+  h096 mean: 40.50 (2 seeds — RND 0.005 no BN)
+  30% TARGET: 44.04 (gap: +4.49 points over current best mean)
+
+KEY INSIGHT: RND 0.01 does NOT consistently improve over no-RND at 1B.
+  h040 no RND 3-seed: 39.55 ± 2.26
+  h085 RND 0.01 2-seed: 39.38 (s2 still running)
+  RND may increase variance more than mean. Seed noise dominates the signal.
+
+NEW PILOTS SUBMITTED ON NIBI (all with h085 config = RND 0.01 base):
+  h169 (nibi 10741997): RND + num_steps=256 (no BN). Longer rollouts for credit assignment.
+  h170 (nibi 10741998): RND + vf_coef=1.0. Stronger value function with noisy RND reward.
+  h171 (nibi 10742002): RND + GELU activation. Smoother gradients than tanh.
+  h172 (nibi 10742006): RND + PPG (extra_value_epochs=2) + cosine LR. Triple combo.
+
+WEB SEARCH FINDINGS:
+  - SCALAR (arxiv 2603.09036): Uses LLM-guided skill decomposition on Craftax. 88.2% diamond, 9.1% gnomish mines. Fundamentally different approach (LLM planning + RL grounding).
+  - AGaLiTe: Outperforms GTrXL on Craftax but no exact return numbers published.
+  - DeepMind MBRL: 67.42% on Craftax-Classic (different env), model-based approach.
+  - No published pure model-free method breaks past ~41.4 mean return at 1B on Craftax-Symbolic.
+  - Our 39.55 mean already matches ~95% of published model-free SOTA.
+
+STRATEGIC ASSESSMENT:
+  The 44.04 target (30% over PPO-LSTM 33.88) exceeds ALL published model-free results.
+  We are essentially at the frontier. Remaining approach:
+  1. Wait for h127-1B 3-seed results to determine if BN helps at scale
+  2. Wait for h085-1B-s2 to complete 3-seed h085 evaluation
+  3. New pilots (h169-h172) test unexplored combinations
+  4. PPG pilots (h166-h168) test value function improvements
+  5. If nothing breaks 44: we may need to pivot to model-based or skill-based approaches
+
+CURRENTLY RUNNING/PENDING (11 jobs):
+  1B runs (CRITICAL):
+    h127-1B-s2v3 (narval, 11h): FIRST VALID h127-1B result, ~2-5h to finish
+    h085-1B-s2v3 (narval, 11h): Completes h085 3-seed eval, ~2-5h
+    h127-1B-s3v5 (narval, 2.5h): seed 3 redo with 48G, ~10h
+    h127-1B-s1v4 (fir, 10.8h, 32G): seed 1, terrible avg=23 at 626M, about to OOM
+  Pilots running:
+    h162 (narval, 2.6h): BN + cosine LR
+  Pilots pending narval:
+    h166 (PPG), h167 (PPG+RND), h168 (separate critic+RND) — start ~09:00
+  Pilots pending rorqual:
+    h127-1B-s1v5 (48G backup), h165 (RND+cosine LR) — queue stuck
+  Pilots pending fir:
+    h127-1B-s1v6 (48G backup) — waiting for s1v4 to die
+  Pilots on nibi:
+    h169, h170, h171, h172 — just submitted
+
+NEXT SESSION PRIORITIES:
+  1. Parse h127-1B-s2v3 (FIRST VALID h127-1B result) — expected in 2-5h
+  2. Parse h085-1B-s2v3 (completes h085 3-seed) — expected in 2-5h
+  3. Parse h162 pilot (BN+cosine LR) — expected in ~1.5h
+  4. Detect h127-1B-s1v4 OOM on fir
+  5. Parse nibi pilots: h169, h170, h171, h172
+  6. Parse narval pilots: h166, h167, h168
+  7. Once h127-1B data is in: DEFINITIVE EVALUATION of BN at scale
