@@ -8215,3 +8215,93 @@ NEXT SESSION PRIORITIES:
   4. Parse PPG pilots (h166-h168) when narval maintenance clears
   5. h162-1B results — HIGH RISK, BN may fail at 1B again
   6. Consider radical approaches if LR schedules don't break 44: schedule-free optimizer, Muon, fundamentally new architecture
+
+---
+**[2026-03-22 07:02 UTC]**
+
+=== SESSION: h085-1B-s2v3 = 37.38 — RND 0.01 CONFIRMED NO HELP AT 1B ===
+
+Triggered by: h085-1B-s2v3 (narval 58080802) SUCCESS notification.
+
+PARSED h085-1B-s2v3 (RND 0.01 seed 2, narval A100 48G, 14.8h):
+  avg_return=37.38 at 1B steps. 88% dungeon 64% orc_soldier 52% orc_mage.
+  28% diamond 88% find_bow 80% fire_bow. 0% gnomish_mines.
+  Wall 53373s (14.8h).
+
+h085 FINAL RESULT — RND 0.01 DOES NOT HELP AT 1B:
+  h085 3-seed: s1=41.38, s2=37.38, s3=37.38 → mean=38.71 ± 2.31
+  h040 3-seed: s1=40.14, s2=41.46, s3=37.06 → mean=39.55 ± 2.33
+  h085 mean (38.71) is BELOW h040 mean (39.55). RND 0.01 gives -2.1% at 1B.
+  High seed variance in both (±2.3 pts). Pilot gains (+5.2%) do NOT transfer to 1B.
+  h085 → CLOSED.
+
+COMBINED 1B RND RESULTS:
+  h085 (RND 0.01): 38.71 mean — -2.1% vs h040
+  h096 (RND 0.005): 40.50 mean (2 seeds only) — +2.4% vs h040
+  RND 0.005 may still help slightly, but 2-seed mean is unreliable.
+  Overall: RND is NOT a reliable improvement at 1B scale.
+
+CANCELLED BN-DEPENDENT PILOTS (BN dead at 1B):
+  h173 (BN+cosine+PPG): narval 58096319 + fir 28897104 → CANCELLED
+  h175 (BN+cosine+warmup): rorqual 8814708 → CANCELLED
+  h177 (BN+WSD): nibi 10744684 → CANCELLED
+
+SUBMITTED NEW PILOTS (non-BN, focused on LR schedules + architecture):
+  h174-pilot-s1v3 (narval 58099923): h040 + cosine LR. CRITICAL ABLATION — isolates cosine effect without BN/RND.
+  h181-pilot-s1 (rorqual 8826377): h040 + cosine LR + PPG (extra_value_epochs=2). Tests PPG+cosine stack.
+  h182-pilot-s1 (fir 28904586): h040 + RAdam optimizer. Tests alternative optimizer.
+  h183-pilot-s1 (nibi 10747278): h040 + cosine LR + separate critic. Tests decoupled architecture.
+
+UPDATED 1B LEADERBOARD:
+  h096 mean: 40.50 (2 seeds — RND 0.005, CURRENT BEST but only 2 seeds)
+  h040 mean: 39.55 ± 2.33 (3 seeds — no RND, VALIDATED BEST)
+  h085 mean: 38.71 ± 2.31 (3 seeds — RND 0.01, CLOSED)
+  h127 (BN+RND): 31.06 (1 seed, DEAD)
+  30% TARGET: 44.04 (gap: +3.54 over best 2-seed mean, +4.49 over validated 3-seed mean)
+
+CURRENTLY RUNNING (1 job):
+  h127-1B-s3v5 (narval 58090899, 6.5h elapsed): BN seed 3, final data point
+
+PENDING PIPELINE (26 jobs):
+  CRITICAL PILOTS (LR schedule ablations):
+    h174 (cosine on h040): narval, fir, nibi — HIGHEST PRIORITY
+    h165 (cosine + RND 0.01 no BN): rorqual, narval, fir
+    h176 (WSD on h040): fir
+    h178 (cosine + RND 0.005): rorqual, fir
+    h179 (WSD + RND 0.01): rorqual
+    h180 (WSD + RND 0.005): fir
+  NEW PILOTS:
+    h181 (cosine + PPG): rorqual
+    h182 (RAdam optimizer): fir
+    h183 (cosine + separate critic): nibi
+  HIGH-RISK 1B (BN+cosine — may fail like h127):
+    h162-1B-s1/s2/s3 (narval) + h162-1B-s1v2 (fir)
+  PPG/CRITIC PILOTS:
+    h166 (PPG), h167 (PPG+RND), h168 (separate critic): narval + fir
+  NIBI (Mar 25):
+    h169-h172, h174-s1v2
+
+STRATEGIC ASSESSMENT:
+  We are at the model-free Craftax-Symbolic frontier (~40 mean return at 1B).
+  Both RND and BN fail to improve over baseline at 1B scale.
+  The 44.04 target requires ~11% improvement over validated best.
+  
+  Most promising unexplored axis: LR SCHEDULES.
+  Cosine gave +4.8% on BN pilot. If it gives similar on non-BN:
+    h040 (39.55) * 1.048 = ~41.4 (matches published GTrXL SOTA but still below 44)
+  Need to stack: cosine LR + PPG + ??? to reach 44.
+  
+  RADICAL OPTIONS if nothing works:
+    1. Schedule-free Adam (auto-adapting LR)
+    2. Muon optimizer (designed for RL)
+    3. Model-based (DreamerV3-style)
+    4. Hierarchical RL (skill decomposition)
+    5. Auxiliary tasks (next-obs prediction, reward prediction)
+
+NEXT SESSION PRIORITIES:
+  1. Parse h127-1B-s3v5 (final BN data point) — ~6-8h
+  2. Parse h174/h165 pilots (cosine LR effect) — most important new data
+  3. Parse h162-1B results (BN+cosine at 1B) — high risk
+  4. Parse h166-h168 pilots (PPG/critic) when narval maintenance clears
+  5. Parse h181/h182/h183 pilots
+  6. If cosine helps: submit 1B runs immediately
