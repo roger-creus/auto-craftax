@@ -8061,3 +8061,76 @@ NEXT SESSION PRIORITIES:
   5. Parse h173 pilot (cosine+BN+PPG) — expected ~10-14h
   6. Monitor h127-1B-s3v5 (narval, ~10h remaining)
   7. h162-1B results: expected ~20-30h from now
+
+---
+**[2026-03-22 05:01 UTC]**
+
+=== SESSION: Parse h127-1B-s1v4 (OOM), submit new LR schedule pilots ===
+
+Triggered by: h127-1B-s1v4 (fir 28743204) SUCCESS notification.
+
+PARSED h127-1B-s1v4 (BN+RND seed 1 on fir, 32G):
+  OOM killed at 626M/1B steps (62.7%). avg_return=23.34 at OOM.
+  Trajectory: 50M=17.8, 100M=18.7, 200M=25.5, 300M=22.0, 400M=25.2, 500M=27.0, 600M=22.5, 626M(OOM)=23.3
+  Oscillating 22-27 with NO upward trend. TERRIBLE seed 1 performance.
+  Confirmed: BN at 1B with 32G RAM is unreliable — oscillating, unstable.
+
+CRITICAL DISCOVERY: h127-1B-s1 and h127-1B-s1v3 (fir) BOTH crashed immediately with AttributeError 'use_symlog'.
+  h127-1B-s2 (narval) also likely crashed (no logs/CSV found despite 'completed' status).
+  These runs never trained at all! The 'completed' status was misleading.
+  Only VALID h127-1B data: s3v4 partial OOM at 643M (avg=30.3) and s1v4 partial OOM at 626M (avg=23.3).
+
+h127-1B STATUS: NO complete 1B seed results exist yet!
+  Valid running: s2v3 (narval, 13h elapsed, 48G), s3v5 (narval, 4.4h elapsed, 48G)
+  Pending: s1v5 (rorqual 48G), s1v6 (fir 48G)
+  s2v3 should complete in ~1-3h — FIRST VALID h127-1B result.
+
+NARVAL QUEUE BLOCKAGE: h166-h168, h165v2, h173 pilots all stuck 'ReqNodeNotAvail' — maintenance.
+  Submitted duplicates on fir: h165-s1v3, h173-s1v2, h166-s1v2 (jobs 28897103-28897105).
+
+NEW CODE CHANGES:
+  Added lr_warmup_frac to PPO_Args — linear warmup from 0 to learning_rate.
+  Added 'wsd' LR schedule (Warmup-Stable-Decay): constant LR for first 80%, cosine decay for last 20%.
+  Based on 2025 research showing WSD outperforms cosine for long training runs.
+  Synced to all clusters.
+
+NEW HYPOTHESES SUBMITTED:
+  h174-pilot-s1 (fir 28897157): h040 + cosine LR (no BN/RND). Critical ablation.
+  h174-pilot-s1v2 (nibi 10744597): Same, redundancy.
+  h175-pilot-s1 (rorqual 8814708): BN + RND + cosine + warmup 3%. Tests warmup helping BN stabilize.
+  h176-pilot-s1 (fir 28897444): h040 + WSD schedule. Tests constant-LR-then-decay.
+  h177-pilot-s1 (nibi 10744684): BN + RND + WSD. Tests WSD with BN.
+
+CURRENT 1B LEADERBOARD (unchanged):
+  h085 s1: 41.38 (BEST SINGLE SEED — RND 0.01 no BN)
+  h096 mean: 40.50 (2 seeds — RND 0.005 no BN)
+  h040 mean: 39.55 ± 2.33 (3 seeds — no RND no BN)
+  h085 mean: 39.38 (2 seeds — s1=41.38, s3=37.38, s2=RUNNING 13h)
+  h127 (BN+RND): NO VALID 1B DATA (all crashed/OOM'd)
+  30% TARGET: 44.04
+
+RUNNING (3 jobs on narval):
+  h127-1B-s2v3 (58080786): 13h elapsed, FIRST VALID h127-1B result expected ~1-3h
+  h085-1B-s2v3 (58080802): 13h elapsed, completes h085 3-seed eval ~1-3h
+  h127-1B-s3v5 (58090899): 4.4h elapsed, seed 3 redo ~10h
+
+PENDING (21 jobs):
+  narval: h162-1B-s1/s2/s3 (CRITICAL), h166-h168 pilots, h165v2, h173
+  rorqual: h127-1B-s1v5, h165-pilot, h175-pilot
+  fir: h127-1B-s1v6, h162-1B-s1v2, h165-s1v3, h173-s1v2, h166-s1v2, h174-pilot, h176-pilot
+  nibi: h169-h172, h174-s1v2, h177-pilot
+
+STRATEGIC ASSESSMENT:
+  LR schedule is now the primary research axis. Cosine helped BN (+4.8%), WSD may help more.
+  If h174 (cosine on h040) beats h040 pilot (30.86): cosine is a UNIVERSAL improvement.
+  If h176 (WSD on h040) beats h174: WSD is even better for long runs.
+  h162-1B (BN+cosine) is the most likely path to 44+ but depends on BN scaling.
+  h165 (cosine without BN) may be a safer route if BN continues to fail at scale.
+
+NEXT SESSION PRIORITIES:
+  1. Parse h127-1B-s2v3 (FIRST VALID h127-1B result) — expected ~1-3h
+  2. Parse h085-1B-s2v3 (completes h085 3-seed) — expected ~1-3h
+  3. Parse h174/h176 pilots (cosine/WSD on h040) — expected ~3h
+  4. Parse h165/h173 pilots when available
+  5. If h174 cosine beats h040: submit h174-1B immediately
+  6. Monitor h162-1B jobs once they start on narval

@@ -286,12 +286,31 @@ if __name__ == "__main__":
         # annealing the rate if instructed to do so.
         if args.anneal_lr:
             progress = (iteration - 1.0) / args.num_iterations
-            if args.lr_schedule == "cosine":
+            if args.lr_warmup_frac > 0 and progress < args.lr_warmup_frac:
+                # Linear warmup from 0 to learning_rate
+                lrnow = args.learning_rate * (progress / args.lr_warmup_frac)
+            elif args.lr_schedule == "wsd":
+                # Warmup-Stable-Decay: constant LR until lr_decay_start, then cosine decay
                 import math
-                frac = 0.5 * (1.0 + math.cos(math.pi * progress))
+                decay_start = getattr(args, 'lr_decay_start', 0.8)
+                if progress < decay_start:
+                    lrnow = args.learning_rate  # stable phase
+                else:
+                    decay_progress = (progress - decay_start) / (1.0 - decay_start)
+                    frac = 0.5 * (1.0 + math.cos(math.pi * decay_progress))
+                    lrnow = frac * args.learning_rate
             else:
-                frac = 1.0 - progress
-            lrnow = frac * args.learning_rate
+                # Decay phase: remap progress to [0, 1] after warmup
+                if args.lr_warmup_frac > 0:
+                    decay_progress = (progress - args.lr_warmup_frac) / (1.0 - args.lr_warmup_frac)
+                else:
+                    decay_progress = progress
+                if args.lr_schedule == "cosine":
+                    import math
+                    frac = 0.5 * (1.0 + math.cos(math.pi * decay_progress))
+                else:
+                    frac = 1.0 - decay_progress
+                lrnow = frac * args.learning_rate
             optimizer.param_groups[0]["lr"] = lrnow
 
         # entropy coefficient annealing

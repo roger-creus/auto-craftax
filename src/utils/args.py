@@ -92,7 +92,11 @@ class PPO_Args:
     ent_coef_end: float = -1.0
     """final entropy coefficient (-1 = no annealing, use ent_coef throughout)"""
     lr_schedule: str = "linear"
-    """learning rate schedule: 'linear' (default) or 'cosine'"""
+    """learning rate schedule: 'linear' (default), 'cosine', or 'wsd' (warmup-stable-decay)"""
+    lr_warmup_frac: float = 0.0
+    """fraction of training for LR warmup (0 = no warmup). LR linearly increases from 0 to learning_rate over this fraction."""
+    lr_decay_start: float = 0.8
+    """for 'wsd' schedule: fraction of training where cosine decay begins (default 0.8 = constant LR for 80%, decay for 20%)"""
     optimizer: str = "adam"
     """the optimizer to use"""
     go_explore: bool = False
