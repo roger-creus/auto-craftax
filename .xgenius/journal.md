@@ -7983,3 +7983,81 @@ NEXT SESSION PRIORITIES:
   5. Parse nibi pilots: h169, h170, h171, h172
   6. Parse narval pilots: h166, h167, h168
   7. Once h127-1B data is in: DEFINITIVE EVALUATION of BN at scale
+
+---
+**[2026-03-22 03:26 UTC]**
+
+=== SESSION: Parse h162 result (BN+cosine LR = NEW BEST PILOT), submit 1B runs ===
+
+Triggered by: h162-pilot-s1 (narval 58090054) SUCCESS notification.
+
+PARSED h162 RESULT (BN + RND 0.01 + cosine LR):
+  avg_return=36.54 at 200M — NEW BEST PILOT! +4.8% vs h127 (34.86).
+  FIRST BN modification to beat base h127 (17th attempt, 16 previous failures).
+  96% dungeon, 60% orc_soldier, 20% orc_mage, 36% iron_sword, 28% iron_pickaxe.
+  8% diamond, 96% find_bow, 92% fire_bow.
+  Wall 10304s (2.9h) on narval A100.
+
+WHY COSINE LR WORKS WITH BN:
+  Cosine LR keeps learning rate higher for longer (slow decay in middle).
+  With BN, linear LR decay may drop too fast, killing plasticity prematurely.
+  Cosine provides gentler transition — BN stats adapt better with gradual LR change.
+  All 16 previous BN mods failed because they changed exploration/capacity, not training dynamics.
+  Cosine LR is the first change to the OPTIMIZATION DYNAMICS rather than architecture/exploration.
+
+UPDATED BN COMBO SCORECARD:
+  h162: BN + RND 0.01 + cosine LR = 36.54 (+4.8% vs h127) ← NEW BEST ← NEW
+  h127: BN + RND 0.01 (linear LR) = 34.86 (PREVIOUS BEST)
+  All other 16 BN mods: BELOW h127
+
+SUBMITTED 1B RUNS:
+  h162-1B-s1 (narval 58096296, 48G): BN+RND+cosine seed 1
+  h162-1B-s2 (narval 58096297, 48G): BN+RND+cosine seed 2
+  h162-1B-s3 (narval 58096298, 48G): BN+RND+cosine seed 3
+  h162-1B-s1v2 (fir 28888385, 48G): Backup seed 1 on fir
+
+SUBMITTED NEW PILOTS:
+  h165-pilot-s1v2 (narval 58096300): RND + cosine LR (NO BN) — isolates cosine LR effect
+  h173-pilot-s1 (narval 58096319): BN + RND + cosine LR + PPG — combines best pilot with PPG
+
+CURRENTLY RUNNING (3 jobs):
+  h127-1B-s2v3 (narval 58080786): 11.5h elapsed — should finish in 1-3h
+  h085-1B-s2v3 (narval 58080802): 11.5h elapsed — should finish in 1-3h
+  h127-1B-s3v5 (narval 58090899): 3h elapsed — ~10h to go
+  h127-1B-s1v4 (fir 28743204): 11h elapsed, 32G — terrible perf (23 at 626M), will OOM soon
+
+PENDING (14 jobs):
+  narval: h166/h167/h168 (PPG+critic pilots, start ~05:32), h162-1B-s1/s2/s3, h165-v2, h173
+  rorqual: h127-1B-s1v5 (48G), h165-pilot-s1 (stuck)
+  fir: h127-1B-s1v6 (48G), h162-1B-s1v2 (48G)
+  nibi: h169/h170/h171/h172 (start March 25)
+
+1B LEADERBOARD (unchanged until new 1B results):
+  h085 s1: 41.38 (BEST SINGLE SEED — RND 0.01 no BN)
+  h096 mean: 40.50 (2 seeds — RND 0.005 no BN)
+  h040 mean: 39.55 ± 2.33 (3 seeds — no RND no BN)
+  30% TARGET: 44.04
+  h127 (BN+RND linear): UNKNOWN (s1=23@626M bad, s2 running, s3 running)
+  h162 (BN+RND cosine): UNKNOWN (1B just submitted)
+
+STRATEGIC ASSESSMENT:
+  h162 is the most promising lead we have. Cosine LR fixes the optimization dynamics issue with BN.
+  If h162 scales like h127 pilot→1B: 36.54 * (41.38/34.86) = 43.35 projected mean (still below 44.04).
+  BUT cosine LR may IMPROVE 1B scaling since it keeps LR higher longer — could do better than linear projection.
+  If h127-1B shows BN helps at scale + cosine further improves: 44+ is achievable.
+  
+  Key questions for next sessions:
+  1. Does h127-1B-s2v3 show BN helps at scale? (expected in ~1-3h)
+  2. Does h085-1B-s2v3 match s1 (41.38) or drop? (expected in ~1-3h)
+  3. Does h165 (cosine w/o BN) beat h085 (32.46)? (isolates cosine LR effect)
+  4. Does h173 (cosine+BN+PPG) beat h162 (36.54)? (tests PPG synergy)
+  5. h162-1B: CRITICAL — first results expected in ~16-20h
+
+NEXT SESSION PRIORITIES:
+  1. Parse h127-1B-s2v3 (FIRST VALID h127-1B result) — expected ~1-3h
+  2. Parse h085-1B-s2v3 (completes h085 3-seed eval) — expected ~1-3h
+  3. Parse h166/h167/h168 pilots (PPG, separate critic) — expected ~8-12h
+  4. Parse h165 pilot (cosine w/o BN) — expected ~8-12h
+  5. Parse h173 pilot (cosine+BN+PPG) — expected ~10-14h
+  6. Monitor h127-1B-s3v5 (narval, ~10h remaining)
+  7. h162-1B results: expected ~20-30h from now
