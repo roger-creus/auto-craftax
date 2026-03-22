@@ -7716,3 +7716,93 @@ NEXT SESSION PRIORITIES:
   7. When h127-1B-s2 completes: FIRST VALID h127-1B DATA POINT
   8. If h127-1B is promising, wait for s1v5 and s3v5 for 3-seed mean
   9. If nothing hits 44: consider AGaLiTe architecture or two-phase training
+
+---
+**[2026-03-22 00:50 UTC]**
+
+=== SESSION: Parse h157/h156/h159 results, submit h165 pilot ===
+
+Triggered by: h157-pilot-s1v3 (narval 58089411) SUCCESS notification.
+
+PARSED NEW RESULTS:
+
+h157 (BN + num_steps=256):
+  CUDA OOM crash at ~262K steps (0.13% of 200M) on narval A100.
+  256 rollout steps doubles buffer size → OOM in BatchNorm forward pass.
+  BN + 256 steps is incompatible on A100/H100 3g.40gb.
+  STATUS → CLOSED.
+
+h156 (BN + ent_coef=0.02, higher constant entropy):
+  avg_return=18.98 at 200M — POOR (-45.6% vs h127 34.86)
+  12% dungeon entry only. Higher entropy completely fails with BN.
+  Default ent_coef=0.01 is already optimal.
+  STATUS → CLOSED.
+
+h159 (BN + RND 0.02, 2x standard):
+  avg_return=20.14 at 200M — POOR (-42.2% vs h127 34.86)
+  48% dungeon but 0% gnomish_mines. Higher RND coef with BN is WORSE.
+  RND 0.01 is the optimal coefficient with BN.
+  STATUS → CLOSED.
+
+BN COMBO SCORECARD UPDATE (all vs h127=34.86 at 200M):
+  h127: BN + RND 0.01 = 34.86 (BASELINE, BEST)
+  h128: + wide AC 2048 = 27.42 (-21.3%) ← DEAD
+  h143: + ent anneal 0.03→0.005 = 19.62 (-43.7%) ← DEAD
+  h144: + RND 0.005 = 32.82 (-5.9%) ← below optimal
+  h145: + ent anneal + RND 0.005 = 22.1 (-36.6%) ← DEAD
+  h147: + 3x LR = 18.58 (-46.7%) ← DEAD
+  h149: + reward shaping = 2.06 (-94.1%) ← DEAD
+  h150: + 2048 envs = OOM CRASH ← DEAD
+  h151: + hidden 768 = TIMED OUT ~22 (-36.9%) ← DEAD
+  h153: + obs whitening = 24.18 (-30.6%) ← DEAD
+  h154: + obs whitening + 25% pred = 18.90 (-45.8%) ← DEAD
+  h155: + full proper RND (0.5 coef etc) = 3.22 (-90.8%) ← DEAD
+  h156: + ent=0.02 = 18.98 (-45.6%) ← DEAD ← NEW
+  h157: + 256 steps = CUDA OOM ← DEAD ← NEW
+  h159: + RND 0.02 = 20.14 (-42.2%) ← DEAD ← NEW
+  15/15 MODIFICATIONS BELOW h127. NOTHING IMPROVES ON BN+RND 0.01 AT PILOT LEVEL.
+
+JOB MANAGEMENT:
+  Cancelled h160 (BN + RND 0.03): h159 (RND 0.02 = 20.14) confirmed higher RND is bad.
+  Submitted h165-pilot-s1 (rorqual 8795237): RND 0.01 + cosine LR (no BN).
+    Tests if cosine LR independently helps the h085 config.
+
+CURRENTLY RUNNING (7 jobs):
+  1B runs (CRITICAL):
+    h129-1B-s1 (fir 28729510): RND 0.015, 11.5h elapsed — should finish in 1-3h
+    h127-1B-s1v4 (fir 28743204): BN+RND seed 1, 8.5h elapsed, 32G — MAY OOM
+    h127-1B-s2v3 (narval 58080786): BN+RND seed 2, 8.7h elapsed, 48G — should be fine
+    h085-1B-s2v3 (narval 58080802): RND 0.01 seed 2, 8.7h elapsed — should be fine
+    h127-1B-s3v5 (narval 58090899): BN+RND seed 3, 10min elapsed — JUST STARTED
+  Pilots:
+    h158-pilot-s1v3 (narval 58089410): BN + curriculum, 30min in
+    h162-pilot-s1 (narval 58090054): BN + cosine LR, 15min in
+
+PENDING (5 jobs):
+  rorqual: h163 (BN+4 minibatches), h127-1B-s1v5 (backup 48G), h165 (RND+cosine LR)
+  fir: h161 (BN+RND 0.015), h164 (BN+VC-PPO)
+
+1B LEADERBOARD (unchanged):
+  h085 s1: 41.38 (BEST SINGLE SEED — RND 0.01 no BN)
+  h096 mean: 40.50 (2 seeds — RND 0.005 no BN)
+  h040 mean: 39.55 ± 2.33 (3 seeds — no RND no BN)
+  30% TARGET: 44.04
+  h127 (BN+RND 0.01) 1B: UNKNOWN (s3 OOM'd, s1+s2 running, s3v5 just started)
+
+STRATEGIC ASSESSMENT:
+  All 15 attempts to improve h127 at 200M pilot level have failed.
+  h127 is confirmed as a LOCAL OPTIMUM at 200M.
+  The only path forward is:
+  1. Wait for h127-1B 3-seed results (critical data, next 6-15h)
+  2. h158 (BN+curriculum) and h162 (BN+cosine LR) are last-hope pilots
+  3. h165 (RND+cosine LR without BN) tests orthogonal improvement
+  4. If h127-1B < 44: need fundamentally different approach (AGaLiTe architecture?)
+
+NEXT SESSION PRIORITIES:
+  1. Parse h129-1B-s1 (should finish first, ~1-3h)
+  2. Parse h127-1B-s1v4 or detect OOM (fir 32G, risky)
+  3. Parse h085-1B-s2v3 (completes 3-seed h085 evaluation)
+  4. Parse h127-1B-s2v3 (first VALID h127-1B data point)
+  5. Parse pilots: h158, h162, h161, h163, h164, h165
+  6. When h127-1B mean is known: DECISIVE MOMENT
+  7. If < 44: consider AGaLiTe implementation or other architectural change
