@@ -8390,3 +8390,54 @@ NEXT SESSION PRIORITIES:
   4. h127-1B-s3v5 (final BN data) — expected ~2-4h
   5. DECISION POINT: Once pilots complete, submit 1B runs for best combo
   6. h162-1B: monitoring (high risk since BN, ~14-16h remaining)
+
+---
+**[2026-03-22 13:21 UTC]**
+
+=== SESSION: h165-pilot-s1 rorqual = 30.74 — COSINE LR BENEFIT UNCERTAIN ===
+
+Triggered by: h165-pilot-s1 (rorqual 8795237) SUCCESS notification.
+
+PARSED h165-pilot-s1 (cosine LR + RND 0.01, NO BN, seed 1, rorqual H100 3g.40gb):
+  avg_return=30.74 at 200M steps. 76% dungeon 32% orc_soldier 8% diamond.
+  Wall 7954s (2.2h).
+
+CRITICAL FINDING — HUGE HARDWARE VARIANCE:
+  h165-pilot-s1 (rorqual H100 3g.40gb): 30.74 → -0.4% vs h040 pilot (30.86)
+  h165-pilot-s1v3 (fir H100 3g.40gb): 34.02 → +10.2% vs h040 pilot (30.86)
+  GAP: 10.7% difference between identical runs on different clusters.
+  Mean: (30.74 + 34.02)/2 = 32.38 → +4.9% vs h040.
+  
+  This invalidates the 'universal +4.8% from cosine' claim from last session.
+  Cosine may still help, but the true effect size is uncertain.
+  h165-pilot-s1v2 (narval, ~2.7h elapsed) will provide 3rd data point.
+
+h178-pilot-s1 INVESTIGATION (rorqual, disappeared):
+  Job completed but 'disappeared' from SLURM. Logs show completion with avg_reward ~26-27.
+  CSV saved to ./h178__h178-pilot-s1.csv (missing --output-dir flag!). Can't pull via xgenius.
+  Training avg_reward ~26-27 suggests avg_return likely ~26-28 — BELOW h040 baseline (30.86).
+  Interpretation: RND 0.005 + cosine is WORSE than RND 0.01 + cosine.
+  Waiting for fir backup (h178-s1v2) for proper evaluation.
+
+MASSIVE PILOT BATCH STILL RUNNING (17 jobs):
+  rorqual (2): h179-WSD+RND, h181-cosine+PPG — ~30min left
+  narval (5 pilots): h165-v2, h166-PPG, h167-PPG+RND, h168-sep-critic, h174-cosine — ~1-3h left
+  narval (4 1B): h127-s3v5-BN, h162-1B-s1/s2/s3 — ~5-14h left
+  fir (6): h166-v2, h174-cosine, h176-WSD, h178-v2-cosRND005, h180-WSD+RND005, h182-RAdam — ~1-4h left
+  nibi (6 pending): h169-h172, h174-v2, h183
+
+1B LEADERBOARD (unchanged):
+  h096 mean: 40.50 (2 seeds)
+  h040 mean: 39.55 ± 2.33 (3 seeds)
+  h085 mean: 38.71 (3 seeds, CLOSED)
+  h127: 31.06 (BN, DEAD)
+  30% TARGET: 44.04
+
+NEXT SESSION PRIORITIES:
+  1. Parse rorqual pilots (h179, h181) — expected ~30min
+  2. Parse narval/fir pilots (h165-v2, h166-h168, h174, h176, h178-v2, h180, h182) — 1-4h
+  3. CRITICAL DECISION: Once h174 (cosine on h040, no RND) completes, compare with h040 baseline
+     If h174 > h040: cosine LR IS useful, submit h174-1B and h165-1B
+     If h174 ≈ h040: cosine was noise, need to pivot
+  4. h162-1B (BN+cosine 1B): monitoring, high risk (~12h left)
+  5. Based on pilot results, decide 1B scale-up strategy
