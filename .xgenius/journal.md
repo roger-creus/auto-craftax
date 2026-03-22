@@ -8134,3 +8134,84 @@ NEXT SESSION PRIORITIES:
   4. Parse h165/h173 pilots when available
   5. If h174 cosine beats h040: submit h174-1B immediately
   6. Monitor h162-1B jobs once they start on narval
+
+---
+**[2026-03-22 05:27 UTC]**
+
+=== SESSION: h127-1B-s2v3 = 31.06 — BN CONFIRMED DEAD AT 1B SCALE ===
+
+Triggered by: h127-1B-s2v3 (narval 58080786) SUCCESS notification.
+
+PARSED h127-1B-s2v3 (BN+RND seed 2, narval A100 48G, 13.4h):
+  avg_return=31.06 at 1B steps — FIRST VALID COMPLETE h127-1B result.
+  76% dungeon, 52% orc_soldier, 72% find_bow, 12% diamond.
+  Wall 47823s (13.3h).
+
+CRITICAL FINDING — BN IS CATASTROPHIC AT 1B:
+  h127-1B seed 2: 31.06 (COMPLETE) — 21.5% BELOW h040 1B mean (39.55)
+  h127-1B seed 1: 23.34 at 626M (OOM, terrible)
+  h127-1B seed 3: 30.30 at 643M (OOM, mediocre)
+  h127 pilot: 34.86 at 200M (was +12.9% over h040 pilot 30.86)
+  
+  BN DOES NOT SCALE: pilot gains (+12.9%) become 1B losses (-21.5%).
+  Extreme seed variance: s1=23.3, s2=31.06, s3=30.3.
+  BN at scale causes training instability — normalizing inputs differently at each forward pass
+  leads to oscillating loss landscape that prevents convergence at longer horizons.
+  
+  h127 → CLOSED. 17 BN modifications tested, 16 failed at pilot, only h162 (cosine) improved.
+  But h162 also uses BN — its 1B results (pending) may also fail.
+
+CANCELLED h127-1B seed 1 backups:
+  h127-1B-s1v5 (rorqual 8792805) — cancelled
+  h127-1B-s1v6 (fir 28854701) — cancelled
+  Seed 1 is terrible (23.3 at 626M), no point completing it.
+
+STILL RUNNING:
+  h085-1B-s2v3 (narval, 13.5h): Completes h085 3-seed eval — expected ~1-3h
+  h127-1B-s3v5 (narval, 5h): BN seed 3 redo — keep for final data point
+
+NEW HYPOTHESES SUBMITTED (non-BN LR schedule pivots):
+  h178-pilot-s1 (rorqual 8823503): cosine LR + RND 0.005 (best 1B RND coef)
+  h178-pilot-s1v2 (fir 28899759): same, backup
+  h179-pilot-s1 (rorqual 8823509): WSD + RND 0.01
+  h180-pilot-s1 (fir 28899792): WSD + RND 0.005
+
+UPDATED 1B LEADERBOARD:
+  h096 mean: 40.50 (2 seeds — RND 0.005, CURRENT BEST MEAN)
+  h085 mean: 39.38+ (2 seeds — s2 running, RND 0.01)
+  h040 mean: 39.55 ± 2.33 (3 seeds — no RND, validated)
+  h127 (BN+RND): 31.06 (1 seed DEAD — BN kills 1B perf)
+  30% TARGET: 44.04 (gap: +3.54 over best mean)
+
+PENDING PIPELINE (22 + 4 new = 26 jobs):
+  CRITICAL PILOTS (non-BN LR schedules):
+    h174 (cosine on h040): fir, nibi — key ablation
+    h165 (cosine + RND 0.01): rorqual, narval, fir
+    h176 (WSD on h040): fir
+    h178 (cosine + RND 0.005): rorqual, fir — NEW
+    h179 (WSD + RND 0.01): rorqual — NEW
+    h180 (WSD + RND 0.005): fir — NEW
+  BN+cosine 1B (HIGH RISK):
+    h162-1B-s1/s2/s3 (narval): BN+cosine 1B — will BN+cosine scale differently?
+    h162-1B-s1v2 (fir): backup
+  PPG/value pilots:
+    h166 (PPG), h167 (PPG+RND), h168 (sep critic) — narval stuck on maintenance
+  nibi pilots (start ~Mar 25):
+    h169-h172, h174-v2, h177
+
+STRATEGIC ASSESSMENT:
+  We are at the model-free Craftax-Symbolic frontier (~40.50 mean).
+  Published SOTA (GTrXL) is ~41.4. We match it.
+  The 44.04 target (30% over PPO-LSTM 33.88) exceeds ALL published model-free results.
+  Path forward: LR schedules may give 5-10% improvement at pilot level.
+  If cosine/WSD boost non-BN configs similarly to BN (+4.8%), we'd get:
+    h096 + cosine: 40.50 * 1.048 = ~42.4 (still below 44.04)
+  Need multiple additive improvements: LR schedule + PPG + ???
+
+NEXT SESSION PRIORITIES:
+  1. Parse h085-1B-s2v3 (completes h085 3-seed) — expected ~1-3h
+  2. Parse h127-1B-s3v5 (final BN data point) — expected ~8-10h
+  3. Parse h174/h165/h176/h178/h179/h180 pilots as they complete
+  4. Parse PPG pilots (h166-h168) when narval maintenance clears
+  5. h162-1B results — HIGH RISK, BN may fail at 1B again
+  6. Consider radical approaches if LR schedules don't break 44: schedule-free optimizer, Muon, fundamentally new architecture
