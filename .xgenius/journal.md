@@ -7885,3 +7885,19 @@ NEXT SESSION PRIORITIES:
   6. If h127-1B disappoints: pivot to AGaLiTe architecture or other fundamental change
   7. Web search results may inform new directions
 
+
+---
+**[2026-03-22 02:02 UTC]**
+
+Submitted 3 new pilots on narval (will queue until h158/h162 finish):
+  h166-pilot-s1 (narval 58094152): h040 config + extra_value_epochs=2 (PPG-style, no RND)
+  h167-pilot-s1 (narval 58094153): h085 config + extra_value_epochs=2 (PPG + RND 0.01)
+  h168-pilot-s1 (narval 58094155): h085 config + separate_critic (asymmetric AC + RND 0.01)
+
+Web search confirmed: published GTrXL SOTA at 1B is ~41.4 (18.3%). Our best (h085-s1=41.38) matches it.
+AGaLiTe outperforms GTrXL but exact numbers unpublished. SCALAR reaches gnomish mines (9.1%).
+No published method breaks past ~20% at 1B. Our 44.04 target exceeds published SOTA.
+
+DeepMind insight: low-dimensional GRU hidden state works better — memory should focus on info not in obs.
+PQN paper confirms BN on input is effective (we already use this).
+Intrinsic exploration generally hurts overall reward in standard settings — consistent with our mixed RND results.
