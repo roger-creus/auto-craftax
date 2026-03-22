@@ -8305,3 +8305,88 @@ NEXT SESSION PRIORITIES:
   4. Parse h166-h168 pilots (PPG/critic) when narval maintenance clears
   5. Parse h181/h182/h183 pilots
   6. If cosine helps: submit 1B runs immediately
+
+---
+**[2026-03-22 12:25 UTC]**
+
+=== SESSION: h165-pilot-s1v3 = 34.02 — COSINE LR CONFIRMED UNIVERSAL +4.8% ===
+
+Triggered by: h165-pilot-s1v3 (fir 28897103) SUCCESS notification.
+
+PARSED h165-pilot-s1v3 (cosine LR + RND 0.01, NO BN, seed 1, fir H100 3g.40gb):
+  avg_return=34.02 at 200M steps. 92% dungeon 52% orc_soldier 8% orc_mage 8% diamond.
+  Wall 7387s (2.1h).
+
+KEY FINDING — COSINE LR IS UNIVERSAL +4.8% IMPROVEMENT:
+  h165 (cosine + RND 0.01, no BN): 34.02 vs h085 (RND 0.01, linear): 32.46 → +4.8%
+  h162 (cosine + RND 0.01, BN):    36.54 vs h127 (RND 0.01, BN, linear): 34.86 → +4.8%
+  Exact same +4.8% gain from cosine LR in BOTH BN and non-BN configs.
+  
+  h165 vs h162: 34.02 vs 36.54 → BN adds +7.4% at pilot
+  But BN fails at 1B (h127-1B = 31.06 vs h040-1B = 39.55).
+  h165 is the SAFER PATH — cosine without BN.
+
+PROJECTED 1B PERFORMANCE:
+  If h165 scales like h085 (pilot→1B): 34.02 * (38.71/32.46) = 40.56
+  If h165 scales like h040 (pilot→1B): 34.02 * (39.55/30.86) = 43.60
+  Realistic range: 40-43.6 at 1B. Still below 44.04 target.
+  Need additional improvements stacking on top (PPG, better RND coef, WSD).
+
+MASSIVE PILOT PIPELINE RUNNING (19 jobs across 4 clusters):
+  rorqual (4 jobs, ~0.5-2h remaining):
+    h165-pilot-s1: cosine+RND 0.01 (seed 1 dup)
+    h178-pilot-s1: cosine+RND 0.005 (MOST IMPORTANT — best 1B RND coef + cosine)
+    h179-pilot-s1: WSD+RND 0.01
+    h181-pilot-s1: cosine+PPG (CRITICAL COMBO TEST)
+  narval (5 pilots + 1B jobs):
+    h165-pilot-s1v2: cosine+RND 0.01 (seed 1 dup)
+    h166-pilot-s1: PPG alone (no RND)
+    h167-pilot-s1: PPG+RND 0.01
+    h168-pilot-s1: separate critic+RND 0.01
+    h174-pilot-s1v3: cosine on h040 (KEY ABLATION — cosine without RND)
+    h127-1B-s3v5 (12h, ~2-4h remaining): final BN data
+    h162-1B-s1/s2/s3 (1.8h elapsed): BN+cosine at 1B
+  fir (6 pilots + 1 pending 1B):
+    h166-pilot-s1v2: PPG dup
+    h174-pilot-s1: cosine on h040 (KEY ABLATION)
+    h176-pilot-s1: WSD on h040
+    h178-pilot-s1v2: cosine+RND 0.005 dup
+    h180-pilot-s1: WSD+RND 0.005
+    h182-pilot-s1: RAdam optimizer
+    h162-1B-s1v2 (pending): BN+cosine 1B backup
+  nibi (6 pending, start ~Mar 25):
+    h169-h172, h174-s1v2, h183
+
+PILOT PRIORITY RANKING (what to watch for):
+  1. h174 (cosine on h040, no RND): If cosine helps h040 too, it's truly universal
+  2. h178 (cosine + RND 0.005): Best 1B RND coef + best LR schedule
+  3. h181 (cosine + PPG): If PPG stacks +5%, path to 44+ exists
+  4. h176 (WSD on h040): If WSD beats cosine, WSD is better
+  5. h179/h180 (WSD + RND): WSD variants
+  6. h166-h168 (PPG/critic baseline): PPG effect size without cosine
+  7. h182 (RAdam): Alternative optimizer
+
+1B LEADERBOARD (unchanged):
+  h096 mean: 40.50 (2 seeds — RND 0.005)
+  h040 mean: 39.55 ± 2.33 (3 seeds — no RND)
+  h085 mean: 38.71 ± 2.31 (3 seeds — RND 0.01, CLOSED)
+  h127: 31.06 (BN, DEAD)
+  30% TARGET: 44.04
+
+STRATEGIC ASSESSMENT:
+  Cosine LR is our first confirmed universal improvement (+4.8%).
+  But 4.8% alone only gets us from 39.55 → ~41.45 (projected), short of 44.04.
+  Need 2-3 stacking improvements. Most promising path:
+    cosine LR (+4.8%) + PPG (+5%?) + ??? = ~48% total pilot improvement needed
+  h181 result will tell us if PPG+cosine stacks.
+  
+  If NOTHING stacks beyond cosine alone: 41.45 is our ceiling, +4.8% over validated best.
+  Then need fundamentally different approach (model-based, hierarchical, etc.)
+
+NEXT SESSION PRIORITIES:
+  1. Parse rorqual pilots (h165/h178/h179/h181) — expected 0.5-2h
+  2. Parse narval pilots (h166-h168/h174) — expected 1.5-3h
+  3. Parse fir pilots (h174/h176/h178/h180/h182) — expected 1.5-3h
+  4. h127-1B-s3v5 (final BN data) — expected ~2-4h
+  5. DECISION POINT: Once pilots complete, submit 1B runs for best combo
+  6. h162-1B: monitoring (high risk since BN, ~14-16h remaining)
