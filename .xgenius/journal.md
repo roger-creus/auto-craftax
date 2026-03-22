@@ -7806,3 +7806,82 @@ NEXT SESSION PRIORITIES:
   5. Parse pilots: h158, h162, h161, h163, h164, h165
   6. When h127-1B mean is known: DECISIVE MOMENT
   7. If < 44: consider AGaLiTe implementation or other architectural change
+
+---
+**[2026-03-22 01:59 UTC]**
+
+=== SESSION: Parse h129-1B-s1 (OOM), manage h127-1B backups ===
+
+Triggered by: h129-1B-s1 (fir 28729510) SUCCESS notification (actually OOM killed).
+
+h129-1B-s1 RESULT (RND 0.015, no BN, fir H100 3g.40gb 32G):
+  OOM killed at 626M/1B steps (62.7%). Same 32G system RAM OOM pattern.
+  Trajectory (50M windows): 0=18.66, 100=33.70, 200=31.62, 300=29.30, 400=30.70, 500=34.70, 600=35.46
+  Max episode return: 57.10. Still climbing at ~35.46 at 600M.
+  Projected 1B if completed: ~38-42 (below h085 s1 at 41.38).
+  RND 0.015 confirmed suboptimal vs 0.01 at scale.
+  STATUS → CLOSED.
+
+h127-1B-s1v4 CHECK (BN+RND 0.01 seed 1, fir H100 32G):
+  Still alive at 626.5M steps but avg_reward=23.5 — VERY CONCERNING!
+  Much worse than h127-1B-s3v4 (~30.9 at 600M) or h129 (~35.5 at 600M).
+  Seed 1 of h127-1B is dramatically underperforming. Will OOM soon (same 32G pattern).
+
+JOB MANAGEMENT:
+  Cancelled h161-pilot-s1 (fir 28837374): RND 0.015 confirmed suboptimal from h129-1B
+  Cancelled h164-pilot-s1 (fir 28840865): Freed GPU for h127-1B-s1v6 (48G backup)
+  Cancelled h163-pilot-s1 (rorqual 8791178): Freed queue for h127-1B-s1v5 (48G backup)
+  Submitted h127-1B-s1v6 (fir 28854701, 48G): Backup for seed 1 once s1v4 OOMs
+
+UPDATED HYPOTHESES:
+  h129 → closed (RND 0.015 suboptimal at scale)
+  h161 → closed (cancelled, 0.015 unnecessary)
+  h163 → closed (cancelled, queue freed for 1B backup)
+  h164 → closed (cancelled, GPU freed for 1B backup)
+
+CURRENTLY RUNNING (8 + 4 pending):
+  1B runs (CRITICAL):
+    h127-1B-s2v3 (narval 58080786, 48G): 10h elapsed — FIRST VALID h127-1B, ~3-5h to go
+    h127-1B-s3v5 (narval 58090899, 48G): 1.5h elapsed — ~10-12h to go
+    h127-1B-s1v4 (fir 28743204, 32G): 9.7h elapsed — ABOUT TO OOM
+    h085-1B-s2v3 (narval 58080802, 48G): 10h elapsed — completes h085 3-seed eval, ~3-5h
+  Pilots:
+    h158-pilot-s1v3 (narval 58089410): BN+curriculum, 1.8h elapsed, ~2h remaining
+    h162-pilot-s1 (narval 58090054): BN+cosine LR, 1.5h elapsed, ~2.5h remaining
+  Pending:
+    h127-1B-s1v5 (rorqual 8792805, 48G): stuck pending (rorqual queue)
+    h127-1B-s1v6 (fir 28854701, 48G): will start when s1v4 OOMs
+    h165-pilot-s1 (rorqual 8795237): RND+cosine LR pilot, pending
+
+CONCERNING OBSERVATION:
+  h127-1B-s1v4 at 626M: avg_reward=23.5 (TERRIBLE)
+  h127-1B-s3v4 at 600M: avg_reward=30.9 (mediocre)
+  h129-1B-s1 at 600M: avg_reward=35.5 (decent, no BN)
+  BN is NOT consistently helping at 1B scale! High seed variance is alarming.
+  The pilot-to-1B comparison is invalid due to different LR schedules.
+
+1B LEADERBOARD (unchanged):
+  h085 s1: 41.38 (BEST SINGLE SEED — RND 0.01 no BN)
+  h096 mean: 40.50 (2 seeds — RND 0.005 no BN)
+  h040 mean: 39.55 ± 2.33 (3 seeds — no RND no BN)
+  30% TARGET: 44.04 (over PPO-LSTM baseline 33.88)
+  h127 BN+RND: UNKNOWN (s1=~23@626M bad, s3=~31@600M mediocre, s2 running)
+
+STRATEGIC STATUS:
+  Already beat PPO baseline by >30% (39.55 vs 26.83). MINIMUM target MET.
+  Hard target (>30% over PPO-LSTM) requires 44.04. No single run has achieved this.
+  Published GTrXL SOTA is ~41.4 at 1B. We match it at ~40-41.
+  Need fundamentally new approach to break 44.
+  
+  Web search running for AGaLiTe architecture and latest Craftax methods.
+  Codebase has untested features: extra_value_epochs (PPG), separate_critic, GELU.
+
+NEXT SESSION PRIORITIES:
+  1. Parse h127-1B-s2v3 (narval, FIRST VALID h127-1B result) — ~3-5h from now
+  2. Parse h085-1B-s2v3 (narval, completes 3-seed h085) — ~3-5h from now
+  3. Parse h158/h162 pilots — ~2h from now
+  4. Detect h127-1B-s1v4 OOM, verify h127-1B-s1v6 starts
+  5. Once h158/h162 finish on narval: submit PPG pilots (extra_value_epochs)
+  6. If h127-1B disappoints: pivot to AGaLiTe architecture or other fundamental change
+  7. Web search results may inform new directions
+
