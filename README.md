@@ -1,26 +1,13 @@
-# skills-via-llm
+# auto-craftax
 
-# Installation
+Autonomous research on [Craftax-Symbolic-v1](https://github.com/MichaelTMatthews/Craftax), driven by [xgenius](https://github.com/roger-creus/xgenius).
 
-Build the Docker container:
+An AI agent (Claude Code) autonomously formulated hypotheses, wrote code, ran 1B-step experiments on SLURM clusters, and iterated — with no human intervention.
 
-```bash
-docker build -t skill:latest .
-```
+## Key files
 
-## Test your installation:
-
-You can either play with an interactive shell:
-
-```bash
-docker run --rm --gpus all -it -v $(pwd):/workspace -w /workspace skill:latest /bin/bash
-```
-
-or try running the test commands (some can take a while because craftax loads all textures everytime inside docker!)
-
-```bash
-docker run --rm --gpus all -v $(pwd):/workspace -w /workspace skill:latest python tests/test_jax_and_torch.py
-docker run --rm --gpus all -v $(pwd):/workspace -w /workspace skill:latest python tests/test_craftax_vanilla.py
-docker run --rm --gpus all -v $(pwd):/workspace -w /workspace skill:latest python tests/test_craftax_torch_wrapper.py
-```
-
+- [`research_goal.md`](research_goal.md) — the research objective given to the agent
+- [`.xgenius/journal.md`](.xgenius/journal.md) — the agent's full research journal
+- [`report/report.html`](report/report.html) — auto-generated research report
+- [`results/`](results/) — raw experiment results (CSV)
+- [`xgenius.toml`](xgenius.toml) — cluster and safety configuration
