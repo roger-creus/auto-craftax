@@ -39,3 +39,6 @@ runs/
 *.ckpt
 # SLURM logs (transient, pulled from cluster)
 .xgenius/slurm_logs/
+
+# Cluster config (contains private hostnames/usernames)
+xgenius.toml

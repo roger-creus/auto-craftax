@@ -10,4 +10,3 @@ An AI agent (Claude Code) autonomously formulated hypotheses, wrote code, ran 1B
 - [`.xgenius/journal.md`](.xgenius/journal.md) — the agent's full research journal
 - [`report/report.html`](report/report.html) — auto-generated research report
 - [`results/`](results/) — raw experiment results (CSV)
-- [`xgenius.toml`](xgenius.toml) — cluster and safety configuration
