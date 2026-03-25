@@ -20,6 +20,12 @@ runs/
 .xgenius/markers/
 .xgenius/watcher.log
 .xgenius/watcher.lock
+.xgenius/audit.jsonl
+.xgenius/batches/
+.xgenius/templates/
+.xgenius/run_id
+.xgenius/xgenius.db
+.xgenius/DEBUG.md
 
 # Singularity/Apptainer containers (too large for git)
 *.sif
